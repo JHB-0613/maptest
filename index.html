@@ -702,7 +702,6 @@
 
         console.log(`역 데이터 로드 완료: 총 ${STATIONS_LIST.length}개 역`);
 
-        // 서울역 중심 초기 정렬
         const seoul = STATIONS_LIST.find(s => s.queryTerm === "서울" || s.name === "서울역");
         if (seoul) {
           panToStation(seoul.x, seoul.y, 1.0);
@@ -724,7 +723,6 @@
 
       panToStation(stationObj.x, stationObj.y, 1.35);
 
-      // 카드 역명 및 호선 배지 동적 생성
       document.getElementById("card-station-name").innerText = stationObj.name;
       const badgeContainer = document.getElementById("card-station-badges");
       badgeContainer.innerHTML = "";
@@ -741,6 +739,33 @@
       searchBox.value = stationObj.name;
       clearSearchBtn.style.display = "block";
       suggestions.style.display = "none";
+    }
+
+    /* ========================================================
+       지도 직접 클릭/탭 시 좌표 판별 및 역 선택
+    ======================================================== */
+    function handleMapClick(clientX, clientY) {
+      const rect = metroContainer.getBoundingClientRect();
+      const screenX = clientX - rect.left;
+      const screenY = clientY - rect.top;
+
+      const mapX = (screenX - panX) / scale;
+      const mapY = (screenY - panY) / scale;
+
+      let nearestStation = null;
+      let minDistance = 45; // 클릭 감지 유효 반경(px)
+
+      for (const st of STATIONS_LIST) {
+        const dist = Math.hypot(st.x - mapX, st.y - mapY);
+        if (dist < minDistance) {
+          minDistance = dist;
+          nearestStation = st;
+        }
+      }
+
+      if (nearestStation) {
+        selectStation(nearestStation);
+      }
     }
 
     /* ========================================================
@@ -814,7 +839,7 @@
     }
 
     /* ========================================================
-       스마트 줌 & 패닝 바운더리 락 엔진
+       스마트 줌 & 패닝 바운더리 락 엔진 (클릭/드래그 분리)
     ======================================================== */
     const viewportW = 412;
     const viewportH = 870;
@@ -829,6 +854,9 @@
     let startX = 0, startY = 0;
     let initialPinchDistance = null;
     let initialScale = 1.0;
+
+    let isMovedDrag = false;
+    let downClientX = 0, downClientY = 0;
 
     function clampPan() {
       const currentMapW = MAP_SIZE * scale;
@@ -870,28 +898,45 @@
     metroContainer.addEventListener("mousedown", (e) => {
       if (e.target.closest(".zoom-controls") || e.target.closest(".station-popup-card") || e.target.closest(".bottom-search-wrapper")) return;
       isDragging = true;
+      isMovedDrag = false;
+      downClientX = e.clientX;
+      downClientY = e.clientY;
       startX = e.clientX - panX;
       startY = e.clientY - panY;
     });
 
     window.addEventListener("mousemove", (e) => {
       if (!isDragging) return;
+      if (Math.hypot(e.clientX - downClientX, e.clientY - downClientY) > 5) {
+        isMovedDrag = true;
+      }
       panX = e.clientX - startX;
       panY = e.clientY - startY;
       updateTransform(false);
     });
 
-    window.addEventListener("mouseup", () => {
+    window.addEventListener("mouseup", (e) => {
+      if (!isDragging) return;
       isDragging = false;
+      if (!isMovedDrag) {
+        handleMapClick(e.clientX, e.clientY);
+      }
     });
+
+    let touchMoved = false;
+    let touchDownX = 0, touchDownY = 0;
 
     metroContainer.addEventListener("touchstart", (e) => {
       if (e.touches.length === 1) {
         isDragging = true;
+        touchMoved = false;
+        touchDownX = e.touches[0].clientX;
+        touchDownY = e.touches[0].clientY;
         startX = e.touches[0].clientX - panX;
         startY = e.touches[0].clientY - panY;
       } else if (e.touches.length === 2) {
         isDragging = false;
+        touchMoved = true;
         initialPinchDistance = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
         initialScale = scale;
       }
@@ -900,10 +945,14 @@
     metroContainer.addEventListener("touchmove", (e) => {
       e.preventDefault();
       if (e.touches.length === 1 && isDragging) {
+        if (Math.hypot(e.touches[0].clientX - touchDownX, e.touches[0].clientY - touchDownY) > 6) {
+          touchMoved = true;
+        }
         panX = e.touches[0].clientX - startX;
         panY = e.touches[0].clientY - startY;
         updateTransform(false);
       } else if (e.touches.length === 2 && initialPinchDistance) {
+        touchMoved = true;
         const currentDistance = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
         const newScale = Math.min(Math.max(initialScale * (currentDistance / initialPinchDistance), minScale), maxScale);
 
@@ -917,9 +966,12 @@
       }
     }, { passive: false });
 
-    metroContainer.addEventListener("touchend", () => {
+    metroContainer.addEventListener("touchend", (e) => {
       isDragging = false;
       initialPinchDistance = null;
+      if (!touchMoved && e.changedTouches.length > 0) {
+        handleMapClick(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+      }
     });
 
     function zoomManual(delta) {
