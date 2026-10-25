@@ -1,460 +1,1065 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>2D 개인 핀 & 랜덤 디스커버리 공유 지도</title>
-  <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
-  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>오픈소스 SVG 연동 지하철 네비게이션</title>
+  <!-- Three.js CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
   <style>
     :root {
-      --surface: rgba(255, 255, 255, 0.96);
-      --text-main: #0f172a;
-      --text-sub: #64748b;
-      --primary: #2563eb;
-      --discover: #8b5cf6; /* 타인의 공유 핀 강조 컬러 */
-      --border: rgba(15, 23, 42, 0.09);
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Pretendard', -apple-system, sans-serif; }
-    body, html { width: 100%; height: 100%; overflow: hidden; background: #f1f5f9; color: var(--text-main); }
-    #map { width: 100%; height: 100%; }
-
-    /* 상단 컨트롤러 (노출 전략 선택 + 카테고리 필터) */
-    .top-ui {
-      position: absolute; top: 12px; left: 12px; right: 12px; z-index: 10;
-      max-width: 480px; display: flex; flex-direction: column; gap: 8px; pointer-events: none;
-    }
-    .feed-mode-bar {
-      pointer-events: auto; background: var(--surface); backdrop-filter: blur(12px);
-      padding: 8px; border-radius: 14px; border: 1px solid var(--border);
-      box-shadow: 0 4px 16px rgba(0,0,0,0.07);
-      display: flex; gap: 6px; align-items: center;
-    }
-    .mode-btn {
-      flex: 1; padding: 8px 6px; border-radius: 10px; border: none;
-      background: transparent; color: var(--text-sub); font-size: 12px; font-weight: 700;
-      cursor: pointer; transition: 0.15s;
-    }
-    .mode-btn.active { background: var(--text-main); color: #fff; }
-    .reroll-btn {
-      padding: 8px 10px; border-radius: 10px; border: 1px solid #ddd6fe;
-      background: #f5f3ff; color: var(--discover); font-size: 12px; font-weight: 700;
-      cursor: pointer; white-space: nowrap;
+      --bg-dark: #121418;
+      --card-bg: rgba(22, 26, 35, 0.94);
+      --accent-cyan: #00e5ff;
+      --text-main: #ffffff;
+      --text-sub: #8e95a5;
+      --border-color: rgba(255, 255, 255, 0.12);
     }
 
-    .category-bar {
-      pointer-events: auto; display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none;
-    }
-    .category-bar::-webkit-scrollbar { display: none; }
-    .cat-chip {
-      white-space: nowrap; padding: 7px 13px; border-radius: 99px;
-      background: var(--surface); border: 1px solid var(--border);
-      font-size: 12px; font-weight: 600; color: var(--text-main);
-      box-shadow: 0 2px 6px rgba(0,0,0,0.05); cursor: pointer;
-    }
-    .cat-chip.active { background: var(--primary); color: #fff; border-color: var(--primary); }
-
-    /* 범례 배지 */
-    .legend-bar {
-      pointer-events: auto; align-self: flex-start;
-      background: var(--surface); padding: 6px 12px; border-radius: 99px;
-      font-size: 11px; color: var(--text-sub); display: flex; gap: 12px;
-      border: 1px solid var(--border); box-shadow: 0 2px 6px rgba(0,0,0,0.04);
-    }
-    .dot-indicator { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 4px; }
-
-    /* 우측 하단 플로팅 버튼 */
-    .fab-col {
-      position: absolute; right: 14px; bottom: 110px; z-index: 10;
-      display: flex; flex-direction: column; gap: 10px;
-    }
-    .fab {
-      width: 46px; height: 46px; border-radius: 14px; border: 1px solid var(--border);
-      background: var(--surface); font-size: 19px; cursor: pointer;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center;
-    }
-    .fab.active { background: var(--primary); color: #fff; }
-
-    /* 커스텀 핀 마커 (내 핀 vs 타인 공유 핀 시각적 구분) */
-    .pin-marker {
-      display: flex; align-items: center; gap: 4px;
-      padding: 5px 10px; border-radius: 99px; font-size: 12px; font-weight: 700;
-      box-shadow: 0 3px 10px rgba(0,0,0,0.18); cursor: pointer;
-      transition: transform 0.15s; white-space: nowrap;
-    }
-    .pin-marker:hover { transform: scale(1.1); z-index: 5; }
-    /* 내가 만든 핀: 파란색 솔리드 */
-    .pin-marker.mine {
-      background: #2563eb; color: #fff; border: 2px solid #ffffff;
-    }
-    /* 랜덤/추천으로 뜬 다른 사람의 핀: 흰색 배경 + 보라색 강조 테두리 */
-    .pin-marker.others {
-      background: #ffffff; color: #1e293b; border: 2.5px solid #8b5cf6;
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
     }
 
-    /* 내 위치 + 바라보는 방향 시야각 콘 */
-    .user-loc-wrap { width: 96px; height: 96px; display: flex; align-items: center; justify-content: center; pointer-events: none; }
-    .view-cone {
-      position: absolute; width: 92px; height: 92px; border-radius: 50%;
-      background: conic-gradient(from -30deg at 50% 50%, transparent 0deg, rgba(37, 99, 235, 0.38) 30deg, transparent 60deg);
-      mask-image: radial-gradient(circle, black 18%, transparent 70%);
-      -webkit-mask-image: radial-gradient(circle, black 18%, transparent 70%);
+    body {
+      background-color: #0b0c10;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, "Pretendard", "Segoe UI", Roboto, sans-serif;
+      color: var(--text-main);
+      overflow: hidden;
     }
-    .user-dot { width: 16px; height: 16px; border-radius: 50%; background: #2563eb; border: 3px solid #fff; z-index: 2; }
 
-    /* 하단 바텀시트 */
-    .sheet {
-      position: absolute; left: 0; right: 0; bottom: 0; z-index: 20;
-      background: var(--surface); border-top-left-radius: 20px; border-top-right-radius: 20px;
-      box-shadow: 0 -6px 24px rgba(0,0,0,0.1);
-      transform: translateY(calc(100% - 68px)); transition: transform 0.28s ease;
-      max-height: 75vh; display: flex; flex-direction: column;
+    .phone-container {
+      width: 100%;
+      max-width: 412px;
+      height: 870px;
+      background: var(--bg-dark);
+      border-radius: 46px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.85), inset 0 0 0 4px #2b303c;
+      display: flex;
+      flex-direction: column;
     }
-    .sheet.open { transform: translateY(0); }
-    .sheet-head { padding: 12px 18px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); }
-    .sheet-content { padding: 16px 18px 24px; overflow-y: auto; }
-    @media (min-width: 768px) {
-      .sheet { left: 12px; right: auto; bottom: 12px; width: 380px; border-radius: 18px; }
+
+    .status-bar {
+      height: 48px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 28px;
+      font-size: 14px;
+      font-weight: 600;
+      z-index: 100;
+      pointer-events: none;
     }
-    .input { width: 100%; padding: 9px 11px; border-radius: 8px; border: 1px solid #cbd5e1; margin-bottom: 8px; font-size: 13px; }
-    .btn-submit { width: 100%; padding: 11px; border-radius: 8px; border: none; background: var(--primary); color: #fff; font-weight: 700; cursor: pointer; }
+
+    .island {
+      width: 110px;
+      height: 26px;
+      background: #000;
+      border-radius: 20px;
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    .view {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      transition: opacity 0.35s ease, transform 0.35s ease;
+    }
+
+    .view.hidden {
+      opacity: 0;
+      pointer-events: none;
+      transform: scale(0.96);
+    }
+
+    /* 1. 메인 노선도 뷰 */
+    #main-view {
+      background: #f8f9fb;
+      overflow: hidden;
+      touch-action: none;
+    }
+
+    .metro-canvas-container {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      overflow: hidden;
+      cursor: grab;
+    }
+
+    .metro-canvas-container:active {
+      cursor: grabbing;
+    }
+
+    #map-wrapper {
+      position: absolute;
+      top: 0;
+      left: 0;
+      transform-origin: 0 0;
+      will-change: transform;
+    }
+
+    /* SVG 내부 스타일 강제 주입 */
+    #map-wrapper svg {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* 역 노드 호버 효과 */
+    .station-node, [id^="station-"], [data-station] {
+      cursor: pointer;
+    }
+
+    /* 역 위에 꽂히는 핀 */
+    #station-pin {
+      position: absolute;
+      width: 42px;
+      height: 56px;
+      transform: translate(-50%, -100%);
+      z-index: 50;
+      display: none;
+      filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.45));
+      animation: pinDrop 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      pointer-events: none;
+    }
+
+    @keyframes pinDrop {
+      0% { transform: translate(-50%, -180%); opacity: 0; }
+      100% { transform: translate(-50%, -100%); opacity: 1; }
+    }
+
+    .zoom-controls {
+      position: absolute;
+      right: 18px;
+      top: 90px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      z-index: 60;
+    }
+
+    .btn-zoom {
+      width: 40px;
+      height: 40px;
+      background: rgba(22, 26, 35, 0.88);
+      backdrop-filter: blur(15px);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      color: #fff;
+      font-size: 20px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.3);
+    }
+
+    .station-popup-card {
+      position: absolute;
+      bottom: 96px;
+      left: 18px;
+      right: 18px;
+      background: var(--card-bg);
+      backdrop-filter: blur(25px);
+      border: 1px solid var(--border-color);
+      border-radius: 24px;
+      padding: 16px 20px;
+      z-index: 50;
+      display: none;
+      box-shadow: 0 16px 36px rgba(0,0,0,0.6);
+      animation: slideUp 0.3s ease;
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(25px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+
+    .station-title {
+      font-size: 20px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .badge-wrap {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 12px;
+      color: white;
+    }
+    .badge-1 { background-color: #0052a4; }
+    .badge-2 { background-color: #3cb44a; }
+    .badge-3 { background-color: #ef7c1c; }
+    .badge-4 { background-color: #00a5de; }
+    .badge-shin { background-color: #d4003b; }
+
+    .btn-close-card {
+      background: rgba(255, 255, 255, 0.12);
+      border: none;
+      color: #fff;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 15px;
+    }
+
+    .card-desc {
+      font-size: 13px;
+      color: var(--text-sub);
+      margin-bottom: 14px;
+    }
+
+    .btn-detail {
+      width: 100%;
+      background: linear-gradient(135deg, #1f78ff, #00d2ff);
+      color: white;
+      border: none;
+      padding: 12px;
+      border-radius: 14px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      box-shadow: 0 6px 18px rgba(0, 180, 255, 0.35);
+    }
+
+    /* 2. 실내 지도 화면 */
+    #indoor-view {
+      background: #181a20;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .indoor-header {
+      padding: 50px 20px 14px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 40;
+    }
+
+    .btn-back {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--border-color);
+      color: white;
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 20px;
+    }
+
+    .indoor-title-wrap {
+      text-align: center;
+    }
+    .indoor-title {
+      font-size: 17px;
+      font-weight: 700;
+    }
+    .indoor-sub {
+      font-size: 12px;
+      color: var(--text-sub);
+    }
+
+    .indoor-controls {
+      position: absolute;
+      top: 120px;
+      left: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      z-index: 50;
+    }
+
+    .toggle-mode {
+      background: rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      padding: 3px;
+      display: flex;
+      width: 90px;
+    }
+
+    .toggle-btn {
+      flex: 1;
+      padding: 6px 0;
+      border: none;
+      background: transparent;
+      color: var(--text-sub);
+      font-size: 13px;
+      font-weight: 700;
+      border-radius: 16px;
+      cursor: pointer;
+    }
+
+    .toggle-btn.active {
+      background: #2a3346;
+      color: #00e5ff;
+    }
+
+    .floor-selector {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      background: rgba(25, 28, 36, 0.7);
+      backdrop-filter: blur(10px);
+      padding: 5px;
+      border-radius: 16px;
+      border: 1px solid var(--border-color);
+      max-height: 240px;
+      overflow-y: auto;
+    }
+
+    .floor-btn {
+      width: 44px;
+      height: 40px;
+      border-radius: 12px;
+      border: 1px solid transparent;
+      background: rgba(255, 255, 255, 0.05);
+      color: #a0a8b9;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .floor-btn.active {
+      background: rgba(255, 255, 255, 0.2);
+      border-color: #ffffff;
+      color: #ffffff;
+    }
+
+    #indoor-2d-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 10;
+    }
+
+    #three-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 10;
+      display: none;
+    }
+
+    /* 3. 하단 공통 검색바 */
+    .bottom-search-wrapper {
+      position: absolute;
+      bottom: 24px;
+      left: 18px;
+      right: 18px;
+      height: 60px;
+      background: rgba(22, 26, 35, 0.88);
+      backdrop-filter: blur(25px);
+      border: 1px solid var(--border-color);
+      border-radius: 30px;
+      display: flex;
+      align-items: center;
+      padding: 0 8px 0 18px;
+      z-index: 100;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+    }
+
+    .search-icon {
+      color: var(--text-sub);
+      font-size: 18px;
+      margin-right: 10px;
+    }
+
+    .search-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: white;
+      font-size: 15px;
+      outline: none;
+    }
+
+    .search-input::placeholder {
+      color: #636b7c;
+    }
+
+    .clear-search-btn {
+      color: var(--text-sub);
+      font-size: 16px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 6px;
+      display: none;
+      margin-right: 4px;
+    }
+
+    .ai-btn {
+      border: none;
+      background: linear-gradient(135deg, #00c6ff, #9d50bb, #f72585);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      color: white;
+      font-weight: 800;
+      font-size: 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 16px rgba(157, 80, 187, 0.6);
+    }
+
+    .search-suggestions {
+      position: absolute;
+      bottom: 74px;
+      left: 0;
+      right: 0;
+      background: var(--card-bg);
+      backdrop-filter: blur(25px);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      overflow: hidden;
+      display: none;
+      max-height: 240px;
+      overflow-y: auto;
+    }
+
+    .suggestion-item {
+      padding: 13px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      font-size: 14px;
+    }
+
+    .suggestion-item:hover {
+      background: rgba(255, 255, 255, 0.08);
+    }
   </style>
 </head>
 <body>
 
-<div class="top-ui">
-  <!-- 1. 핀 노출 전략 선택기 (추후 추천 알고리즘이 들어갈 자리) -->
-  <div class="feed-mode-bar">
-    <button class="mode-btn" data-mode="mine_only">👤 내 핀만</button>
-    <button class="mode-btn active" data-mode="random">🎲 내 핀 + 랜덤 공유</button>
-    <button class="mode-btn" data-mode="popular">🔥 내 핀 + 추천순</button>
-    <button class="reroll-btn" id="btnReroll" title="다른 사람의 공유 핀 다시 뽑기">🔄 새로고침</button>
+  <div class="phone-container">
+    <div class="status-bar">
+      <span>9:41</span>
+      <div class="island"></div>
+      <span style="font-size:12px; color:#aaa;">5G ▮ 100%</span>
+    </div>
+
+    <!-- 1. 메인 화면 -->
+    <div id="main-view" class="view">
+      <div class="metro-canvas-container" id="metro-container">
+        <!-- SVG 파일이 주입될 래퍼 -->
+        <div id="map-wrapper">
+          <!-- 역 핀 (동적 좌표 바인딩) -->
+          <svg id="station-pin" viewBox="0 0 384 512">
+            <path fill="#00e5ff" d="M172.268 501.67C26.97 291.031 0 269.413 0 192 0 85.961 86.039 0 192 0s192 85.961 192 192c0 77.413-26.97 99.031-172.268 309.67-9.535 13.774-29.93 13.773-39.464 0zM192 272c44.183 0 80-35.817 80-80s-35.817-80-80-80-80 35.817-80 80 35.817 80 80 80z"/>
+          </svg>
+        </div>
+      </div>
+
+      <!-- 수동 줌 버튼 -->
+      <div class="zoom-controls">
+        <button class="btn-zoom" onclick="zoomManual(0.25)">+</button>
+        <button class="btn-zoom" onclick="zoomManual(-0.25)">−</button>
+      </div>
+
+      <!-- 역 간략 카드 -->
+      <div class="station-popup-card" id="station-card">
+        <div class="card-header">
+          <div class="station-title">
+            <span id="card-station-name">강남역</span>
+            <div class="badge-wrap" id="card-station-badges"></div>
+          </div>
+          <button class="btn-close-card" onclick="deselectStation()">✕</button>
+        </div>
+        <div class="card-desc" id="card-station-desc">2호선·신분당선 주요 환승 허브</div>
+        <button class="btn-detail" onclick="enterIndoorView()">
+          <span>실내 지도 자세히 보기</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- 2. 실내 지도 화면 -->
+    <div id="indoor-view" class="view hidden">
+      <div class="indoor-header">
+        <button class="btn-back" onclick="exitIndoorView()">‹</button>
+        <div class="indoor-title-wrap">
+          <div class="indoor-title" id="indoor-title-text">지하철 실내 지도</div>
+          <div class="indoor-sub">(Subway Indoor Map)</div>
+        </div>
+        <div style="width:38px;"></div>
+      </div>
+
+      <div class="indoor-controls">
+        <div class="toggle-mode">
+          <button class="toggle-btn active" id="btn-2d" onclick="setIndoorMode('2D')">2D</button>
+          <button class="toggle-btn" id="btn-3d" onclick="setIndoorMode('3D')">3D</button>
+        </div>
+        <div class="floor-selector" id="floor-list"></div>
+      </div>
+
+      <div id="indoor-2d-canvas">
+        <svg width="340" height="420" viewBox="0 0 340 420">
+          <g fill="#434955" stroke="#252a34" stroke-width="3">
+            <rect x="120" y="40" width="100" height="340" rx="8"/>
+            <rect x="40" y="160" width="260" height="100" rx="8"/>
+          </g>
+          <g fill="#2e3440">
+            <rect x="130" y="50" width="80" height="320"/>
+            <rect x="50" y="170" width="240" height="80"/>
+          </g>
+          <g transform="translate(85, 205)"><circle r="12" fill="#ff4757"/><text y="-18" text-anchor="middle" fill="#fff" font-size="11">화장실</text></g>
+          <g transform="translate(170, 210)"><circle r="14" fill="#1e90ff"/><text y="-20" text-anchor="middle" fill="#fff" font-size="11">개찰구</text></g>
+          <g transform="translate(255, 205)"><circle r="12" fill="#2ed573"/><text y="-18" text-anchor="middle" fill="#fff" font-size="11">1번 출구</text></g>
+        </svg>
+      </div>
+
+      <div id="three-container"></div>
+    </div>
+
+    <!-- 3. 하단 공통 검색바 -->
+    <div class="bottom-search-wrapper">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="search-box" class="search-input" placeholder="역 이름 검색 (예: 강남, 서울역)..." oninput="onSearchInput(this.value)">
+      <button class="clear-search-btn" id="clear-search" onclick="clearSearchInput()">✕</button>
+      <button class="ai-btn" onclick="triggerAI()">AI</button>
+      <div class="search-suggestions" id="suggestions"></div>
+    </div>
   </div>
 
-  <!-- 2. 카테고리 필터 -->
-  <div class="category-bar" id="catBar">
-    <button class="cat-chip active" data-cat="all">전체 카테고리</button>
-    <button class="cat-chip" data-cat="view">👀 볼거리·풍경</button>
-    <button class="cat-chip" data-cat="trash">🗑️ 쓰레기·제보</button>
-    <button class="cat-chip" data-cat="tip">💡 동네 꿀팁</button>
-  </div>
+  <script>
+    /* ========================================================
+       서울시 공공데이터 연계 규격 (역 메타데이터)
+       * 좌표(x, y)는 일절 적지 않습니다. SVG가 스스로 찾습니다.
+    ======================================================== */
+    const STATION_METADATA = {
+      "강남": {
+        id: "gangnam",
+        name: "강남역",
+        aliases: ["강남", "강남역"],
+        lines: ["2", "신분당"],
+        desc: "2호선·신분당선 복합 환승역 (지하 4층 구조)",
+        floors: ["B1", "B2", "B3", "B4"],
+        defaultFloor: "B1"
+      },
+      "서울역": {
+        id: "seoul",
+        name: "서울역",
+        aliases: ["서울역", "서울"],
+        lines: ["1", "4", "공항철도"],
+        desc: "수도권 광역 환승 허브 (지상 2층 ~ 지하 3층)",
+        floors: ["2F", "1F", "B1", "B2", "B3"],
+        defaultFloor: "B1"
+      }
+    };
 
-  <!-- 3. 내 핀 vs 타인 핀 구분 안내 -->
-  <div class="legend-bar">
-    <span><i class="dot-indicator" style="background:#2563eb;"></i>내가 찍은 핀 (항상 표시)</span>
-    <span><i class="dot-indicator" style="background:#fff; border:2px solid #8b5cf6;"></i>발견한 타인의 핀 (최대 3개 샘플링)</span>
-  </div>
-</div>
+    let currentSelectedStation = null;
+    let currentIndoorMode = "2D";
+    let activeFloor = "B1";
 
-<div class="fab-col">
-  <button class="fab" id="btnAddPin" title="지도 클릭하여 내 핀 찍기">➕</button>
-  <button class="fab" id="btnMyLoc" title="실시간 위치 및 시야 방향 켜기">🎯</button>
-</div>
+    const metroContainer = document.getElementById("metro-container");
+    const mapWrapper = document.getElementById("map-wrapper");
+    const stationPin = document.getElementById("station-pin");
+    const stationCard = document.getElementById("station-card");
+    const searchBox = document.getElementById("search-box");
+    const clearSearchBtn = document.getElementById("clear-search");
+    const suggestions = document.getElementById("suggestions");
 
-<div id="map"></div>
+    let mapSvgElement = null;
+    let mapWidth = 2000;
+    let mapHeight = 2000;
 
-<div class="sheet" id="sheet">
-  <div class="sheet-head" id="sheetHeader">
-    <strong id="sheetTitle" style="font-size:14px;">핀을 누르거나 ➕ 버튼으로 내 기록을 남겨보세요</strong>
-    <span id="visibleCount" style="font-size:12px; color:#64748b;"></span>
-  </div>
-  <div class="sheet-content" id="sheetContent">
-    <p style="font-size:13px; color:#64748b;">
-      기본적으로 내가 생성한 핀은 항상 지도에 유지되며, 다른 유저들의 공유 핀은 설정한 모드(랜덤 / 추천순 / 카테고리)에 맞춰 일부만 깔끔하게 노출됩니다.
-    </p>
-  </div>
-</div>
+    /* ========================================================
+       1. 외부 정식 지하철 SVG 노선도 로더 (Fetch 방식)
+    ======================================================== */
+    async function loadMetroSVG() {
+      try {
+        // 동일 폴더의 변환하신 정식 SVG 노선도 파일 로드
+        const response = await fetch("metroimg.svg");
+        if (!response.ok) throw new Error("SVG 로드 실패");
+        const svgText = await response.text();
 
-<script>
-  const CURRENT_USER_ID = 'me';
-  const CAT_ICON = { view: '👀', trash: '🗑️', tip: '💡' };
+        // 맵 컨테이너에 SVG 삽입
+        const parser = new DOMParser();
+        const svgDoc = parser.parseFromString(svgText, "image/svg+xml");
+        mapSvgElement = svgDoc.documentElement;
 
-  // 샘플 전체 데이터베이스 (내 핀 2개 + 다른 사람들이 공유한 핀 7개)
-  const INITIAL_DB_PINS = [
-    // --- 내가 찍은 핀 (owner: 'me') -> 무조건 화면에 표시됨 ---
-    { id: 'm1', owner: 'me', isPublic: true, cat: 'view', title: '내가 찾은 조용한 벤치', desc: '사람 없고 바람 잘 부는 곳', lat: 37.5055, lng: 126.9570, likes: 4, comments: [] },
-    { id: 'm2', owner: 'me', isPublic: false, cat: 'tip', title: '자전거 공기주입기 위치', desc: '무료로 바람 넣을 수 있음', lat: 37.5048, lng: 126.9582, likes: 1, comments: [] },
+        // 원본 viewBox 크기 가져오기
+        const viewBox = mapSvgElement.viewBox.baseVal;
+        if (viewBox && viewBox.width > 0) {
+          mapWidth = viewBox.width;
+          mapHeight = viewBox.height;
+        }
 
-    // --- 다른 사람들이 공유한 핀 (owner !== 'me') -> 랜덤 또는 추천순으로 일부만 노출됨 ---
-    { id: 'o1', owner: '익명탐험가', isPublic: true, cat: 'view', title: '옥상 정원 무료 개방 뷰', desc: '엘리베이터 타고 올라가면 한강 보임!', lat: 37.5063, lng: 126.9565, likes: 42, comments: [{ user: '지나가는이', text: '진짜 뷰 좋네요' }] },
-    { id: 'o2', owner: '환경지킴이', isPublic: true, cat: 'trash', title: '전봇대 옆 대형 폐기물 방치', desc: '깨진 유리가 있어서 밤에 조심해야 합니다.', lat: 37.5059, lng: 126.9591, likes: 19, comments: [] },
-    { id: 'o3', owner: '동네고양이', isPublic: true, cat: 'view', title: '치즈냥이 자주 낮잠 자는 곳', desc: '오후 2시쯤 가면 볼 수 있어요', lat: 37.5042, lng: 126.9568, likes: 67, comments: [] },
-    { id: 'o4', owner: '산책마니아', isPublic: true, cat: 'tip', title: '공중화장실 깨끗한 건물', desc: '1층 로비 안쪽에 개방 화장실 있음', lat: 37.5067, lng: 126.9580, likes: 31, comments: [] },
-    { id: 'o5', owner: '시민제보1', isPublic: true, cat: 'trash', title: '배수로 담배꽁초 막힘', desc: '비 오면 물 고일 것 같아요', lat: 37.5045, lng: 126.9593, likes: 8, comments: [] },
-    { id: 'o6', owner: '사진작가', isPublic: true, cat: 'view', title: '봄에 벚꽃 터널 생기는 골목', desc: '전선 없어서 사진 깔끔하게 나옴', lat: 37.5069, lng: 126.9558, likes: 53, comments: [] }
-  ];
+        mapWrapper.style.width = `${mapWidth}px`;
+        mapWrapper.style.height = `${mapHeight}px`;
+        mapWrapper.insertBefore(mapSvgElement, stationPin);
 
-  /**
-   * [핵심 모듈] FeedEngine:
-   * 지도 렌더링과 무관하게 '어떤 핀을 화면에 내보낼지' 결정하는 전략 모듈입니다.
-   * 나중에 서버 API나 AI 추천 모델로 바꿀 때 이 클래스의 getVisiblePins()만 수정하면 됩니다.
-   */
-  class PinFeedEngine {
-    static getVisiblePins(allPins, { mode = 'random', category = 'all', maxOthersCount = 3 }) {
-      // 1. 카테고리 필터 적용
-      const categoryFiltered = allPins.filter(p => category === 'all' || p.cat === category);
+        // SVG 내부 역 텍스트/심볼에 동적 인터랙션 부여
+        initSVGStationListeners();
 
-      // 2. 내가 만든 핀은 100% 분리하여 항상 포함
-      const myPins = categoryFiltered.filter(p => p.owner === CURRENT_USER_ID);
+        // 서울역 중심 초기 정렬
+        focusStationByName("서울역", false);
 
-      // 3. 내 핀만 보기 모드면 여기서 바로 반환
-      if (mode === 'mine_only') {
-        return myPins;
+      } catch (err) {
+        console.warn("metroimg.svg 파일을 불러오지 못해 이미지 대체 모드로 동작합니다:", err);
+      }
+    }
+
+    /* ========================================================
+       2. SVG 내부 역 식별자 자동 탐색 엔진
+    ======================================================== */
+    function getStationCoordinatesFromSVG(stationName) {
+      if (!mapSvgElement) return null;
+
+      const cleanName = stationName.replace("역", "").trim();
+
+      // 1) 텍스트 태그 중 역 이름과 일치하는 텍스트 탐색
+      const textNodes = Array.from(mapSvgElement.querySelectorAll("text"));
+      let targetNode = textNodes.find(t => t.textContent.trim() === cleanName || t.textContent.trim() === stationName);
+
+      // 2) 텍스트가 없으면 data-name 또는 id로 탐색
+      if (!targetNode) {
+        targetNode = mapSvgElement.querySelector(`[id*="${cleanName}"], [data-name*="${cleanName}"]`);
       }
 
-      // 4. 다른 사람이 공유(isPublic)한 후보군 추출
-      let otherCandidates = categoryFiltered.filter(p => p.owner !== CURRENT_USER_ID && p.isPublic);
-
-      if (mode === 'random') {
-        // 피셔-예이츠 셔플로 무작위 추출
-        const shuffled = [...otherCandidates].sort(() => Math.random() - 0.5);
-        otherCandidates = shuffled.slice(0, maxOthersCount);
-      } else if (mode === 'popular') {
-        // 추천(공감) 순으로 상위 N개만 추출
-        const sorted = [...otherCandidates].sort((a, b) => b.likes - a.likes);
-        otherCandidates = sorted.slice(0, maxOthersCount);
+      if (targetNode) {
+        // SVG 엘리먼트의 정확한 화면상 BoundingBox 추출
+        const bbox = targetNode.getBBox();
+        return {
+          x: bbox.x + bbox.width / 2,
+          y: bbox.y + bbox.height / 2
+        };
       }
 
-      return [...myPins, ...otherCandidates];
-    }
-  }
-
-  // 메인 2D 지도 앱
-  class FlatDiscoveryMapApp {
-    constructor() {
-      this.allPins = JSON.parse(localStorage.getItem('flat_discovery_pins')) || INITIAL_DB_PINS;
-      this.feedMode = 'random';
-      this.category = 'all';
-      this.isPinMode = false;
-      this.markers = [];
-      this.heading = 0;
-
-      // 3D(pitch) 없이 깔끔한 2D 평면 지도 초기화
-      this.map = new maplibregl.Map({
-        container: 'map',
-        style: 'https://tiles.openfreemap.org/styles/positron', // 2D 깔끔한 배경 타일
-        center: [126.9575, 37.5055],
-        zoom: 15.8,
-        pitch: 0,        // 2D 수직 시점 고정
-        maxPitch: 0      // 3D 기울이기 비활성화
-      });
-
-      this.map.on('load', () => {
-        this.remove3DBuildingLayers(); // 타일 기본 3D 빌딩 레이어가 있다면 숨김 처리
-        this.initUserLocationMarker();
-        this.renderFeed();
-      });
-
-      this.bindUI();
+      return null;
     }
 
-    // 2D 전용 지도를 위해 입체 건물 레이어 비활성화
-    remove3DBuildingLayers() {
-      const layers = this.map.getStyle().layers || [];
-      layers.forEach(layer => {
-        if (layer.type === 'fill-extrusion') {
-          this.map.setLayoutProperty(layer.id, 'visibility', 'none');
+    function initSVGStationListeners() {
+      if (!mapSvgElement) return;
+
+      // SVG 내부의 모든 텍스트 요소를 클릭 가능하게 바인딩
+      const textNodes = mapSvgElement.querySelectorAll("text");
+      textNodes.forEach(t => {
+        const text = t.textContent.trim();
+        if (text.length >= 2 && text.length <= 6) {
+          t.style.cursor = "pointer";
+          t.addEventListener("click", () => {
+            if (hasMoved) return;
+            focusStationByName(text, true);
+          });
         }
       });
     }
 
-    initUserLocationMarker() {
-      const el = document.createElement('div');
-      el.className = 'user-loc-wrap';
-      el.innerHTML = `<div class="view-cone" id="viewCone"></div><div class="user-dot"></div>`;
-      this.userMarker = new maplibregl.Marker({ element: el })
-        .setLngLat([126.9575, 37.5055])
-        .addTo(this.map);
+    /* ========================================================
+       3. 역 자동 핀 결합 및 카메라 패닝
+    ======================================================== */
+    function focusStationByName(name, showPin = true) {
+      const cleanName = name.replace("역", "").trim();
+      const coords = getStationCoordinatesFromSVG(cleanName);
+
+      if (!coords) {
+        console.warn(`${name} 역의 위치를 SVG에서 찾지 못했습니다.`);
+        return;
+      }
+
+      const meta = STATION_METADATA[cleanName] || STATION_METADATA[cleanName + "역"] || {
+        name: cleanName + "역",
+        lines: ["2"],
+        desc: "수도권 전철 역사",
+        floors: ["B1", "B2"],
+        defaultFloor: "B1"
+      };
+
+      currentSelectedStation = meta;
+
+      if (showPin) {
+        // 수식으로 추출한 중심 좌표에 핀 고정
+        stationPin.style.left = `${coords.x}px`;
+        stationPin.style.top = `${coords.y}px`;
+        stationPin.style.display = "block";
+
+        updatePopupCard(meta);
+        searchBox.value = meta.name;
+        clearSearchBtn.style.display = "block";
+        suggestions.style.display = "none";
+      }
+
+      // 화면 중앙 정렬
+      panToCoordinate(coords.x, coords.y, 1.35);
     }
 
-    // FeedEngine에서 필터링된 핀들만 화면에 렌더링
-    renderFeed() {
-      this.markers.forEach(m => m.remove());
-      this.markers = [];
+    /* ========================================================
+       스마트 줌 & 패닝 바운더리 락
+    ======================================================== */
+    const viewportW = 412;
+    const viewportH = 870;
 
-      const visiblePins = PinFeedEngine.getVisiblePins(this.allPins, {
-        mode: this.feedMode,
-        category: this.category,
-        maxOthersCount: 3 // 타인의 핀은 화면이 복잡하지 않게 3개씩만 샘플링 노출
-      });
+    let scale = 1.0;
+    let panX = 0;
+    let panY = 0;
 
-      visiblePins.forEach(pin => {
-        const isMine = pin.owner === CURRENT_USER_ID;
-        const el = document.createElement('div');
-        el.className = `pin-marker ${isMine ? 'mine' : 'others'}`;
-        el.innerHTML = `
-          <span>${CAT_ICON[pin.cat] || '📍'}</span>
-          <span>${pin.title}</span>
-          ${!isMine ? `<span style="color:#8b5cf6; font-size:11px;">♥${pin.likes}</span>` : ''}
-        `;
+    let isDragging = false;
+    let startX = 0, startY = 0;
+    let initialPinchDistance = null;
+    let initialScale = 1.0;
+    let hasMoved = false;
 
-        el.onclick = (e) => {
-          e.stopPropagation();
-          this.map.flyTo({ center: [pin.lng, pin.lat], zoom: 16.8 });
-          this.openDetailSheet(pin);
-        };
+    function clampPan() {
+      const minScale = Math.max(viewportW / mapWidth, viewportH / mapHeight);
+      scale = Math.min(Math.max(scale, minScale), 2.8);
 
-        const marker = new maplibregl.Marker({ element: el })
-          .setLngLat([pin.lng, pin.lat])
-          .addTo(this.map);
-        this.markers.push(marker);
-      });
+      const currentW = mapWidth * scale;
+      const currentH = mapHeight * scale;
+      const minX = viewportW - currentW;
+      const minY = viewportH - currentH;
 
-      const myCount = visiblePins.filter(p => p.owner === CURRENT_USER_ID).length;
-      const otherCount = visiblePins.length - myCount;
-      document.getElementById('visibleCount').textContent = `내 핀 ${myCount} · 공유 핀 ${otherCount}`;
+      panX = Math.min(Math.max(panX, minX), 0);
+      panY = Math.min(Math.max(panY, minY), 0);
     }
 
-    openDetailSheet(pin) {
-      const isMine = pin.owner === CURRENT_USER_ID;
-      const sheet = document.getElementById('sheet');
-      sheet.classList.add('open');
-
-      document.getElementById('sheetTitle').textContent =
-        `${CAT_ICON[pin.cat]} ${pin.title} (${isMine ? '내 기록' : pin.owner + '님의 공유 핀'})`;
-
-      document.getElementById('sheetContent').innerHTML = `
-        <p style="font-size:14px; margin-bottom:12px; line-height:1.5;">${pin.desc}</p>
-        <div style="display:flex; gap:8px; margin-bottom:14px;">
-          <button class="cat-chip" id="btnLike">👍 추천 (${pin.likes})</button>
-          <span style="font-size:12px; color:#64748b; align-self:center;">
-            ${pin.isPublic ? '🌐 전체 공개된 핀' : '🔒 나만 보는 비공개 핀'}
-          </span>
-        </div>
-        <hr style="border:none; border-top:1px solid #e2e8f0; margin-bottom:12px;" />
-        <h4 style="font-size:13px; margin-bottom:8px;">💬 코멘트 (${pin.comments.length})</h4>
-        <div style="display:flex; flex-direction:column; gap:6px; margin-bottom:12px;">
-          ${pin.comments.map(c => `<div style="background:#f8fafc; padding:8px; border-radius:6px; font-size:12px;"><strong>${c.user}:</strong>${c.text}</div>`).join('')}
-        </div>
-        <form id="cmtForm">
-          <input class="input" id="cText" placeholder="이 위치에 대한 코멘트 남기기..." required />
-          <button class="btn-submit" type="submit">코멘트 등록</button>
-        </form>
-      `;
-
-      document.getElementById('btnLike').onclick = () => {
-        pin.likes += 1;
-        localStorage.setItem('flat_discovery_pins', JSON.stringify(this.allPins));
-        this.renderFeed();
-        this.openDetailSheet(pin);
-      };
-
-      document.getElementById('cmtForm').onsubmit = (e) => {
-        e.preventDefault();
-        pin.comments.push({ user: '방문자', text: document.getElementById('cText').value });
-        localStorage.setItem('flat_discovery_pins', JSON.stringify(this.allPins));
-        this.openDetailSheet(pin);
-      };
+    function updateTransform(animate = false) {
+      clampPan();
+      if (animate) {
+        mapWrapper.style.transition = "transform 0.45s cubic-bezier(0.19, 1, 0.22, 1)";
+      } else {
+        mapWrapper.style.transition = "none";
+      }
+      mapWrapper.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
     }
 
-    openCreateSheet(lng, lat) {
-      const sheet = document.getElementById('sheet');
-      sheet.classList.add('open');
-      document.getElementById('sheetTitle').textContent = '📌 새 핀 생성하기';
-      document.getElementById('sheetContent').innerHTML = `
-        <form id="newForm">
-          <select class="input" id="nCat">
-            <option value="view">👀 볼거리·풍경</option>
-            <option value="trash">🗑️ 쓰레기·불편 제보</option>
-            <option value="tip">💡 동네 꿀팁</option>
-          </select>
-          <input class="input" id="nTitle" placeholder="제목 (예: 노을 잘 보이는 벤치)" required />
-          <textarea class="input" id="nDesc" rows="2" placeholder="내용을 입력하세요" required></textarea>
-          <label style="font-size:12px; display:flex; align-items:center; gap:6px; margin-bottom:12px; cursor:pointer;">
-            <input type="checkbox" id="nPublic" checked /> 다른 사람들에게도 랜덤/추천으로 공유하기
-          </label>
-          <button class="btn-submit" type="submit">내 핀 저장</button>
-        </form>
-      `;
-
-      document.getElementById('newForm').onsubmit = (e) => {
-        e.preventDefault();
-        const newPin = {
-          id: 'm_' + Date.now(),
-          owner: CURRENT_USER_ID,
-          isPublic: document.getElementById('nPublic').checked,
-          cat: document.getElementById('nCat').value,
-          title: document.getElementById('nTitle').value,
-          desc: document.getElementById('nDesc').value,
-          lat, lng, likes: 1, comments: []
-        };
-        this.allPins.push(newPin);
-        localStorage.setItem('flat_discovery_pins', JSON.stringify(this.allPins));
-        this.isPinMode = false;
-        document.getElementById('btnAddPin').classList.remove('active');
-        this.map.getCanvas().style.cursor = '';
-        this.renderFeed();
-        this.openDetailSheet(newPin);
-      };
+    function panToCoordinate(targetX, targetY, targetScale = 1.3) {
+      scale = targetScale;
+      const viewCenterX = viewportW / 2;
+      const viewCenterY = viewportH / 2;
+      panX = viewCenterX - (targetX * scale);
+      panY = viewCenterY - (targetY * scale);
+      updateTransform(true);
     }
 
-    bindUI() {
-      // 노출 모드 변경 (내 핀만 / 랜덤 공유 / 추천순)
-      document.querySelectorAll('.mode-btn').forEach(btn => {
-        btn.onclick = () => {
-          document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
-          btn.classList.add('active');
-          this.feedMode = btn.dataset.mode;
-          document.getElementById('btnReroll').style.display = this.feedMode === 'random' ? 'block' : 'none';
-          this.renderFeed();
-        };
+    metroContainer.addEventListener("wheel", (e) => {
+      e.preventDefault();
+      const rect = metroContainer.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+
+      const zoomFactor = e.deltaY < 0 ? 1.15 : 0.87;
+      let newScale = scale * zoomFactor;
+
+      panX = mouseX - (mouseX - panX) * (newScale / scale);
+      panY = mouseY - (mouseY - panY) * (newScale / scale);
+      scale = newScale;
+
+      updateTransform(false);
+    }, { passive: false });
+
+    metroContainer.addEventListener("mousedown", (e) => {
+      if (e.target.closest(".zoom-controls") || e.target.closest(".station-popup-card") || e.target.closest(".bottom-search-wrapper")) return;
+      isDragging = true;
+      hasMoved = false;
+      startX = e.clientX - panX;
+      startY = e.clientY - panY;
+    });
+
+    window.addEventListener("mousemove", (e) => {
+      if (!isDragging) return;
+      hasMoved = true;
+      panX = e.clientX - startX;
+      panY = e.clientY - startY;
+      updateTransform(false);
+    });
+
+    window.addEventListener("mouseup", () => {
+      isDragging = false;
+    });
+
+    metroContainer.addEventListener("touchstart", (e) => {
+      if (e.touches.length === 1) {
+        isDragging = true;
+        hasMoved = false;
+        startX = e.touches[0].clientX - panX;
+        startY = e.touches[0].clientY - panY;
+      } else if (e.touches.length === 2) {
+        isDragging = false;
+        initialPinchDistance = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+        initialScale = scale;
+      }
+    }, { passive: false });
+
+    metroContainer.addEventListener("touchmove", (e) => {
+      e.preventDefault();
+      if (e.touches.length === 1 && isDragging) {
+        hasMoved = true;
+        panX = e.touches[0].clientX - startX;
+        panY = e.touches[0].clientY - startY;
+        updateTransform(false);
+      } else if (e.touches.length === 2 && initialPinchDistance) {
+        hasMoved = true;
+        const currentDistance = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+        const newScale = initialScale * (currentDistance / initialPinchDistance);
+        
+        const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+        const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+        panX = midX - (midX - panX) * (newScale / scale);
+        panY = midY - (midY - panY) * (newScale / scale);
+        scale = newScale;
+
+        updateTransform(false);
+      }
+    }, { passive: false });
+
+    metroContainer.addEventListener("touchend", () => {
+      isDragging = false;
+      initialPinchDistance = null;
+    });
+
+    function zoomManual(delta) {
+      scale += delta;
+      const viewCenterX = viewportW / 2;
+      const viewCenterY = viewportH / 2;
+      panX = viewCenterX - (viewCenterX - panX) * ((scale) / (scale - delta));
+      panY = viewCenterY - (viewCenterY - panY) * ((scale) / (scale - delta));
+      updateTransform(true);
+    }
+
+    function deselectStation() {
+      currentSelectedStation = null;
+      stationPin.style.display = "none";
+      stationCard.style.display = "none";
+      searchBox.value = "";
+      clearSearchBtn.style.display = "none";
+      suggestions.style.display = "none";
+      focusStationByName("서울역", false);
+    }
+
+    function updatePopupCard(station) {
+      document.getElementById("card-station-name").innerText = station.name;
+      document.getElementById("card-station-desc").innerText = station.desc;
+      
+      const badgeWrap = document.getElementById("card-station-badges");
+      badgeWrap.innerHTML = "";
+      station.lines.forEach(line => {
+        const span = document.createElement("span");
+        let badgeClass = "badge-1";
+        if (line === "2") badgeClass = "badge-2";
+        else if (line === "3") badgeClass = "badge-3";
+        else if (line === "4") badgeClass = "badge-4";
+        else if (line === "신분당") badgeClass = "badge-shin";
+
+        span.className = `badge ${badgeClass}`;
+        span.innerText = line + (line === '신분당' ? "" : "호선");
+        badgeWrap.appendChild(span);
       });
 
-      // 랜덤 다시 뽑기 버튼
-      document.getElementById('btnReroll').onclick = () => this.renderFeed();
+      stationCard.style.display = "block";
+    }
 
-      // 카테고리 칩 선택
-      document.querySelectorAll('.cat-chip').forEach(chip => {
-        chip.onclick = () => {
-          document.querySelectorAll('.cat-chip').forEach(c => c.classList.remove('active'));
-          chip.classList.add('active');
-          this.category = chip.dataset.cat;
-          this.renderFeed();
-        };
+    function onSearchInput(query) {
+      const q = query.trim().toLowerCase();
+      if (!q) {
+        suggestions.style.display = "none";
+        clearSearchBtn.style.display = "none";
+        return;
+      }
+
+      clearSearchBtn.style.display = "block";
+      suggestions.innerHTML = "";
+
+      const matched = Object.values(STATION_METADATA).filter(st => {
+        return st.name.toLowerCase().includes(q) || st.aliases.some(a => a.toLowerCase().includes(q));
       });
 
-      // 새 핀 찍기 토글
-      document.getElementById('btnAddPin').onclick = (e) => {
-        this.isPinMode = !this.isPinMode;
-        e.currentTarget.classList.toggle('active', this.isPinMode);
-        this.map.getCanvas().style.cursor = this.isPinMode ? 'crosshair' : '';
-      };
+      if (matched.length === 0) {
+        suggestions.innerHTML = `<div style="padding:16px; text-align:center; color:#8e95a5; font-size:13px;">일치하는 역이 없습니다.</div>`;
+      } else {
+        matched.forEach(st => {
+          const item = document.createElement("div");
+          item.className = "suggestion-item";
+          item.innerHTML = `
+            <span><strong>${st.name}</strong> <span style="font-size:12px; color:#8e95a5;">(${st.lines.join(', ')}호선)</span></span>
+            <span style="color:#00e5ff; font-size:12px;">선택 ›</span>
+          `;
+          item.onclick = () => {
+            focusStationByName(st.name, true);
+          };
+          suggestions.appendChild(item);
+        });
+      }
 
-      this.map.on('click', (e) => {
-        if (this.isPinMode) this.openCreateSheet(e.lngLat.lng, e.lngLat.lat);
+      suggestions.style.display = "block";
+    }
+
+    function clearSearchInput() {
+      deselectStation();
+    }
+
+    function triggerAI() {
+      alert("✨ AI 도우미: 원하는 역이나 환승 경로를 자유롭게 물어보세요.");
+    }
+
+    /* 실내 지도 전환 */
+    const mainView = document.getElementById("main-view");
+    const indoorView = document.getElementById("indoor-view");
+    const floorList = document.getElementById("floor-list");
+
+    function enterIndoorView() {
+      if (!currentSelectedStation) return;
+
+      document.getElementById("indoor-title-text").innerText = `${currentSelectedStation.name} 실내 지도`;
+      floorList.innerHTML = "";
+      currentSelectedStation.floors.forEach(floor => {
+        const btn = document.createElement("button");
+        btn.className = `floor-btn ${floor === currentSelectedStation.defaultFloor ? 'active' : ''}`;
+        btn.innerText = floor;
+        btn.onclick = () => selectFloor(floor, btn);
+        floorList.appendChild(btn);
       });
 
-      document.getElementById('sheetHeader').onclick = () => {
-        document.getElementById('sheet').classList.toggle('open');
-      };
+      activeFloor = currentSelectedStation.defaultFloor;
+      mainView.classList.add("hidden");
+      indoorView.classList.remove("hidden");
+    }
 
-      // 실시간 GPS + 나침반 시야각 연동
-      document.getElementById('btnMyLoc').onclick = async (e) => {
-        e.currentTarget.classList.add('active');
-        if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-          const perm = await DeviceOrientationEvent.requestPermission();
-          if (perm === 'granted') {
-            window.addEventListener('deviceorientation', ev => {
-              if (ev.webkitCompassHeading) {
-                document.getElementById('viewCone').style.transform = `rotate(${ev.webkitCompassHeading}deg)`;
-              }
-            }, true);
-          }
-        } else {
-          window.addEventListener('deviceorientationabsolute', ev => {
-            if (ev.alpha !== null) {
-              document.getElementById('viewCone').style.transform = `rotate(${(360 - ev.alpha) % 360}deg)`;
-            }
-          }, true);
+    function exitIndoorView() {
+      indoorView.classList.add("hidden");
+      mainView.classList.remove("hidden");
+    }
+
+    function selectFloor(floor, btnEl) {
+      activeFloor = floor;
+      document.querySelectorAll(".floor-btn").forEach(b => b.classList.remove("active"));
+      btnEl.classList.add("active");
+    }
+
+    // Three.js 실내 3D 초기화
+    const canvas2D = document.getElementById("indoor-2d-canvas");
+    const threeContainer = document.getElementById("three-container");
+    const btn2D = document.getElementById("btn-2d");
+    const btn3D = document.getElementById("btn-3d");
+
+    let scene, camera, renderer, controls;
+    let isThreeInitialized = false;
+
+    function setIndoorMode(mode) {
+      currentIndoorMode = mode;
+      if (mode === "2D") {
+        btn2D.classList.add("active");
+        btn3D.classList.remove("active");
+        canvas2D.style.display = "flex";
+        threeContainer.style.display = "none";
+      } else {
+        btn3D.classList.add("active");
+        btn2D.classList.remove("active");
+        canvas2D.style.display = "none";
+        threeContainer.style.display = "block";
+
+        if (!isThreeInitialized) {
+          initThreeScene();
+          isThreeInitialized = true;
         }
-        navigator.geolocation?.watchPosition(pos => {
-          this.userMarker.setLngLat([pos.coords.longitude, pos.coords.latitude]);
-        }, null, { enableHighAccuracy: true });
-      };
+      }
     }
-  }
 
-  new FlatDiscoveryMapApp();
-</script>
+    function initThreeScene() {
+      const width = threeContainer.clientWidth;
+      const height = threeContainer.clientHeight;
+
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x181a20);
+
+      const aspect = width / height;
+      const d = 48;
+      camera = new THREE.OrthographicCamera(-d * aspect, d * aspect, d, -d, 1, 1000);
+      camera.position.set(60, 60, 60);
+      camera.lookAt(0, 0, 0);
+
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setSize(width, height);
+      renderer.setPixelRatio(window.devicePixelRatio);
+      threeContainer.appendChild(renderer.domElement);
+
+      controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+      scene.add(ambientLight);
+
+      const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
+      dirLight.position.set(40, 80, 50);
+      scene.add(dirLight);
+
+      const floorMat = new THREE.MeshLambertMaterial({ color: 0x2e3440 });
+      const f1 = new THREE.Mesh(new THREE.BoxGeometry(22, 2, 70), floorMat);
+      const f2 = new THREE.Mesh(new THREE.BoxGeometry(60, 2, 22), floorMat);
+      scene.add(f1);
+      scene.add(f2);
+
+      function animate() {
+        requestAnimationFrame(animate);
+        controls.update();
+        renderer.render(scene, camera);
+      }
+      animate();
+    }
+
+    // 앱 시작 시 실제 노선도 SVG 파일 로드
+    window.addEventListener("DOMContentLoaded", () => {
+      loadMetroSVG();
+    });
+  </script>
 </body>
 </html>
