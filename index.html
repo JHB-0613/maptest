@@ -527,6 +527,49 @@
       border-radius: 6px;
       color: white;
     }
+    /* 출발 / 경유 / 도착 버튼 그룹 스타일 */
+    .route-action-group {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+      margin-bottom: 14px;
+    }
+    
+    .btn-route-action {
+      flex: 1;
+      padding: 8px 0;
+      border-radius: 10px;
+      border: 1px solid var(--border-color);
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      background: rgba(255, 255, 255, 0.06);
+      color: #d1d5db;
+    }
+    
+    .btn-route-action:active {
+      transform: scale(0.96);
+    }
+    
+    /* 개별 버튼 호버 및 액센트 색상 */
+    .btn-start:hover {
+      background: rgba(0, 229, 255, 0.15);
+      border-color: #00e5ff;
+      color: #00e5ff;
+    }
+    
+    .btn-via:hover {
+      background: rgba(245, 162, 0, 0.15);
+      border-color: #f5a200;
+      color: #f5a200;
+    }
+    
+    .btn-dest:hover {
+      background: rgba(230, 24, 108, 0.15);
+      border-color: #e6186c;
+      color: #ff4081;
+    }
   </style>
 </head>
 <body>
@@ -566,7 +609,11 @@
           </div>
         <button class="btn-close-card" onclick="event.stopPropagation(); deselectStation();">✕</button>
         </div>
-        <div class="card-desc" id="card-station-desc">수도권 전철 역사 안내</div>
+        <div class="route-action-group">
+          <button class="btn-route-action btn-start" onclick="event.stopPropagation(); setRoutePoint('start');">출발</button>
+          <button class="btn-route-action btn-via" onclick="event.stopPropagation(); setRoutePoint('via');">경유</button>
+          <button class="btn-route-action btn-dest" onclick="event.stopPropagation(); setRoutePoint('dest');">도착</button>
+        </div>
         <button class="btn-detail" onclick="enterIndoorView()">
           <span>실내 지도 자세히 보기</span>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
@@ -1104,6 +1151,28 @@
         renderer.render(scene, camera);
       }
       animate();
+    }
+    /* ========================================================
+       경로 설정 핸들러 (출발 / 경유 / 도착)
+    ======================================================== */
+    const ROUTE_PLAN = {
+      start: null,
+      via: null,
+      dest: null
+    };
+    
+    function setRoutePoint(type) {
+      if (!currentSelectedStation) return;
+    
+      const typeLabels = {
+        start: "출발역",
+        via: "경유역",
+        dest: "도착역"
+      };
+    
+      ROUTE_PLAN[type] = currentSelectedStation;
+      alert(`📍 [${typeLabels[type]}]으로 '${currentSelectedStation.name}'이(가) 설정되었습니다.`);
+      console.log("현재 경로 계획:", ROUTE_PLAN);
     }
 
     window.addEventListener("DOMContentLoaded", () => {
