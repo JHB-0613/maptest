@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>서울 지하철 공식 노선도 스마트 네비게이션</title>
-  <!-- Three.js CDN -->
+  <title>서울 지하철 데이터 연동 스마트 네비게이션</title>
+  <!-- Three.js CDN (실내 3D 뷰어용) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
   <style>
@@ -87,7 +87,7 @@
       transform: scale(0.96);
     }
 
-    /* 1. 메인 노선도 (공식 원본 이미지 1:1 매핑) */
+    /* 1. 메인 노선도 (정방형 2000x2000 캔버스) */
     #main-view {
       background: #f8f9fb;
       overflow: hidden;
@@ -106,7 +106,6 @@
       cursor: grabbing;
     }
 
-    /* 정방형 노선도 컨테이너 */
     #map-wrapper {
       position: absolute;
       top: 0;
@@ -123,17 +122,6 @@
       display: block;
       object-fit: contain;
       pointer-events: none;
-    }
-
-    /* 역 터치 투명 히트박스 */
-    .station-hitbox {
-      position: absolute;
-      width: 48px;
-      height: 48px;
-      transform: translate(-50%, -50%);
-      cursor: pointer;
-      border-radius: 50%;
-      z-index: 25;
     }
 
     /* 역 위에 꽂히는 핀 */
@@ -216,25 +204,6 @@
       align-items: center;
       gap: 8px;
     }
-
-    .badge-wrap {
-      display: flex;
-      gap: 4px;
-      flex-wrap: wrap;
-    }
-
-    .badge {
-      font-size: 11px;
-      font-weight: 700;
-      padding: 2px 7px;
-      border-radius: 12px;
-      color: white;
-    }
-    .badge-1 { background-color: #0052a4; }
-    .badge-2 { background-color: #3cb44a; }
-    .badge-3 { background-color: #ef7c1c; }
-    .badge-4 { background-color: #00a5de; }
-    .badge-shin { background-color: #d4003b; }
 
     .btn-close-card {
       background: rgba(255, 255, 255, 0.12);
@@ -511,12 +480,8 @@
     <div id="main-view" class="view">
       <div class="metro-canvas-container" id="metro-container">
         <div id="map-wrapper">
-          <!-- 실제 공식 노선도 이미지 (metroimg.jpg 또는 svg) -->
+          <!-- 실제 공식 노선도 이미지 파일 -->
           <img src="metroimg.jpg" id="official-metro-img" alt="서울 지하철 노선도" onerror="this.src='metroimg.svg'">
-
-          <!-- 역 클릭 히트박스 레이어 -->
-          <div class="station-hitbox" id="hitbox-seoul" onclick="onStationClick('seoul')"></div>
-          <div class="station-hitbox" id="hitbox-gangnam" onclick="onStationClick('gangnam')"></div>
 
           <!-- 역 위에 꽂히는 핀 -->
           <svg id="station-pin" viewBox="0 0 384 512">
@@ -525,7 +490,7 @@
         </div>
       </div>
 
-      <!-- 수동 줌 버튼 -->
+      <!-- 우측 수동 줌 버튼 -->
       <div class="zoom-controls">
         <button class="btn-zoom" onclick="zoomManual(0.25)">+</button>
         <button class="btn-zoom" onclick="zoomManual(-0.25)">−</button>
@@ -536,11 +501,10 @@
         <div class="card-header">
           <div class="station-title">
             <span id="card-station-name">강남역</span>
-            <div class="badge-wrap" id="card-station-badges"></div>
           </div>
           <button class="btn-close-card" onclick="deselectStation()">✕</button>
         </div>
-        <div class="card-desc" id="card-station-desc">2호선·신분당선 주요 환승 허브</div>
+        <div class="card-desc" id="card-station-desc">수도권 전철 역사 안내</div>
         <button class="btn-detail" onclick="enterIndoorView()">
           <span>실내 지도 자세히 보기</span>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
@@ -598,32 +562,10 @@
 
   <script>
     /* ========================================================
-       실측 기반 정밀 앵커 좌표계 (2000x2000 기준)
+       stations.json 비동기 로딩 및 앵커 바인딩
     ======================================================== */
     const MAP_SIZE = 2000;
-
-    const STATIONS = {
-      seoul: {
-        id: "seoul",
-        name: "서울역",
-        lines: ["1", "4"],
-        desc: "수도권 광역 환승 허브 (지상 2층 ~ 지하 3층)",
-        floors: ["2F", "1F", "B1", "B2", "B3"],
-        defaultFloor: "B1",
-        x: 935,  // 서울역 환승 원형 정중앙
-        y: 846
-      },
-      gangnam: {
-        id: "gangnam",
-        name: "강남역",
-        lines: ["2", "신분당"],
-        desc: "2호선·신분당선 복합 환승역 (지하 4층 구조)",
-        floors: ["B1", "B2", "B3", "B4"],
-        defaultFloor: "B1",
-        x: 1380, // 강남역 2호선(초록)-신분당(빨강) 교차 원형 정중앙
-        y: 1412
-      }
-    };
+    let STATIONS = {};
 
     let currentSelectedStation = null;
     let currentIndoorMode = "2D";
@@ -637,14 +579,33 @@
     const clearSearchBtn = document.getElementById("clear-search");
     const suggestions = document.getElementById("suggestions");
 
-    // 역 히트박스 위치 세팅
-    Object.keys(STATIONS).forEach(id => {
-      const el = document.getElementById(`hitbox-${id}`);
-      if (el) {
-        el.style.left = `${STATIONS[id].x}px`;
-        el.style.top = `${STATIONS[id].y}px`;
+    // 파이썬으로 추출한 stations.json 로드
+    async function initStations() {
+      try {
+        const response = await fetch("stations.json");
+        if (!response.ok) throw new Error("stations.json 파일을 찾을 수 없습니다.");
+        STATIONS = await response.json();
+        console.log("역 데이터 로드 완료:", Object.keys(STATIONS).length, "개 역 로드됨");
+
+        // 서울역을 기본 중심으로 배치
+        const seoulStation = findStationByKey("서울역");
+        if (seoulStation) {
+          panToStation(seoulStation.x, seoulStation.y, 1.0);
+        }
+      } catch (err) {
+        console.warn("stations.json 로드 실패:", err);
       }
-    });
+    }
+
+    // 유연한 역명 검색 헬퍼 (예: '강남' 또는 '강남역' 매칭)
+    function findStationByKey(query) {
+      const q = query.trim().replace("역", "");
+      for (const key in STATIONS) {
+        const cleanKey = key.replace("역", "");
+        if (cleanKey === q) return STATIONS[key];
+      }
+      return null;
+    }
 
     /* ========================================================
        스마트 줌 & 패닝 바운더리 락 엔진
@@ -662,7 +623,6 @@
     let startX = 0, startY = 0;
     let initialPinchDistance = null;
     let initialScale = 1.0;
-    let hasMoved = false;
 
     function clampPan() {
       const currentMapW = MAP_SIZE * scale;
@@ -704,14 +664,12 @@
     metroContainer.addEventListener("mousedown", (e) => {
       if (e.target.closest(".zoom-controls") || e.target.closest(".station-popup-card") || e.target.closest(".bottom-search-wrapper")) return;
       isDragging = true;
-      hasMoved = false;
       startX = e.clientX - panX;
       startY = e.clientY - panY;
     });
 
     window.addEventListener("mousemove", (e) => {
       if (!isDragging) return;
-      hasMoved = true;
       panX = e.clientX - startX;
       panY = e.clientY - startY;
       updateTransform(false);
@@ -724,7 +682,6 @@
     metroContainer.addEventListener("touchstart", (e) => {
       if (e.touches.length === 1) {
         isDragging = true;
-        hasMoved = false;
         startX = e.touches[0].clientX - panX;
         startY = e.touches[0].clientY - panY;
       } else if (e.touches.length === 2) {
@@ -737,12 +694,10 @@
     metroContainer.addEventListener("touchmove", (e) => {
       e.preventDefault();
       if (e.touches.length === 1 && isDragging) {
-        hasMoved = true;
         panX = e.touches[0].clientX - startX;
         panY = e.touches[0].clientY - startY;
         updateTransform(false);
       } else if (e.touches.length === 2 && initialPinchDistance) {
-        hasMoved = true;
         const currentDistance = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
         const newScale = Math.min(Math.max(initialScale * (currentDistance / initialPinchDistance), minScale), maxScale);
         
@@ -780,30 +735,23 @@
       updateTransform(true);
     }
 
-    // 초기 화면 진입: 서울역을 화면 정중앙에 배치
-    window.addEventListener("DOMContentLoaded", () => {
-      panToStation(STATIONS.seoul.x, STATIONS.seoul.y, 1.0);
-    });
+    /* ========================================================
+       역 선택 및 핀 고정
+    ======================================================== */
+    function selectStation(stationObj) {
+      currentSelectedStation = stationObj;
 
-    function onStationClick(stationId) {
-      if (hasMoved) return;
-      selectStation(stationId);
-    }
-
-    function selectStation(stationId) {
-      const station = STATIONS[stationId];
-      if (!station) return;
-
-      currentSelectedStation = station;
-
-      stationPin.style.left = `${station.x}px`;
-      stationPin.style.top = `${station.y}px`;
+      // 파이썬이 추출한 실제 x, y 좌표에 핀 고정
+      stationPin.style.left = `${stationObj.x}px`;
+      stationPin.style.top = `${stationObj.y}px`;
       stationPin.style.display = "block";
 
-      panToStation(station.x, station.y, 1.35);
+      panToStation(stationObj.x, stationObj.y, 1.35);
 
-      updatePopupCard(station);
-      searchBox.value = station.name;
+      document.getElementById("card-station-name").innerText = stationObj.name;
+      stationCard.style.display = "block";
+
+      searchBox.value = stationObj.name;
       clearSearchBtn.style.display = "block";
       suggestions.style.display = "none";
     }
@@ -815,32 +763,18 @@
       searchBox.value = "";
       clearSearchBtn.style.display = "none";
       suggestions.style.display = "none";
-      panToStation(STATIONS.seoul.x, STATIONS.seoul.y, 1.0);
+
+      const seoul = findStationByKey("서울역");
+      if (seoul) {
+        panToStation(seoul.x, seoul.y, 1.0);
+      }
     }
 
-    function updatePopupCard(station) {
-      document.getElementById("card-station-name").innerText = station.name;
-      document.getElementById("card-station-desc").innerText = station.desc;
-      
-      const badgeWrap = document.getElementById("card-station-badges");
-      badgeWrap.innerHTML = "";
-      station.lines.forEach(line => {
-        const span = document.createElement("span");
-        let badgeClass = "badge-1";
-        if (line === "2") badgeClass = "badge-2";
-        else if (line === "4") badgeClass = "badge-4";
-        else if (line === "신분당") badgeClass = "badge-shin";
-
-        span.className = `badge ${badgeClass}`;
-        span.innerText = line + (line === '신분당' ? "" : "호선");
-        badgeWrap.appendChild(span);
-      });
-
-      stationCard.style.display = "block";
-    }
-
+    /* ========================================================
+       검색창 자동완성 (stations.json 기반 동적 필터링)
+    ======================================================== */
     function onSearchInput(query) {
-      const q = query.trim().toLowerCase();
+      const q = query.trim().toLowerCase().replace("역", "");
       if (!q) {
         suggestions.style.display = "none";
         clearSearchBtn.style.display = "none";
@@ -857,15 +791,15 @@
       if (matched.length === 0) {
         suggestions.innerHTML = `<div style="padding:16px; text-align:center; color:#8e95a5; font-size:13px;">일치하는 역이 없습니다.</div>`;
       } else {
-        matched.forEach(st => {
+        matched.slice(0, 8).forEach(st => {
           const item = document.createElement("div");
           item.className = "suggestion-item";
           item.innerHTML = `
-            <span><strong>${st.name}</strong> <span style="font-size:12px; color:#8e95a5;">(${st.lines.join(', ')}호선)</span></span>
+            <span><strong>${st.name}</strong></span>
             <span style="color:#00e5ff; font-size:12px;">선택 ›</span>
           `;
           item.onclick = () => {
-            selectStation(st.id);
+            selectStation(st);
           };
           suggestions.appendChild(item);
         });
@@ -879,10 +813,12 @@
     }
 
     function triggerAI() {
-      alert("✨ AI 도우미: 원하는 역이나 환승 경로를 자유롭게 물어보세요.");
+      alert("✨ AI 도우미: 역 편의시설 또는 최적 환승 경로를 질의할 수 있습니다.");
     }
 
-    /* 실내 지도 화면 전환 */
+    /* ========================================================
+       실내 지도 전환 (동적 층수 생성 및 2D/3D 전환)
+    ======================================================== */
     const mainView = document.getElementById("main-view");
     const indoorView = document.getElementById("indoor-view");
     const floorList = document.getElementById("floor-list");
@@ -891,16 +827,23 @@
       if (!currentSelectedStation) return;
 
       document.getElementById("indoor-title-text").innerText = `${currentSelectedStation.name} 실내 지도`;
+      
+      // 역에 따른 층수 동적 생성
       floorList.innerHTML = "";
-      currentSelectedStation.floors.forEach(floor => {
+      const floors = currentSelectedStation.name.includes("강남") 
+        ? ["B1", "B2", "B3", "B4"] 
+        : ["2F", "1F", "B1", "B2", "B3"];
+      const defaultFloor = "B1";
+
+      floors.forEach(floor => {
         const btn = document.createElement("button");
-        btn.className = `floor-btn ${floor === currentSelectedStation.defaultFloor ? 'active' : ''}`;
+        btn.className = `floor-btn ${floor === defaultFloor ? 'active' : ''}`;
         btn.innerText = floor;
         btn.onclick = () => selectFloor(floor, btn);
         floorList.appendChild(btn);
       });
 
-      activeFloor = currentSelectedStation.defaultFloor;
+      activeFloor = defaultFloor;
       mainView.classList.add("hidden");
       indoorView.classList.remove("hidden");
     }
@@ -986,6 +929,10 @@
       }
       animate();
     }
+
+    window.addEventListener("DOMContentLoaded", () => {
+      initStations();
+    });
   </script>
 </body>
 </html>
