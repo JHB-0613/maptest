@@ -564,7 +564,7 @@
             <span class="station-title" id="card-station-name">강남역</span>
             <div class="badge-wrap" id="card-station-badges"></div>
           </div>
-          <button class="btn-close-card" onclick="deselectStation()">✕</button>
+        <button class="btn-close-card" onclick="event.stopPropagation(); deselectStation();">✕</button>
         </div>
         <div class="card-desc" id="card-station-desc">수도권 전철 역사 안내</div>
         <button class="btn-detail" onclick="enterIndoorView()">
@@ -616,7 +616,7 @@
     <div class="bottom-search-wrapper">
       <span class="search-icon">🔍</span>
       <input type="text" id="search-box" class="search-input" placeholder="역 이름 검색 (예: 강남, 서울역)..." oninput="onSearchInput(this.value)">
-      <button class="clear-search-btn" id="clear-search" onclick="clearSearchInput()">✕</button>
+      <button class="clear-search-btn" id="clear-search" onclick="event.stopPropagation(); clearSearchInput();">✕</button>
       <button class="ai-btn" onclick="triggerAI()">AI</button>
       <div class="search-suggestions" id="suggestions"></div>
     </div>
@@ -753,7 +753,6 @@
       searchBox.value = "";
       clearSearchBtn.style.display = "none";
       suggestions.style.display = "none";
-      // 서울역으로 강제 이동하던 panToStation(...) 호출을 제거하여 현재 위치를 그대로 유지합니다.
     }
 
     /* ========================================================
@@ -802,7 +801,12 @@
     }
 
     function clearSearchInput() {
-      deselectStation();
+      searchBox.value = "";
+      clearSearchBtn.style.display = "none";
+      suggestions.style.display = "none";
+      currentSelectedStation = null;
+      stationPin.style.display = "none";
+      stationCard.style.display = "none";
     }
 
     function triggerAI() {
