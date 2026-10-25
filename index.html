@@ -1566,10 +1566,10 @@
     // 소요 시간 및 거리 시뮬레이션 계산
     function calculateMockRoute() {
       if (!ROUTE_DATA.start || !ROUTE_DATA.dest) return;
-
+    
       let totalDistPx = 0;
       let prevPt = ROUTE_DATA.start;
-
+    
       for (const via of ROUTE_DATA.vias) {
         if (via.x && via.y) {
           totalDistPx += Math.hypot(via.x - prevPt.x, via.y - prevPt.y);
@@ -1577,46 +1577,44 @@
         }
       }
       totalDistPx += Math.hypot(ROUTE_DATA.dest.x - prevPt.x, ROUTE_DATA.dest.y - prevPt.y);
-
+    
       const km = (totalDistPx / 100 * 1.2).toFixed(1);
       
       let subwayBase = Math.round(km * 2.2 + 8);
       let busBase = Math.round(km * 3.4 + 12);
       let walkBase = Math.round(km * 14);
-
-      if (selectedOptions.stairs) subwayBase += 4;
-      if (selectedOptions.calm) subwayBase += 6;
-      if (selectedOptions.fast) subwayBase -= 2;
-
+    
+      // 단일 옵션에 따른 가감 시간 계산
+      if (currentRouteOption === 'stairs') {
+        subwayBase += 4; // 엘리베이터 우회
+      } else if (currentRouteOption === 'calm') {
+        subwayBase += 6; // 혼잡역 우회
+      } else if (currentRouteOption === 'fast') {
+        subwayBase -= 2; // 최단 시간 경로
+      }
+    
       document.getElementById("val-time-subway").innerText = `${subwayBase}분`;
       document.getElementById("val-time-bus").innerText = `${busBase}분`;
       document.getElementById("val-time-walk").innerText = `${walkBase}분`;
       document.getElementById("val-sub-walk").innerText = `${km}km`;
     }
 
-    function setTransportMode(el, mode) {
-      document.querySelectorAll(".trans-card").forEach(c => c.classList.remove("active"));
-      el.classList.add("active");
-    }
-
+    /* ========================================================
+       경로 옵션 단일 선택 (중복 선택 방지)
+    ======================================================== */
+    // 기본 선택값을 하나만 지정 (예: 'calm' 또는 'fast')
+    let currentRouteOption = 'calm'; // 'stairs' | 'calm' | 'fast'
+    
     function toggleRouteOption(type) {
-      if (type === 'fast') {
-        selectedOptions.fast = !selectedOptions.fast;
-        if (selectedOptions.fast) {
-          selectedOptions.stairs = false;
-          selectedOptions.calm = false;
-        }
-      } else {
-        selectedOptions[type] = !selectedOptions[type];
-        if (selectedOptions[type]) {
-          selectedOptions.fast = false;
-        }
-      }
-
-      document.getElementById("opt-stairs").classList.toggle("selected", selectedOptions.stairs);
-      document.getElementById("opt-calm").classList.toggle("selected", selectedOptions.calm);
-      document.getElementById("opt-fast").classList.toggle("selected", selectedOptions.fast);
-
+      // 이미 선택된 옵션을 다시 눌러도 최소 1개는 유지되도록 단일 선택 적용
+      currentRouteOption = type;
+    
+      // 세 버튼의 선택 UI 클래스 토글 (오직 선택된 하나만 .selected 부여)
+      document.getElementById("opt-stairs").classList.toggle("selected", currentRouteOption === 'stairs');
+      document.getElementById("opt-calm").classList.toggle("selected", currentRouteOption === 'calm');
+      document.getElementById("opt-fast").classList.toggle("selected", currentRouteOption === 'fast');
+    
+      // 변경된 단일 옵션을 바탕으로 소요 시간 재계산
       calculateMockRoute();
     }
 
