@@ -124,7 +124,7 @@
       pointer-events: none;
     }
 
-    /* 역 원형 심볼 위에 정확히 꽂히는 핀 */
+    /* 역 원형 심볼 위에 꽂히는 핀 */
     #station-pin {
       position: absolute;
       width: 42px;
@@ -193,17 +193,64 @@
     .card-header {
       display: flex;
       justify-content: space-between;
-      align-items: center;
+      align-items: flex-start;
       margin-bottom: 6px;
+    }
+
+    .station-title-box {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
     }
 
     .station-title {
       font-size: 20px;
       font-weight: 700;
-      display: flex;
-      align-items: center;
-      gap: 8px;
+      color: #ffffff;
     }
+
+    .badge-wrap {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+
+    .badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+      color: #ffffff;
+      line-height: 1.4;
+      display: inline-block;
+    }
+
+    /* 노선별 공식 고유 색상 */
+    .badge-line-1 { background-color: #0052a4; }
+    .badge-line-2 { background-color: #00a84d; }
+    .badge-line-3 { background-color: #ef7c1c; }
+    .badge-line-4 { background-color: #00a5de; }
+    .badge-line-5 { background-color: #996cac; }
+    .badge-line-6 { background-color: #cd7c2f; }
+    .badge-line-7 { background-color: #747f00; }
+    .badge-line-8 { background-color: #e6186c; }
+    .badge-line-9 { background-color: #bb8336; }
+    .badge-shin { background-color: #d4003b; }
+    .badge-suin { background-color: #f5a200; }
+    .badge-gyeongui { background-color: #77c4a3; }
+    .badge-gyeongchun { background-color: #0c8e72; }
+    .badge-airport { background-color: #0090d2; }
+    .badge-gyeonggang { background-color: #003da5; }
+    .badge-seohae { background-color: #81a914; }
+    .badge-sillim { background-color: #6789ca; }
+    .badge-ui { background-color: #b7c452; }
+    .badge-uijeongbu { background-color: #ff9d00; }
+    .badge-ever { background-color: #5bb025; }
+    .badge-incheon1 { background-color: #7ca8d5; }
+    .badge-incheon2 { background-color: #ed8b00; }
+    .badge-gtx { background-color: #9a5f78; }
+    .badge-gimpo { background-color: #ad8605; }
+    .badge-default { background-color: #555e6d; }
 
     .btn-close-card {
       background: rgba(255, 255, 255, 0.12);
@@ -217,11 +264,13 @@
       justify-content: center;
       cursor: pointer;
       font-size: 15px;
+      flex-shrink: 0;
     }
 
     .card-desc {
       font-size: 13px;
       color: var(--text-sub);
+      margin-top: 6px;
       margin-bottom: 14px;
     }
 
@@ -465,6 +514,19 @@
     .suggestion-item:hover {
       background: rgba(255, 255, 255, 0.08);
     }
+
+    .suggestion-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .suggestion-badge {
+      font-size: 10px;
+      padding: 1px 6px;
+      border-radius: 6px;
+      color: white;
+    }
   </style>
 </head>
 <body>
@@ -482,7 +544,7 @@
         <div id="map-wrapper">
           <img src="metroimg.jpg" id="official-metro-img" alt="서울 지하철 노선도" onerror="this.src='metroimg.svg'">
 
-          <!-- 역 위에 꽂히는 핀 -->
+          <!-- 역 원형 심볼에 꽂히는 핀 -->
           <svg id="station-pin" viewBox="0 0 384 512">
             <path fill="#00e5ff" d="M172.268 501.67C26.97 291.031 0 269.413 0 192 0 85.961 86.039 0 192 0s192 85.961 192 192c0 77.413-26.97 99.031-172.268 309.67-9.535 13.774-29.93 13.773-39.464 0zM192 272c44.183 0 80-35.817 80-80s-35.817-80-80-80-80 35.817-80 80 35.817 80 80 80z"/>
           </svg>
@@ -498,8 +560,9 @@
       <!-- 역 간략 카드 -->
       <div class="station-popup-card" id="station-card">
         <div class="card-header">
-          <div class="station-title">
-            <span id="card-station-name">강남역</span>
+          <div class="station-title-box">
+            <span class="station-title" id="card-station-name">강남역</span>
+            <div class="badge-wrap" id="card-station-badges"></div>
           </div>
           <button class="btn-close-card" onclick="deselectStation()">✕</button>
         </div>
@@ -561,7 +624,42 @@
 
   <script>
     /* ========================================================
-       stations.json 연동 엔진 (캐시 무효화 및 원형 심볼 매핑)
+       호선 배지 색상 매핑 유틸리티
+    ======================================================== */
+    function getLineBadgeClass(lineName) {
+      if (lineName.includes("01") || lineName.includes("1호")) return "badge-line-1";
+      if (lineName.includes("02") || lineName.includes("2호")) return "badge-line-2";
+      if (lineName.includes("03") || lineName.includes("3호")) return "badge-line-3";
+      if (lineName.includes("04") || lineName.includes("4호")) return "badge-line-4";
+      if (lineName.includes("05") || lineName.includes("5호")) return "badge-line-5";
+      if (lineName.includes("06") || lineName.includes("6호")) return "badge-line-6";
+      if (lineName.includes("07") || lineName.includes("7호")) return "badge-line-7";
+      if (lineName.includes("08") || lineName.includes("8호")) return "badge-line-8";
+      if (lineName.includes("09") || lineName.includes("9호")) return "badge-line-9";
+      if (lineName.includes("신분당")) return "badge-shin";
+      if (lineName.includes("수인분당")) return "badge-suin";
+      if (lineName.includes("경의")) return "badge-gyeongui";
+      if (lineName.includes("경춘")) return "badge-gyeongchun";
+      if (lineName.includes("공항")) return "badge-airport";
+      if (lineName.includes("경강")) return "badge-gyeonggang";
+      if (lineName.includes("서해")) return "badge-seohae";
+      if (lineName.includes("신림")) return "badge-sillim";
+      if (lineName.includes("우이")) return "badge-ui";
+      if (lineName.includes("의정부")) return "badge-uijeongbu";
+      if (lineName.includes("용인") || lineName.includes("에버")) return "badge-ever";
+      if (lineName.includes("인천2")) return "badge-incheon2";
+      if (lineName.includes("인천")) return "badge-incheon1";
+      if (lineName.includes("GTX")) return "badge-gtx";
+      if (lineName.includes("김포")) return "badge-gimpo";
+      return "badge-default";
+    }
+
+    function formatLineName(lineName) {
+      return lineName.replace(/^0/, ""); // '02호선' -> '2호선'
+    }
+
+    /* ========================================================
+       데이터 로딩 및 정제 (stations.json)
     ======================================================== */
     const MAP_SIZE = 2000;
     let STATIONS_LIST = [];
@@ -578,84 +676,64 @@
     const clearSearchBtn = document.getElementById("clear-search");
     const suggestions = document.getElementById("suggestions");
 
-    // 특수문자 및 불필요한 기호 제거 헬퍼
     function cleanStationName(rawName) {
       return rawName.replace(/['"{}\[\]*~`.,:;!?^]/g, "").trim();
     }
 
     async function initStations() {
       try {
-        // 캐시 방지용 타임스탬프를 붙여 항상 최신 stations.json 호출
         const response = await fetch("stations.json?v=" + Date.now());
-        if (!response.ok) throw new Error("stations.json 로드 실패");
+        if (!response.ok) throw new Error("stations.json 파일을 찾을 수 없습니다.");
         const rawStations = await response.json();
 
-        // 파이썬이 추출한 원형 심볼 중심 좌표를 기반으로 역 목록 생성
         STATIONS_LIST = Object.entries(rawStations).map(([key, data]) => {
-          const pureName = cleanStationName(data.name || key).replace(/역$/, "");
-          const fullName = pureName + "역";
+          const pure = cleanStationName(data.queryTerm || data.name || key).replace(/역$/, "");
+          const fullName = pure + "역";
 
           return {
             name: fullName,
-            queryTerm: pureName,
-            x: data.x, // 파이썬이 검출한 원형 심볼 중심 x
-            y: data.y, // 파이썬이 검출한 원형 심볼 중심 y
+            queryTerm: pure,
+            x: data.x,
+            y: data.y,
+            lines: data.lines || ["수도권전철"],
             isSnapped: data.is_circle_snapped || false
           };
         });
 
-        console.log(`원형 심볼 좌표 파싱 완료: ${STATIONS_LIST.length}개 역 로드됨`);
+        console.log(`역 데이터 로드 완료: 총 ${STATIONS_LIST.length}개 역`);
 
-        // 서울역 중심 초기 화면 배치
+        // 서울역 중심 초기 정렬
         const seoul = STATIONS_LIST.find(s => s.queryTerm === "서울" || s.name === "서울역");
         if (seoul) {
           panToStation(seoul.x, seoul.y, 1.0);
         }
       } catch (err) {
-        console.warn("stations.json 로드 실패:", err);
+        console.warn("데이터 로드 실패:", err);
       }
     }
 
     /* ========================================================
-    역 선택 시 정보 카드 및 호선 배지 자동 생성
+       역 선택 및 핀 고정
     ======================================================== */
     function selectStation(stationObj) {
       currentSelectedStation = stationObj;
 
-      // 원형 심볼 중심 좌표에 핀 고정
       stationPin.style.left = `${stationObj.x}px`;
       stationPin.style.top = `${stationObj.y}px`;
       stationPin.style.display = "block";
 
-      // 카메라 줌인 이동
       panToStation(stationObj.x, stationObj.y, 1.35);
 
-      // 1. 역명 표시
+      // 카드 역명 및 호선 배지 동적 생성
       document.getElementById("card-station-name").innerText = stationObj.name;
-
-      // 2. 호선 배지 자동 동적 렌더링 (공식 데이터셋 연동)
-      let badgeContainer = document.getElementById("card-station-badges");
-      if (!badgeContainer) {
-        badgeContainer = document.createElement("div");
-        badgeContainer.id = "card-station-badges";
-        badgeContainer.className = "badge-wrap";
-        document.querySelector(".station-title").appendChild(badgeContainer);
-      }
+      const badgeContainer = document.getElementById("card-station-badges");
       badgeContainer.innerHTML = "";
 
-      const lines = stationObj.lines || ["전철"];
+      const lines = stationObj.lines || [];
       lines.forEach(line => {
         const span = document.createElement("span");
-        let badgeClass = "badge-1";
-        if (line.includes("02") || line.includes("2호")) badgeClass = "badge-2";
-        else if (line.includes("03") || line.includes("3호")) badgeClass = "badge-3";
-        else if (line.includes("04") || line.includes("4호")) badgeClass = "badge-4";
-        else if (line.includes("신분당")) badgeClass = "badge-shin";
-        else if (line.includes("공항")) badgeClass = "badge-air";
-        else if (line.includes("경의")) badgeClass = "badge-gyeong";
-
-        span.className = `badge ${badgeClass}`;
-        span.innerText = line.replace(/^0/, ""); // '02호선' -> '2호선'
+        span.className = `badge ${getLineBadgeClass(line)}`;
+        span.innerText = formatLineName(line);
         badgeContainer.appendChild(span);
       });
 
@@ -665,8 +743,22 @@
       suggestions.style.display = "none";
     }
 
+    function deselectStation() {
+      currentSelectedStation = null;
+      stationPin.style.display = "none";
+      stationCard.style.display = "none";
+      searchBox.value = "";
+      clearSearchBtn.style.display = "none";
+      suggestions.style.display = "none";
+
+      const seoul = STATIONS_LIST.find(s => s.queryTerm === "서울" || s.name === "서울역");
+      if (seoul) {
+        panToStation(seoul.x, seoul.y, 1.0);
+      }
+    }
+
     /* ========================================================
-       유사 검색어 필터링
+       실시간 검색 자동완성
     ======================================================== */
     function onSearchInput(query) {
       const q = cleanStationName(query.trim().toLowerCase()).replace(/역$/, "");
@@ -689,8 +781,15 @@
         matched.slice(0, 8).forEach(st => {
           const item = document.createElement("div");
           item.className = "suggestion-item";
+          
+          const primaryLine = st.lines && st.lines.length > 0 ? st.lines[0] : "";
+          const badgeHtml = primaryLine ? `<span class="suggestion-badge ${getLineBadgeClass(primaryLine)}">${formatLineName(primaryLine)}</span>` : "";
+
           item.innerHTML = `
-            <span><strong>${st.name}</strong></span>
+            <div class="suggestion-left">
+              <strong>${st.name}</strong>
+              ${badgeHtml}
+            </div>
             <span style="color:#00e5ff; font-size:12px;">선택 ›</span>
           `;
           item.onclick = () => {
@@ -708,7 +807,7 @@
     }
 
     function triggerAI() {
-      alert("✨ AI 도우미: 역 편의시설 또는 최적 환승 경로를 질의할 수 있습니다.");
+      alert("✨ AI 도우미: 원하는 역이나 환승 경로를 자유롭게 물어보세요.");
     }
 
     /* ========================================================
