@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>오픈소스 SVG 연동 지하철 네비게이션</title>
+  <title>서울 지하철 공식 노선도 스마트 네비게이션</title>
   <!-- Three.js CDN -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
@@ -87,7 +87,7 @@
       transform: scale(0.96);
     }
 
-    /* 1. 메인 노선도 뷰 */
+    /* 1. 메인 노선도 (공식 원본 이미지 1:1 매핑) */
     #main-view {
       background: #f8f9fb;
       overflow: hidden;
@@ -106,24 +106,34 @@
       cursor: grabbing;
     }
 
+    /* 정방형 노선도 컨테이너 */
     #map-wrapper {
       position: absolute;
       top: 0;
       left: 0;
+      width: 2000px;
+      height: 2000px;
       transform-origin: 0 0;
       will-change: transform;
     }
 
-    /* SVG 내부 스타일 강제 주입 */
-    #map-wrapper svg {
-      display: block;
+    #official-metro-img {
       width: 100%;
       height: 100%;
+      display: block;
+      object-fit: contain;
+      pointer-events: none;
     }
 
-    /* 역 노드 호버 효과 */
-    .station-node, [id^="station-"], [data-station] {
+    /* 역 터치 투명 히트박스 */
+    .station-hitbox {
+      position: absolute;
+      width: 48px;
+      height: 48px;
+      transform: translate(-50%, -50%);
       cursor: pointer;
+      border-radius: 50%;
+      z-index: 25;
     }
 
     /* 역 위에 꽂히는 핀 */
@@ -132,7 +142,7 @@
       width: 42px;
       height: 56px;
       transform: translate(-50%, -100%);
-      z-index: 50;
+      z-index: 40;
       display: none;
       filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.45));
       animation: pinDrop 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
@@ -500,9 +510,15 @@
     <!-- 1. 메인 화면 -->
     <div id="main-view" class="view">
       <div class="metro-canvas-container" id="metro-container">
-        <!-- SVG 파일이 주입될 래퍼 -->
         <div id="map-wrapper">
-          <!-- 역 핀 (동적 좌표 바인딩) -->
+          <!-- 실제 공식 노선도 이미지 (metroimg.jpg 또는 svg) -->
+          <img src="metroimg.jpg" id="official-metro-img" alt="서울 지하철 노선도" onerror="this.src='metroimg.svg'">
+
+          <!-- 역 클릭 히트박스 레이어 -->
+          <div class="station-hitbox" id="hitbox-seoul" onclick="onStationClick('seoul')"></div>
+          <div class="station-hitbox" id="hitbox-gangnam" onclick="onStationClick('gangnam')"></div>
+
+          <!-- 역 위에 꽂히는 핀 -->
           <svg id="station-pin" viewBox="0 0 384 512">
             <path fill="#00e5ff" d="M172.268 501.67C26.97 291.031 0 269.413 0 192 0 85.961 86.039 0 192 0s192 85.961 192 192c0 77.413-26.97 99.031-172.268 309.67-9.535 13.774-29.93 13.773-39.464 0zM192 272c44.183 0 80-35.817 80-80s-35.817-80-80-80-80 35.817-80 80 35.817 80 80 80z"/>
           </svg>
@@ -582,27 +598,30 @@
 
   <script>
     /* ========================================================
-       서울시 공공데이터 연계 규격 (역 메타데이터)
-       * 좌표(x, y)는 일절 적지 않습니다. SVG가 스스로 찾습니다.
+       실측 기반 정밀 앵커 좌표계 (2000x2000 기준)
     ======================================================== */
-    const STATION_METADATA = {
-      "강남": {
+    const MAP_SIZE = 2000;
+
+    const STATIONS = {
+      seoul: {
+        id: "seoul",
+        name: "서울역",
+        lines: ["1", "4"],
+        desc: "수도권 광역 환승 허브 (지상 2층 ~ 지하 3층)",
+        floors: ["2F", "1F", "B1", "B2", "B3"],
+        defaultFloor: "B1",
+        x: 935,  // 서울역 환승 원형 정중앙
+        y: 846
+      },
+      gangnam: {
         id: "gangnam",
         name: "강남역",
-        aliases: ["강남", "강남역"],
         lines: ["2", "신분당"],
         desc: "2호선·신분당선 복합 환승역 (지하 4층 구조)",
         floors: ["B1", "B2", "B3", "B4"],
-        defaultFloor: "B1"
-      },
-      "서울역": {
-        id: "seoul",
-        name: "서울역",
-        aliases: ["서울역", "서울"],
-        lines: ["1", "4", "공항철도"],
-        desc: "수도권 광역 환승 허브 (지상 2층 ~ 지하 3층)",
-        floors: ["2F", "1F", "B1", "B2", "B3"],
-        defaultFloor: "B1"
+        defaultFloor: "B1",
+        x: 1380, // 강남역 2호선(초록)-신분당(빨강) 교차 원형 정중앙
+        y: 1412
       }
     };
 
@@ -618,137 +637,23 @@
     const clearSearchBtn = document.getElementById("clear-search");
     const suggestions = document.getElementById("suggestions");
 
-    let mapSvgElement = null;
-    let mapWidth = 2000;
-    let mapHeight = 2000;
+    // 역 히트박스 위치 세팅
+    Object.keys(STATIONS).forEach(id => {
+      const el = document.getElementById(`hitbox-${id}`);
+      if (el) {
+        el.style.left = `${STATIONS[id].x}px`;
+        el.style.top = `${STATIONS[id].y}px`;
+      }
+    });
 
     /* ========================================================
-       1. 외부 정식 지하철 SVG 노선도 로더 (Fetch 방식)
-    ======================================================== */
-    async function loadMetroSVG() {
-      try {
-        // 동일 폴더의 변환하신 정식 SVG 노선도 파일 로드
-        const response = await fetch("metroimg.svg");
-        if (!response.ok) throw new Error("SVG 로드 실패");
-        const svgText = await response.text();
-
-        // 맵 컨테이너에 SVG 삽입
-        const parser = new DOMParser();
-        const svgDoc = parser.parseFromString(svgText, "image/svg+xml");
-        mapSvgElement = svgDoc.documentElement;
-
-        // 원본 viewBox 크기 가져오기
-        const viewBox = mapSvgElement.viewBox.baseVal;
-        if (viewBox && viewBox.width > 0) {
-          mapWidth = viewBox.width;
-          mapHeight = viewBox.height;
-        }
-
-        mapWrapper.style.width = `${mapWidth}px`;
-        mapWrapper.style.height = `${mapHeight}px`;
-        mapWrapper.insertBefore(mapSvgElement, stationPin);
-
-        // SVG 내부 역 텍스트/심볼에 동적 인터랙션 부여
-        initSVGStationListeners();
-
-        // 서울역 중심 초기 정렬
-        focusStationByName("서울역", false);
-
-      } catch (err) {
-        console.warn("metroimg.svg 파일을 불러오지 못해 이미지 대체 모드로 동작합니다:", err);
-      }
-    }
-
-    /* ========================================================
-       2. SVG 내부 역 식별자 자동 탐색 엔진
-    ======================================================== */
-    function getStationCoordinatesFromSVG(stationName) {
-      if (!mapSvgElement) return null;
-
-      const cleanName = stationName.replace("역", "").trim();
-
-      // 1) 텍스트 태그 중 역 이름과 일치하는 텍스트 탐색
-      const textNodes = Array.from(mapSvgElement.querySelectorAll("text"));
-      let targetNode = textNodes.find(t => t.textContent.trim() === cleanName || t.textContent.trim() === stationName);
-
-      // 2) 텍스트가 없으면 data-name 또는 id로 탐색
-      if (!targetNode) {
-        targetNode = mapSvgElement.querySelector(`[id*="${cleanName}"], [data-name*="${cleanName}"]`);
-      }
-
-      if (targetNode) {
-        // SVG 엘리먼트의 정확한 화면상 BoundingBox 추출
-        const bbox = targetNode.getBBox();
-        return {
-          x: bbox.x + bbox.width / 2,
-          y: bbox.y + bbox.height / 2
-        };
-      }
-
-      return null;
-    }
-
-    function initSVGStationListeners() {
-      if (!mapSvgElement) return;
-
-      // SVG 내부의 모든 텍스트 요소를 클릭 가능하게 바인딩
-      const textNodes = mapSvgElement.querySelectorAll("text");
-      textNodes.forEach(t => {
-        const text = t.textContent.trim();
-        if (text.length >= 2 && text.length <= 6) {
-          t.style.cursor = "pointer";
-          t.addEventListener("click", () => {
-            if (hasMoved) return;
-            focusStationByName(text, true);
-          });
-        }
-      });
-    }
-
-    /* ========================================================
-       3. 역 자동 핀 결합 및 카메라 패닝
-    ======================================================== */
-    function focusStationByName(name, showPin = true) {
-      const cleanName = name.replace("역", "").trim();
-      const coords = getStationCoordinatesFromSVG(cleanName);
-
-      if (!coords) {
-        console.warn(`${name} 역의 위치를 SVG에서 찾지 못했습니다.`);
-        return;
-      }
-
-      const meta = STATION_METADATA[cleanName] || STATION_METADATA[cleanName + "역"] || {
-        name: cleanName + "역",
-        lines: ["2"],
-        desc: "수도권 전철 역사",
-        floors: ["B1", "B2"],
-        defaultFloor: "B1"
-      };
-
-      currentSelectedStation = meta;
-
-      if (showPin) {
-        // 수식으로 추출한 중심 좌표에 핀 고정
-        stationPin.style.left = `${coords.x}px`;
-        stationPin.style.top = `${coords.y}px`;
-        stationPin.style.display = "block";
-
-        updatePopupCard(meta);
-        searchBox.value = meta.name;
-        clearSearchBtn.style.display = "block";
-        suggestions.style.display = "none";
-      }
-
-      // 화면 중앙 정렬
-      panToCoordinate(coords.x, coords.y, 1.35);
-    }
-
-    /* ========================================================
-       스마트 줌 & 패닝 바운더리 락
+       스마트 줌 & 패닝 바운더리 락 엔진
     ======================================================== */
     const viewportW = 412;
     const viewportH = 870;
 
+    const minScale = Math.max(viewportW / MAP_SIZE, viewportH / MAP_SIZE);
+    const maxScale = 2.4;
     let scale = 1.0;
     let panX = 0;
     let panY = 0;
@@ -760,13 +665,10 @@
     let hasMoved = false;
 
     function clampPan() {
-      const minScale = Math.max(viewportW / mapWidth, viewportH / mapHeight);
-      scale = Math.min(Math.max(scale, minScale), 2.8);
-
-      const currentW = mapWidth * scale;
-      const currentH = mapHeight * scale;
-      const minX = viewportW - currentW;
-      const minY = viewportH - currentH;
+      const currentMapW = MAP_SIZE * scale;
+      const currentMapH = MAP_SIZE * scale;
+      const minX = viewportW - currentMapW;
+      const minY = viewportH - currentMapH;
 
       panX = Math.min(Math.max(panX, minX), 0);
       panY = Math.min(Math.max(panY, minY), 0);
@@ -782,15 +684,6 @@
       mapWrapper.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
     }
 
-    function panToCoordinate(targetX, targetY, targetScale = 1.3) {
-      scale = targetScale;
-      const viewCenterX = viewportW / 2;
-      const viewCenterY = viewportH / 2;
-      panX = viewCenterX - (targetX * scale);
-      panY = viewCenterY - (targetY * scale);
-      updateTransform(true);
-    }
-
     metroContainer.addEventListener("wheel", (e) => {
       e.preventDefault();
       const rect = metroContainer.getBoundingClientRect();
@@ -799,6 +692,7 @@
 
       const zoomFactor = e.deltaY < 0 ? 1.15 : 0.87;
       let newScale = scale * zoomFactor;
+      newScale = Math.min(Math.max(newScale, minScale), maxScale);
 
       panX = mouseX - (mouseX - panX) * (newScale / scale);
       panY = mouseY - (mouseY - panY) * (newScale / scale);
@@ -850,7 +744,7 @@
       } else if (e.touches.length === 2 && initialPinchDistance) {
         hasMoved = true;
         const currentDistance = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
-        const newScale = initialScale * (currentDistance / initialPinchDistance);
+        const newScale = Math.min(Math.max(initialScale * (currentDistance / initialPinchDistance), minScale), maxScale);
         
         const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
         const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
@@ -868,12 +762,50 @@
     });
 
     function zoomManual(delta) {
-      scale += delta;
+      const newScale = Math.min(Math.max(scale + delta, minScale), maxScale);
       const viewCenterX = viewportW / 2;
       const viewCenterY = viewportH / 2;
-      panX = viewCenterX - (viewCenterX - panX) * ((scale) / (scale - delta));
-      panY = viewCenterY - (viewCenterY - panY) * ((scale) / (scale - delta));
+      panX = viewCenterX - (viewCenterX - panX) * (newScale / scale);
+      panY = viewCenterY - (viewCenterY - panY) * (newScale / scale);
+      scale = newScale;
       updateTransform(true);
+    }
+
+    function panToStation(stationX, stationY, targetScale = 1.15) {
+      scale = Math.min(Math.max(targetScale, minScale), maxScale);
+      const viewCenterX = viewportW / 2;
+      const viewCenterY = viewportH / 2;
+      panX = viewCenterX - (stationX * scale);
+      panY = viewCenterY - (stationY * scale);
+      updateTransform(true);
+    }
+
+    // 초기 화면 진입: 서울역을 화면 정중앙에 배치
+    window.addEventListener("DOMContentLoaded", () => {
+      panToStation(STATIONS.seoul.x, STATIONS.seoul.y, 1.0);
+    });
+
+    function onStationClick(stationId) {
+      if (hasMoved) return;
+      selectStation(stationId);
+    }
+
+    function selectStation(stationId) {
+      const station = STATIONS[stationId];
+      if (!station) return;
+
+      currentSelectedStation = station;
+
+      stationPin.style.left = `${station.x}px`;
+      stationPin.style.top = `${station.y}px`;
+      stationPin.style.display = "block";
+
+      panToStation(station.x, station.y, 1.35);
+
+      updatePopupCard(station);
+      searchBox.value = station.name;
+      clearSearchBtn.style.display = "block";
+      suggestions.style.display = "none";
     }
 
     function deselectStation() {
@@ -883,7 +815,7 @@
       searchBox.value = "";
       clearSearchBtn.style.display = "none";
       suggestions.style.display = "none";
-      focusStationByName("서울역", false);
+      panToStation(STATIONS.seoul.x, STATIONS.seoul.y, 1.0);
     }
 
     function updatePopupCard(station) {
@@ -896,7 +828,6 @@
         const span = document.createElement("span");
         let badgeClass = "badge-1";
         if (line === "2") badgeClass = "badge-2";
-        else if (line === "3") badgeClass = "badge-3";
         else if (line === "4") badgeClass = "badge-4";
         else if (line === "신분당") badgeClass = "badge-shin";
 
@@ -919,8 +850,8 @@
       clearSearchBtn.style.display = "block";
       suggestions.innerHTML = "";
 
-      const matched = Object.values(STATION_METADATA).filter(st => {
-        return st.name.toLowerCase().includes(q) || st.aliases.some(a => a.toLowerCase().includes(q));
+      const matched = Object.values(STATIONS).filter(st => {
+        return st.name.toLowerCase().includes(q);
       });
 
       if (matched.length === 0) {
@@ -934,7 +865,7 @@
             <span style="color:#00e5ff; font-size:12px;">선택 ›</span>
           `;
           item.onclick = () => {
-            focusStationByName(st.name, true);
+            selectStation(st.id);
           };
           suggestions.appendChild(item);
         });
@@ -951,7 +882,7 @@
       alert("✨ AI 도우미: 원하는 역이나 환승 경로를 자유롭게 물어보세요.");
     }
 
-    /* 실내 지도 전환 */
+    /* 실내 지도 화면 전환 */
     const mainView = document.getElementById("main-view");
     const indoorView = document.getElementById("indoor-view");
     const floorList = document.getElementById("floor-list");
@@ -1055,11 +986,6 @@
       }
       animate();
     }
-
-    // 앱 시작 시 실제 노선도 SVG 파일 로드
-    window.addEventListener("DOMContentLoaded", () => {
-      loadMetroSVG();
-    });
   </script>
 </body>
 </html>
