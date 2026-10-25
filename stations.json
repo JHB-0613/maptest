@@ -1,1970 +1,2298 @@
 {
   "경의중앙선역": {
     "name": "경의중앙선역",
-    "x": 765,
-    "y": 57,
+    "x": 759,
+    "y": 95,
+    "is_circle_snapped": true,
     "confidence": 0.76
   },
   "의정부경전철역": {
     "name": "의정부경전철역",
-    "x": 973,
-    "y": 59,
+    "x": 966,
+    "y": 57,
+    "is_circle_snapped": true,
     "confidence": 0.94
   },
   "경춘선역": {
     "name": "경춘선역",
-    "x": 1155,
-    "y": 57,
+    "x": 1153,
+    "y": 96,
+    "is_circle_snapped": true,
     "confidence": 1.0
   },
   "신분탕선역": {
     "name": "신분탕선역",
-    "x": 758,
-    "y": 77,
+    "x": 759,
+    "y": 95,
+    "is_circle_snapped": true,
     "confidence": 0.66
   },
   "경강선역": {
     "name": "경강선역",
-    "x": 1155,
-    "y": 77,
+    "x": 1153,
+    "y": 96,
+    "is_circle_snapped": true,
     "confidence": 1.0
   },
   "부산역": {
     "name": "부산역",
-    "x": 1689,
-    "y": 76,
+    "x": 1683,
+    "y": 78,
+    "is_circle_snapped": true,
     "confidence": 0.99
   },
   "섬산역": {
     "name": "섬산역",
     "x": 1820,
     "y": 68,
+    "is_circle_snapped": false,
     "confidence": 0.87
   },
   "연천역": {
     "name": "연천역",
     "x": 1909,
-    "y": 53,
+    "y": 52,
+    "is_circle_snapped": true,
     "confidence": 0.87
   },
   "수인분당선역": {
     "name": "수인분당선역",
-    "x": 762,
-    "y": 97,
+    "x": 759,
+    "y": 95,
+    "is_circle_snapped": true,
     "confidence": 0.98
   },
   "김모골드라인역": {
     "name": "김모골드라인역",
-    "x": 973,
-    "y": 97,
+    "x": 966,
+    "y": 96,
+    "is_circle_snapped": true,
     "confidence": 0.52
   },
   "서해선역": {
     "name": "서해선역",
-    "x": 1154,
-    "y": 97,
+    "x": 1153,
+    "y": 96,
+    "is_circle_snapped": true,
     "confidence": 1.0
   },
   "Inchcon니l-역": {
     "name": "Inchcon니l-역",
-    "x": 1015,
-    "y": 118,
+    "x": 976,
+    "y": 135,
+    "is_circle_snapped": true,
     "confidence": 0.57
   },
   "용인에버라인역": {
     "name": "용인에버라인역",
-    "x": 973,
-    "y": 136,
+    "x": 976,
+    "y": 135,
+    "is_circle_snapped": true,
     "confidence": 0.95
   },
   "섭치역": {
     "name": "섭치역",
     "x": 1153,
-    "y": 138,
+    "y": 96,
+    "is_circle_snapped": true,
     "confidence": 0.65
   },
   "의정부시청역": {
     "name": "의정부시청역",
-    "x": 1465,
-    "y": 160,
+    "x": 1502,
+    "y": 191,
+    "is_circle_snapped": true,
     "confidence": 0.51
   },
   "신립선역": {
     "name": "신립선역",
-    "x": 959,
-    "y": 156,
+    "x": 957,
+    "y": 153,
+    "is_circle_snapped": true,
     "confidence": 0.47
   },
   "관습여역": {
     "name": "관습여역",
     "x": 1153,
     "y": 203,
+    "is_circle_snapped": true,
     "confidence": 0.78
   },
   "의점부역": {
     "name": "의점부역",
-    "x": 1549,
-    "y": 168,
+    "x": 1585,
+    "y": 126,
+    "is_circle_snapped": true,
     "confidence": 0.64
   },
   "돈우역": {
     "name": "돈우역",
-    "x": 1595,
-    "y": 126,
+    "x": 1675,
+    "y": 179,
+    "is_circle_snapped": true,
     "confidence": 0.47
   },
   "피적부역": {
     "name": "피적부역",
-    "x": 1549,
-    "y": 168,
+    "x": 1526,
+    "y": 195,
+    "is_circle_snapped": true,
     "confidence": 0.38
   },
   "박골역": {
     "name": "박골역",
-    "x": 1465,
-    "y": 160,
+    "x": 1502,
+    "y": 191,
+    "is_circle_snapped": true,
     "confidence": 0.44
   },
   "남촌선역": {
     "name": "남촌선역",
-    "x": 1931,
-    "y": 238,
+    "x": 1909,
+    "y": 175,
+    "is_circle_snapped": true,
     "confidence": 0.41
   },
   "문산역": {
     "name": "문산역",
-    "x": 142,
-    "y": 223,
+    "x": 209,
+    "y": 235,
+    "is_circle_snapped": true,
     "confidence": 0.94
   },
   "파주역": {
     "name": "파주역",
-    "x": 142,
-    "y": 223,
+    "x": 209,
+    "y": 235,
+    "is_circle_snapped": true,
     "confidence": 0.97
   },
   "금촌역": {
     "name": "금촌역",
-    "x": 250,
-    "y": 236,
+    "x": 218,
+    "y": 234,
+    "is_circle_snapped": true,
     "confidence": 0.82
   },
   "금듭역": {
     "name": "금듭역",
-    "x": 286,
-    "y": 236,
+    "x": 289,
+    "y": 234,
+    "is_circle_snapped": true,
     "confidence": 0.58
   },
   "문질역": {
     "name": "문질역",
-    "x": 322,
-    "y": 237,
+    "x": 289,
+    "y": 234,
+    "is_circle_snapped": true,
     "confidence": 0.41
   },
   "아딩역": {
     "name": "아딩역",
-    "x": 399,
-    "y": 233,
+    "x": 422,
+    "y": 256,
+    "is_circle_snapped": true,
     "confidence": 0.47
   },
   "도봉산역": {
     "name": "도봉산역",
-    "x": 1422,
-    "y": 232,
+    "x": 1502,
+    "y": 191,
+    "is_circle_snapped": true,
     "confidence": 0.92
   },
   "일산역": {
     "name": "일산역",
-    "x": 401,
-    "y": 258,
+    "x": 422,
+    "y": 256,
+    "is_circle_snapped": true,
     "confidence": 1.0
   },
   "4,19고주R지역": {
     "name": "4,19고주R지역",
-    "x": 1180,
-    "y": 264,
+    "x": 1166,
+    "y": 252,
+    "is_circle_snapped": true,
     "confidence": 0.55
   },
   "J품산역": {
     "name": "J품산역",
-    "x": 401,
-    "y": 330,
+    "x": 423,
+    "y": 293,
+    "is_circle_snapped": true,
     "confidence": 0.61
   },
   "가모그역": {
     "name": "가모그역",
-    "x": 1180,
-    "y": 264,
+    "x": 1166,
+    "y": 252,
+    "is_circle_snapped": true,
     "confidence": 0.56
   },
   "창동역": {
     "name": "창동역",
-    "x": 1327,
-    "y": 336,
+    "x": 1365,
+    "y": 302,
+    "is_circle_snapped": true,
     "confidence": 1.0
   },
   "벽담리역": {
     "name": "벽담리역",
-    "x": 1925,
-    "y": 317,
+    "x": 1921,
+    "y": 300,
+    "is_circle_snapped": true,
     "confidence": 0.44
   },
   "군접중앙역": {
     "name": "군접중앙역",
-    "x": 204,
+    "x": 205,
     "y": 341,
+    "is_circle_snapped": true,
     "confidence": 0.77
   },
   "백마역": {
     "name": "백마역",
-    "x": 401,
-    "y": 330,
+    "x": 422,
+    "y": 328,
+    "is_circle_snapped": true,
     "confidence": 0.99
   },
   "화게역": {
     "name": "화게역",
-    "x": 1180,
-    "y": 264,
+    "x": 1166,
+    "y": 252,
+    "is_circle_snapped": true,
     "confidence": 0.45
   },
   "남문역": {
     "name": "남문역",
-    "x": 1327,
-    "y": 336,
+    "x": 1365,
+    "y": 302,
+    "is_circle_snapped": true,
     "confidence": 0.8
   },
   "삼계역": {
     "name": "삼계역",
-    "x": 1556,
-    "y": 338,
+    "x": 1581,
+    "y": 336,
+    "is_circle_snapped": true,
     "confidence": 0.92
   },
   "구남역": {
     "name": "구남역",
-    "x": 1696,
+    "x": 1662,
     "y": 338,
+    "is_circle_snapped": true,
     "confidence": 0.48
   },
   "대화역": {
     "name": "대화역",
-    "x": 204,
+    "x": 205,
     "y": 341,
+    "is_circle_snapped": true,
     "confidence": 0.92
   },
   "수유역": {
     "name": "수유역",
-    "x": 1327,
-    "y": 336,
+    "x": 1343,
+    "y": 400,
+    "is_circle_snapped": true,
     "confidence": 0.98
   },
   "곡산역": {
     "name": "곡산역",
-    "x": 426,
-    "y": 413,
+    "x": 422,
+    "y": 328,
+    "is_circle_snapped": true,
     "confidence": 1.0
   },
   "연신내역": {
     "name": "연신내역",
-    "x": 700,
-    "y": 420,
+    "x": 684,
+    "y": 405,
+    "is_circle_snapped": true,
     "confidence": 1.0
   },
   "마게역": {
     "name": "마게역",
-    "x": 1527,
-    "y": 432,
+    "x": 1536,
+    "y": 431,
+    "is_circle_snapped": true,
     "confidence": 0.92
   },
   "불광역": {
     "name": "불광역",
-    "x": 797,
-    "y": 421,
+    "x": 783,
+    "y": 382,
+    "is_circle_snapped": true,
     "confidence": 0.84
   },
   "미다역": {
     "name": "미다역",
-    "x": 1247,
-    "y": 420,
+    "x": 1343,
+    "y": 400,
+    "is_circle_snapped": true,
     "confidence": 1.0
   },
   "광문대역": {
     "name": "광문대역",
-    "x": 1356,
-    "y": 402,
+    "x": 1343,
+    "y": 400,
+    "is_circle_snapped": true,
     "confidence": 0.75
   },
   "늑년역": {
     "name": "늑년역",
-    "x": 797,
-    "y": 421,
+    "x": 783,
+    "y": 382,
+    "is_circle_snapped": true,
     "confidence": 0.84
   },
   "절발산역": {
     "name": "절발산역",
-    "x": 273,
-    "y": 391,
+    "x": 282,
+    "y": 420,
+    "is_circle_snapped": false,
     "confidence": 0.9
   },
   "백쓰역": {
     "name": "백쓰역",
     "x": 379,
     "y": 406,
+    "is_circle_snapped": true,
     "confidence": 0.53
   },
   "대곡역": {
     "name": "대곡역",
-    "x": 426,
-    "y": 413,
+    "x": 411,
+    "y": 406,
+    "is_circle_snapped": true,
     "confidence": 0.98
   },
   "권답역": {
     "name": "권답역",
-    "x": 500,
-    "y": 420,
+    "x": 434,
+    "y": 457,
+    "is_circle_snapped": true,
     "confidence": 0.7
   },
   "구디박역": {
     "name": "구디박역",
-    "x": 700,
-    "y": 420,
+    "x": 684,
+    "y": 405,
+    "is_circle_snapped": true,
     "confidence": 0.6
   },
   "미아사거리역": {
     "name": "미아사거리역",
-    "x": 1247,
-    "y": 420,
+    "x": 1258,
+    "y": 424,
+    "is_circle_snapped": false,
     "confidence": 0.49
   },
   "구산역": {
     "name": "구산역",
-    "x": 700,
-    "y": 420,
+    "x": 705,
+    "y": 405,
+    "is_circle_snapped": true,
     "confidence": 0.81
   },
   "보국문역": {
     "name": "보국문역",
-    "x": 1169,
-    "y": 450,
+    "x": 1148,
+    "y": 496,
+    "is_circle_snapped": true,
     "confidence": 1.0
   },
   "태름입역": {
     "name": "태름입역",
-    "x": 1527,
-    "y": 432,
+    "x": 1536,
+    "y": 431,
+    "is_circle_snapped": true,
     "confidence": 0.99
   },
   "대섭리역": {
     "name": "대섭리역",
-    "x": 1925,
-    "y": 420,
+    "x": 1931,
+    "y": 431,
+    "is_circle_snapped": false,
     "confidence": 0.59
   },
   "가J역": {
     "name": "가J역",
-    "x": 1357,
-    "y": 443,
+    "x": 1379,
+    "y": 453,
+    "is_circle_snapped": true,
     "confidence": 0.78
   },
   "무의깨.역": {
     "name": "무의깨.역",
     "x": 877,
     "y": 452,
+    "is_circle_snapped": false,
     "confidence": 0.4
   },
   "차랗다역": {
     "name": "차랗다역",
-    "x": 1599,
-    "y": 450,
+    "x": 1536,
+    "y": 431,
+    "is_circle_snapped": true,
     "confidence": 0.96
   },
   "벌내역": {
     "name": "벌내역",
-    "x": 1712,
-    "y": 468,
+    "x": 1704,
+    "y": 467,
+    "is_circle_snapped": true,
     "confidence": 1.0
   },
   "성신여대입구역": {
     "name": "성신여대입구역",
-    "x": 1104,
-    "y": 485,
+    "x": 1148,
+    "y": 496,
+    "is_circle_snapped": true,
     "confidence": 0.8
   },
   "천가산역": {
     "name": "천가산역",
-    "x": 1897,
-    "y": 479,
+    "x": 1898,
+    "y": 504,
+    "is_circle_snapped": false,
     "confidence": 0.59
   },
   "민성내입구역": {
     "name": "민성내입구역",
-    "x": 1096,
-    "y": 516,
+    "x": 1148,
+    "y": 496,
+    "is_circle_snapped": true,
     "confidence": 0.38
   },
   "고러대역": {
     "name": "고러대역",
-    "x": 1258,
-    "y": 498,
+    "x": 1234,
+    "y": 570,
+    "is_circle_snapped": true,
     "confidence": 0.38
   },
   "신내역": {
     "name": "신내역",
-    "x": 1656,
-    "y": 509,
+    "x": 1683,
+    "y": 503,
+    "is_circle_snapped": true,
     "confidence": 1.0
   },
   "만국역": {
     "name": "만국역",
-    "x": 906,
-    "y": 525,
+    "x": 918,
+    "y": 569,
+    "is_circle_snapped": true,
     "confidence": 0.81
   },
   "보문역": {
     "name": "보문역",
-    "x": 1150,
-    "y": 558,
+    "x": 1175,
+    "y": 531,
+    "is_circle_snapped": true,
     "confidence": 0.98
   },
   "마산\"~역": {
     "name": "마산\"~역",
     "x": 103,
     "y": 598,
+    "is_circle_snapped": true,
     "confidence": 0.53
   },
   "삼기역": {
     "name": "삼기역",
     "x": 103,
     "y": 598,
+    "is_circle_snapped": true,
     "confidence": 0.96
   },
   "종로3가역": {
     "name": "종로3가역",
-    "x": 900,
-    "y": 570,
+    "x": 874,
+    "y": 556,
+    "is_circle_snapped": true,
     "confidence": 1.0
   },
   "동대문역": {
     "name": "동대문역",
-    "x": 1092,
-    "y": 594,
+    "x": 1033,
+    "y": 611,
+    "is_circle_snapped": true,
     "confidence": 1.0
   },
   "신설동역": {
     "name": "신설동역",
     "x": 1234,
     "y": 570,
+    "is_circle_snapped": true,
     "confidence": 0.7
   },
   "회기역": {
     "name": "회기역",
-    "x": 1386,
-    "y": 573,
+    "x": 1394,
+    "y": 555,
+    "is_circle_snapped": true,
     "confidence": 0.99
   },
   "중량역": {
     "name": "중량역",
-    "x": 1444,
-    "y": 563,
+    "x": 1450,
+    "y": 568,
+    "is_circle_snapped": true,
     "confidence": 0.67
   },
   "망무역": {
     "name": "망무역",
-    "x": 1586,
-    "y": 570,
+    "x": 1511,
+    "y": 565,
+    "is_circle_snapped": true,
     "confidence": 1.0
   },
   "구리역": {
     "name": "구리역",
-    "x": 1661,
-    "y": 570,
+    "x": 1683,
+    "y": 503,
+    "is_circle_snapped": true,
     "confidence": 1.0
   },
   "노놈역": {
     "name": "노놈역",
-    "x": 1661,
-    "y": 570,
+    "x": 1710,
+    "y": 500,
+    "is_circle_snapped": true,
     "confidence": 0.63
   },
   "논심역": {
     "name": "논심역",
-    "x": 1812,
-    "y": 570,
+    "x": 1790,
+    "y": 502,
+    "is_circle_snapped": true,
     "confidence": 0.78
   },
   "문길신역": {
     "name": "문길신역",
-    "x": 1896,
+    "x": 1878,
     "y": 568,
+    "is_circle_snapped": false,
     "confidence": 0.59
   },
   "동대문역사역": {
     "name": "동대문역사역",
-    "x": 1092,
-    "y": 594,
+    "x": 1109,
+    "y": 597,
+    "is_circle_snapped": true,
     "confidence": 0.95
   },
   "제기독역": {
     "name": "제기독역",
-    "x": 1234,
-    "y": 591,
+    "x": 1339,
+    "y": 578,
+    "is_circle_snapped": true,
     "confidence": 0.36
   },
   "만주밥금대역": {
     "name": "만주밥금대역",
-    "x": 426,
-    "y": 631,
+    "x": 442,
+    "y": 616,
+    "is_circle_snapped": false,
     "confidence": 0.35
   },
   "관되문역": {
     "name": "관되문역",
-    "x": 791,
-    "y": 603,
+    "x": 874,
+    "y": 556,
+    "is_circle_snapped": true,
     "confidence": 0.39
   },
   "물지로3가역": {
     "name": "물지로3가역",
-    "x": 978,
-    "y": 605,
+    "x": 955,
+    "y": 611,
+    "is_circle_snapped": true,
     "confidence": 0.63
   },
   "물지로4가역": {
     "name": "물지로4가역",
-    "x": 978,
-    "y": 605,
+    "x": 1033,
+    "y": 611,
+    "is_circle_snapped": true,
     "confidence": 0.42
   },
   "문화공원역": {
     "name": "문화공원역",
-    "x": 1093,
-    "y": 612,
+    "x": 1098,
+    "y": 611,
+    "is_circle_snapped": true,
     "confidence": 1.0
   },
-  "'청량리역": {
-    "name": "'청량리역",
+  "청량리역": {
+    "name": "청량리역",
     "x": 1361,
-    "y": 600,
+    "y": 601,
+    "is_circle_snapped": true,
     "confidence": 0.96
   },
   "사무:)역": {
     "name": "사무:)역",
     "x": 187,
     "y": 661,
+    "is_circle_snapped": true,
     "confidence": 0.47
   },
   "미신역": {
     "name": "미신역",
     "x": 1926,
     "y": 634,
+    "is_circle_snapped": false,
     "confidence": 0.4
   },
   "시청역": {
     "name": "시청역",
-    "x": 840,
-    "y": 642,
+    "x": 918,
+    "y": 590,
+    "is_circle_snapped": true,
     "confidence": 1.0
   },
   "저대눈역": {
     "name": "저대눈역",
-    "x": 797,
-    "y": 675,
+    "x": 796,
+    "y": 659,
+    "is_circle_snapped": false,
     "confidence": 0.8
   },
   "신담역": {
     "name": "신담역",
-    "x": 1188,
-    "y": 657,
+    "x": 1192,
+    "y": 654,
+    "is_circle_snapped": true,
     "confidence": 0.98
   },
   "적단사거리역": {
     "name": "적단사거리역",
-    "x": 124,
-    "y": 642,
+    "x": 187,
+    "y": 661,
+    "is_circle_snapped": true,
     "confidence": 0.57
   },
   "검년역": {
     "name": "검년역",
     "x": 187,
     "y": 661,
+    "is_circle_snapped": true,
     "confidence": 0.39
   },
   "호수공원역": {
     "name": "호수공원역",
     "x": 187,
     "y": 661,
+    "is_circle_snapped": true,
     "confidence": 0.44
   },
   "충정로역": {
     "name": "충정로역",
-    "x": 757,
-    "y": 684,
+    "x": 747,
+    "y": 687,
+    "is_circle_snapped": false,
     "confidence": 0.5
   },
   "마전역": {
     "name": "마전역",
-    "x": 121,
-    "y": 726,
+    "x": 187,
+    "y": 661,
+    "is_circle_snapped": true,
     "confidence": 0.97
   },
   "신답역": {
     "name": "신답역",
-    "x": 1347,
-    "y": 690,
+    "x": 1310,
+    "y": 757,
+    "is_circle_snapped": true,
     "confidence": 0.99
   },
   "미디어시터역": {
     "name": "미디어시터역",
-    "x": 531,
-    "y": 676,
+    "x": 551,
+    "y": 729,
+    "is_circle_snapped": true,
     "confidence": 0.76
   },
   "충무로역": {
     "name": "충무로역",
-    "x": 996,
-    "y": 766,
+    "x": 1018,
+    "y": 740,
+    "is_circle_snapped": true,
     "confidence": 1.0
   },
   "청구역": {
     "name": "청구역",
-    "x": 1146,
-    "y": 744,
+    "x": 1188,
+    "y": 735,
+    "is_circle_snapped": false,
     "confidence": 0.99
   },
   "나Jnanut역": {
     "name": "나Jnanut역",
-    "x": 996,
-    "y": 766,
+    "x": 1018,
+    "y": 740,
+    "is_circle_snapped": true,
     "confidence": 0.42
   },
   "개타역": {
     "name": "개타역",
-    "x": 235,
-    "y": 780,
+    "x": 219,
+    "y": 745,
+    "is_circle_snapped": true,
     "confidence": 0.5
   },
   "김포공항0역": {
     "name": "김포공항0역",
-    "x": 317,
-    "y": 768,
+    "x": 356,
+    "y": 769,
+    "is_circle_snapped": true,
     "confidence": 0.84
   },
   "마극나무역": {
     "name": "마극나무역",
-    "x": 399,
-    "y": 762,
+    "x": 418,
+    "y": 768,
+    "is_circle_snapped": true,
     "confidence": 0.48
   },
   "남심리역": {
     "name": "남심리역",
     "x": 1443,
-    "y": 819,
+    "y": 774,
+    "is_circle_snapped": false,
     "confidence": 0.69
   },
   "군자역": {
     "name": "군자역",
-    "x": 1529,
-    "y": 769,
+    "x": 1532,
+    "y": 772,
+    "is_circle_snapped": false,
     "confidence": 1.0
   },
-  "'검암역": {
-    "name": "'검암역",
-    "x": 123,
-    "y": 810,
+  "검암역": {
+    "name": "검암역",
+    "x": 202,
+    "y": 809,
+    "is_circle_snapped": true,
     "confidence": 0.98
   },
   "계양역": {
     "name": "계양역",
-    "x": 204,
-    "y": 780,
+    "x": 202,
+    "y": 809,
+    "is_circle_snapped": true,
     "confidence": 1.0
   },
   "농대일역": {
     "name": "농대일역",
-    "x": 1153,
-    "y": 829,
+    "x": 1124,
+    "y": 885,
+    "is_circle_snapped": true,
     "confidence": 0.5
   },
   "아하산역": {
     "name": "아하산역",
-    "x": 1554,
-    "y": 769,
+    "x": 1589,
+    "y": 816,
+    "is_circle_snapped": false,
     "confidence": 0.36
   },
   "검기짐역": {
     "name": "검기짐역",
-    "x": 533,
-    "y": 825,
+    "x": 528,
+    "y": 815,
+    "is_circle_snapped": true,
     "confidence": 0.62
   },
   "신즌역": {
     "name": "신즌역",
-    "x": 697,
-    "y": 792,
+    "x": 656,
+    "y": 855,
+    "is_circle_snapped": true,
     "confidence": 0.54
   },
   "신촌역": {
     "name": "신촌역",
-    "x": 659,
+    "x": 656,
     "y": 855,
+    "is_circle_snapped": true,
     "confidence": 0.6
   },
   "천리역": {
     "name": "천리역",
     "x": 62,
     "y": 848,
+    "is_circle_snapped": false,
     "confidence": 0.92
   },
   "김나퀴역": {
     "name": "김나퀴역",
-    "x": 125,
-    "y": 852,
+    "x": 202,
+    "y": 809,
+    "is_circle_snapped": true,
     "confidence": 0.43
   },
   "서울역": {
     "name": "서울역",
-    "x": 996,
-    "y": 841,
+    "x": 1004,
+    "y": 847,
+    "is_circle_snapped": true,
     "confidence": 0.83
   },
   "독심역": {
     "name": "독심역",
     "x": 1380,
     "y": 848,
+    "is_circle_snapped": false,
     "confidence": 0.9
   },
   "국제도시역": {
     "name": "국제도시역",
     "x": 72,
     "y": 859,
+    "is_circle_snapped": false,
     "confidence": 0.78
   },
   "마노구철역": {
     "name": "마노구철역",
-    "x": 535,
-    "y": 852,
+    "x": 528,
+    "y": 815,
+    "is_circle_snapped": true,
     "confidence": 0.37
   },
   "흉대입구역": {
     "name": "흉대입구역",
-    "x": 659,
+    "x": 656,
     "y": 855,
+    "is_circle_snapped": true,
     "confidence": 0.82
   },
   "마고역": {
     "name": "마고역",
-    "x": 307,
-    "y": 862,
+    "x": 323,
+    "y": 875,
+    "is_circle_snapped": false,
     "confidence": 0.62
   },
   "마남역": {
     "name": "마남역",
     "x": 1909,
     "y": 868,
+    "is_circle_snapped": true,
     "confidence": 0.99
   },
   "김단산역": {
     "name": "김단산역",
     "x": 1909,
     "y": 868,
+    "is_circle_snapped": true,
     "confidence": 0.59
   },
   "선수역": {
     "name": "선수역",
-    "x": 1393,
+    "x": 1394,
     "y": 931,
+    "is_circle_snapped": true,
     "confidence": 0.48
   },
   "서않다역": {
     "name": "서않다역",
-    "x": 744,
-    "y": 973,
+    "x": 774,
+    "y": 970,
+    "is_circle_snapped": true,
     "confidence": 0.43
   },
   "합정역": {
     "name": "합정역",
-    "x": 664,
-    "y": 984,
+    "x": 621,
+    "y": 937,
+    "is_circle_snapped": true,
     "confidence": 0.95
   },
   "남엽역": {
     "name": "남엽역",
-    "x": 954,
-    "y": 925,
+    "x": 978,
+    "y": 1001,
+    "is_circle_snapped": true,
     "confidence": 0.37
   },
   "나티고개역": {
     "name": "나티고개역",
-    "x": 1101,
-    "y": 934,
+    "x": 1124,
+    "y": 885,
+    "is_circle_snapped": true,
     "confidence": 0.67
   },
   "무산신역": {
     "name": "무산신역",
     "x": 394,
     "y": 943,
+    "is_circle_snapped": false,
     "confidence": 0.82
   },
   "공덕역": {
     "name": "공덕역",
-    "x": 792,
-    "y": 983,
+    "x": 774,
+    "y": 970,
+    "is_circle_snapped": true,
     "confidence": 1.0
   },
   "계산역": {
     "name": "계산역",
-    "x": 220,
-    "y": 991,
+    "x": 206,
+    "y": 964,
+    "is_circle_snapped": false,
     "confidence": 0.71
   },
   "음봄역": {
     "name": "음봄역",
-    "x": 1196,
-    "y": 958,
+    "x": 1262,
+    "y": 922,
+    "is_circle_snapped": true,
     "confidence": 0.45
   },
   "담사역": {
     "name": "담사역",
-    "x": 1589,
-    "y": 982,
+    "x": 1608,
+    "y": 963,
+    "is_circle_snapped": false,
     "confidence": 0.73
   },
   "건대입구역": {
     "name": "건대입구역",
-    "x": 1393,
+    "x": 1394,
     "y": 931,
+    "is_circle_snapped": true,
     "confidence": 0.93
   },
   "삼각지역": {
     "name": "삼각지역",
-    "x": 960,
-    "y": 978,
+    "x": 978,
+    "y": 1001,
+    "is_circle_snapped": true,
     "confidence": 1.0
   },
   "미대린역": {
     "name": "미대린역",
-    "x": 1048,
-    "y": 972,
+    "x": 978,
+    "y": 1001,
+    "is_circle_snapped": true,
     "confidence": 0.44
   },
   "천호역": {
     "name": "천호역",
-    "x": 1589,
-    "y": 982,
+    "x": 1586,
+    "y": 985,
+    "is_circle_snapped": false,
     "confidence": 0.88
   },
   "경인교대답구역": {
     "name": "경인교대답구역",
-    "x": 220,
-    "y": 991,
+    "x": 224,
+    "y": 1001,
+    "is_circle_snapped": false,
     "confidence": 0.59
   },
   "손유노역": {
     "name": "손유노역",
-    "x": 570,
-    "y": 998,
+    "x": 582,
+    "y": 1042,
+    "is_circle_snapped": true,
     "confidence": 0.63
   },
   "즉사편역": {
     "name": "즉사편역",
-    "x": 1048,
-    "y": 972,
+    "x": 978,
+    "y": 1001,
+    "is_circle_snapped": true,
     "confidence": 0.53
   },
   "기점역": {
     "name": "기점역",
     "x": 120,
     "y": 1010,
+    "is_circle_snapped": false,
     "confidence": 0.99
   },
   "옥수역": {
     "name": "옥수역",
-    "x": 1147,
-    "y": 1009,
+    "x": 1138,
+    "y": 1008,
+    "is_circle_snapped": true,
     "confidence": 0.96
   },
   "까치산역": {
     "name": "까치산역",
-    "x": 482,
-    "y": 1017,
+    "x": 454,
+    "y": 1029,
+    "is_circle_snapped": true,
     "confidence": 1.0
   },
   "대륙역": {
     "name": "대륙역",
-    "x": 760,
-    "y": 983,
+    "x": 774,
+    "y": 1001,
+    "is_circle_snapped": true,
     "confidence": 0.5
   },
   "효참공원앞역": {
     "name": "효참공원앞역",
-    "x": 810,
-    "y": 985,
+    "x": 774,
+    "y": 1001,
+    "is_circle_snapped": true,
     "confidence": 0.69
   },
   "신문산역": {
     "name": "신문산역",
-    "x": 995,
-    "y": 1032,
+    "x": 978,
+    "y": 1001,
+    "is_circle_snapped": true,
     "confidence": 0.7
   },
   "자전역": {
     "name": "자전역",
-    "x": 220,
-    "y": 991,
+    "x": 206,
+    "y": 1040,
+    "is_circle_snapped": false,
     "confidence": 0.84
   },
   "당산역": {
     "name": "당산역",
-    "x": 609,
-    "y": 1034,
+    "x": 582,
+    "y": 1042,
+    "is_circle_snapped": true,
     "confidence": 1.0
   },
   "용산역": {
     "name": "용산역",
-    "x": 924,
-    "y": 1057,
+    "x": 916,
+    "y": 1055,
+    "is_circle_snapped": true,
     "confidence": 1.0
   },
   "이촌역": {
     "name": "이촌역",
-    "x": 995,
-    "y": 1032,
+    "x": 978,
+    "y": 1001,
+    "is_circle_snapped": true,
     "confidence": 0.65
   },
   "서방고역": {
     "name": "서방고역",
-    "x": 1058,
-    "y": 1056,
+    "x": 978,
+    "y": 1001,
+    "is_circle_snapped": true,
     "confidence": 0.5
   },
   "감출구점역": {
     "name": "감출구점역",
     "x": 1527,
     "y": 1050,
+    "is_circle_snapped": false,
     "confidence": 0.67
   },
   "그프씨역": {
     "name": "그프씨역",
-    "x": 589,
+    "x": 590,
     "y": 1097,
+    "is_circle_snapped": true,
     "confidence": 0.53
   },
   "네기리역": {
     "name": "네기리역",
-    "x": 487,
-    "y": 1098,
+    "x": 454,
+    "y": 1029,
+    "is_circle_snapped": true,
     "confidence": 0.98
   },
   "밥구섭역": {
     "name": "밥구섭역",
     "x": 1148,
     "y": 1102,
+    "is_circle_snapped": false,
     "confidence": 0.62
   },
   "심나주역": {
     "name": "심나주역",
-    "x": 1431,
-    "y": 1132,
+    "x": 1402,
+    "y": 1134,
+    "is_circle_snapped": true,
     "confidence": 0.36
   },
   "석남역": {
     "name": "석남역",
-    "x": 73,
+    "x": 74,
     "y": 1137,
+    "is_circle_snapped": true,
     "confidence": 0.97
   },
   "부평구청cfie역": {
     "name": "부평구청cfie역",
-    "x": 204,
-    "y": 1110,
+    "x": 200,
+    "y": 1194,
+    "is_circle_snapped": true,
     "confidence": 0.62
   },
   "여리니로역": {
     "name": "여리니로역",
-    "x": 762,
-    "y": 1128,
+    "x": 836,
+    "y": 1195,
+    "is_circle_snapped": true,
     "confidence": 0.6
   },
-  "{강남구청역": {
-    "name": "{강남구청역",
+  "강남구청역": {
+    "name": "강남구청역",
     "x": 1294,
     "y": 1116,
+    "is_circle_snapped": false,
     "confidence": 0.66
   },
   "신사역": {
     "name": "신사역",
-    "x": 1140,
-    "y": 1170,
+    "x": 1186,
+    "y": 1196,
+    "is_circle_snapped": true,
     "confidence": 0.95
   },
   "잠실역": {
     "name": "잠실역",
-    "x": 1431,
-    "y": 1132,
+    "x": 1443,
+    "y": 1133,
+    "is_circle_snapped": true,
     "confidence": 1.0
   },
   "신곡역": {
     "name": "신곡역",
-    "x": 186,
-    "y": 1145,
+    "x": 200,
+    "y": 1194,
+    "is_circle_snapped": true,
     "confidence": 1.0
   },
   "삼신역": {
     "name": "삼신역",
-    "x": 204,
-    "y": 1110,
+    "x": 200,
+    "y": 1194,
+    "is_circle_snapped": true,
     "confidence": 0.91
   },
   "삼동역": {
     "name": "삼동역",
-    "x": 290,
-    "y": 1152,
+    "x": 345,
+    "y": 1228,
+    "is_circle_snapped": true,
     "confidence": 0.66
   },
   "부친시철역": {
     "name": "부친시철역",
-    "x": 328,
-    "y": 1152,
+    "x": 345,
+    "y": 1228,
+    "is_circle_snapped": true,
     "confidence": 0.7
   },
   "국회의사담역": {
     "name": "국회의사담역",
-    "x": 683,
-    "y": 1125,
+    "x": 750,
+    "y": 1195,
+    "is_circle_snapped": true,
     "confidence": 0.86
   },
   "여의도역": {
     "name": "여의도역",
-    "x": 762,
-    "y": 1170,
+    "x": 836,
+    "y": 1195,
+    "is_circle_snapped": true,
     "confidence": 1.0
   },
   "노랑진역": {
     "name": "노랑진역",
-    "x": 917,
-    "y": 1146,
+    "x": 902,
+    "y": 1138,
+    "is_circle_snapped": true,
     "confidence": 0.89
   },
   "동작역": {
     "name": "동작역",
-    "x": 991,
-    "y": 1156,
+    "x": 999,
+    "y": 1155,
+    "is_circle_snapped": false,
     "confidence": 1.0
   },
   "세육관역": {
     "name": "세육관역",
-    "x": 254,
-    "y": 1163,
+    "x": 200,
+    "y": 1194,
+    "is_circle_snapped": true,
     "confidence": 0.99
   },
   "중앙보순변원역": {
     "name": "중앙보순변원역",
     "x": 1666,
     "y": 1141,
+    "is_circle_snapped": true,
     "confidence": 0.36
   },
   "논현역": {
     "name": "논현역",
-    "x": 1206,
-    "y": 1218,
+    "x": 1186,
+    "y": 1196,
+    "is_circle_snapped": true,
     "confidence": 1.0
   },
   "잠실새내역": {
     "name": "잠실새내역",
-    "x": 1401,
-    "y": 1225,
+    "x": 1400,
+    "y": 1222,
+    "is_circle_snapped": true,
     "confidence": 0.64
   },
   "신길역": {
     "name": "신길역",
-    "x": 742,
-    "y": 1209,
+    "x": 750,
+    "y": 1195,
+    "is_circle_snapped": true,
     "confidence": 0.63
   },
   "대방역": {
     "name": "대방역",
-    "x": 858,
-    "y": 1247,
+    "x": 836,
+    "y": 1195,
+    "is_circle_snapped": true,
     "confidence": 1.0
   },
   "군대역": {
     "name": "군대역",
-    "x": 641,
-    "y": 1257,
+    "x": 652,
+    "y": 1281,
+    "is_circle_snapped": true,
     "confidence": 0.92
   },
   "신논현역": {
     "name": "신논현역",
-    "x": 1206,
-    "y": 1218,
+    "x": 1186,
+    "y": 1196,
+    "is_circle_snapped": true,
     "confidence": 1.0
   },
   "선청름역": {
     "name": "선청름역",
-    "x": 1282,
-    "y": 1222,
+    "x": 1298,
+    "y": 1221,
+    "is_circle_snapped": true,
     "confidence": 0.41
   },
   "종합운동장역": {
     "name": "종합운동장역",
-    "x": 1401,
-    "y": 1225,
+    "x": 1400,
+    "y": 1222,
+    "is_circle_snapped": true,
     "confidence": 0.99
   },
   "석촌역": {
     "name": "석촌역",
-    "x": 1494,
-    "y": 1259,
+    "x": 1502,
+    "y": 1221,
+    "is_circle_snapped": true,
     "confidence": 0.96
   },
   "부천종합운동장역": {
     "name": "부천종합운동장역",
     "x": 379,
-    "y": 1229,
+    "y": 1228,
+    "is_circle_snapped": true,
     "confidence": 0.86
   },
   "민전가자역": {
     "name": "민전가자역",
-    "x": 119,
-    "y": 1230,
+    "x": 133,
+    "y": 1286,
+    "is_circle_snapped": true,
     "confidence": 0.56
   },
   "명승고역": {
     "name": "명승고역",
-    "x": 742,
-    "y": 1209,
+    "x": 750,
+    "y": 1195,
+    "is_circle_snapped": true,
     "confidence": 0.49
   },
   "고속터미널역": {
     "name": "고속터미널역",
     "x": 1103,
     "y": 1245,
+    "is_circle_snapped": true,
     "confidence": 0.64
   },
-  "'올림픽공원역": {
-    "name": "'올림픽공원역",
-    "x": 1593,
+  "올림픽공원역": {
+    "name": "올림픽공원역",
+    "x": 1581,
     "y": 1246,
+    "is_circle_snapped": true,
     "confidence": 0.81
   },
   "부평역": {
     "name": "부평역",
-    "x": 213,
-    "y": 1289,
+    "x": 219,
+    "y": 1259,
+    "is_circle_snapped": true,
     "confidence": 0.99
   },
   "온수역": {
     "name": "온수역",
-    "x": 493,
-    "y": 1260,
+    "x": 431,
+    "y": 1283,
+    "is_circle_snapped": true,
     "confidence": 1.0
   },
   "언주역": {
     "name": "언주역",
-    "x": 1206,
-    "y": 1218,
+    "x": 1186,
+    "y": 1196,
+    "is_circle_snapped": true,
     "confidence": 0.35
   },
   "심성역": {
     "name": "심성역",
-    "x": 1282,
-    "y": 1222,
+    "x": 1298,
+    "y": 1221,
+    "is_circle_snapped": true,
     "confidence": 0.67
   },
   "본은사역": {
     "name": "본은사역",
-    "x": 1282,
-    "y": 1222,
+    "x": 1361,
+    "y": 1245,
+    "is_circle_snapped": true,
     "confidence": 0.35
   },
   "신도림역": {
     "name": "신도림역",
-    "x": 641,
-    "y": 1257,
+    "x": 652,
+    "y": 1281,
+    "is_circle_snapped": true,
     "confidence": 0.92
   },
   "손담역": {
     "name": "손담역",
-    "x": 1282,
-    "y": 1222,
+    "x": 1298,
+    "y": 1221,
+    "is_circle_snapped": true,
     "confidence": 0.75
   },
   "백제역": {
     "name": "백제역",
-    "x": 1494,
-    "y": 1259,
+    "x": 1581,
+    "y": 1246,
+    "is_circle_snapped": true,
     "confidence": 0.71
   },
   "부친역": {
     "name": "부친역",
-    "x": 384,
-    "y": 1296,
+    "x": 431,
+    "y": 1283,
+    "is_circle_snapped": true,
     "confidence": 1.0
   },
   "소사역": {
     "name": "소사역",
-    "x": 414,
-    "y": 1298,
+    "x": 431,
+    "y": 1283,
+    "is_circle_snapped": true,
     "confidence": 1.0
   },
   "신대밤역": {
     "name": "신대밤역",
-    "x": 808,
-    "y": 1296,
+    "x": 783,
+    "y": 1335,
+    "is_circle_snapped": true,
     "confidence": 0.36
   },
   "숨실대역": {
     "name": "숨실대역",
-    "x": 923,
-    "y": 1300,
+    "x": 978,
+    "y": 1343,
+    "is_circle_snapped": true,
     "confidence": 0.51
   },
   "버문역": {
     "name": "버문역",
-    "x": 190,
-    "y": 1295,
+    "x": 191,
+    "y": 1302,
+    "is_circle_snapped": true,
     "confidence": 0.79
   },
   "천밥역": {
     "name": "천밥역",
-    "x": 493,
-    "y": 1260,
+    "x": 431,
+    "y": 1283,
+    "is_circle_snapped": true,
     "confidence": 0.4
   },
   "대림역": {
     "name": "대림역",
-    "x": 716,
-    "y": 1314,
+    "x": 721,
+    "y": 1313,
+    "is_circle_snapped": true,
     "confidence": 0.96
   },
   "보라매역": {
     "name": "보라매역",
-    "x": 808,
-    "y": 1296,
+    "x": 755,
+    "y": 1312,
+    "is_circle_snapped": true,
     "confidence": 0.98
   },
   "삼거리역": {
     "name": "삼거리역",
-    "x": 808,
-    "y": 1296,
+    "x": 783,
+    "y": 1335,
+    "is_circle_snapped": true,
     "confidence": 0.94
   },
   "배기역": {
     "name": "배기역",
-    "x": 808,
-    "y": 1296,
+    "x": 865,
+    "y": 1313,
+    "is_circle_snapped": false,
     "confidence": 0.87
   },
   "산느역": {
     "name": "산느역",
     "x": 892,
     "y": 1312,
+    "is_circle_snapped": false,
     "confidence": 0.4
   },
   "입구역": {
     "name": "입구역",
-    "x": 922,
-    "y": 1312,
+    "x": 978,
+    "y": 1343,
+    "is_circle_snapped": true,
     "confidence": 0.35
   },
   "남섭역": {
     "name": "남섭역",
-    "x": 952,
-    "y": 1312,
+    "x": 978,
+    "y": 1343,
+    "is_circle_snapped": true,
     "confidence": 0.94
   },
   "내밤역": {
     "name": "내밤역",
-    "x": 1031,
-    "y": 1323,
+    "x": 1103,
+    "y": 1245,
+    "is_circle_snapped": true,
     "confidence": 0.52
   },
   "넘구로역": {
     "name": "넘구로역",
-    "x": 628,
-    "y": 1355,
+    "x": 667,
+    "y": 1350,
+    "is_circle_snapped": true,
     "confidence": 0.59
   },
   "삼심역": {
     "name": "삼심역",
-    "x": 1334,
-    "y": 1324,
+    "x": 1287,
+    "y": 1377,
+    "is_circle_snapped": true,
     "confidence": 0.67
   },
   "동합역": {
     "name": "동합역",
-    "x": 190,
-    "y": 1295,
+    "x": 191,
+    "y": 1302,
+    "is_circle_snapped": true,
     "confidence": 0.66
   },
   "오금역": {
     "name": "오금역",
-    "x": 1578,
-    "y": 1339,
+    "x": 1589,
+    "y": 1329,
+    "is_circle_snapped": false,
     "confidence": 1.0
   },
   "관념사거리역": {
     "name": "관념사거리역",
-    "x": 507,
-    "y": 1340,
+    "x": 431,
+    "y": 1283,
+    "is_circle_snapped": true,
     "confidence": 0.89
   },
   "주안국가사다역": {
     "name": "주안국가사다역",
-    "x": 119,
-    "y": 1309,
+    "x": 133,
+    "y": 1286,
+    "is_circle_snapped": true,
     "confidence": 0.92
   },
   "건석역": {
     "name": "건석역",
-    "x": 193,
-    "y": 1374,
+    "x": 177,
+    "y": 1389,
+    "is_circle_snapped": true,
     "confidence": 0.96
   },
   "부덤산기리역": {
     "name": "부덤산기리역",
-    "x": 281,
-    "y": 1360,
+    "x": 287,
+    "y": 1413,
+    "is_circle_snapped": true,
     "confidence": 0.76
   },
-  "'가산디지털역": {
-    "name": "'가산디지털역",
-    "x": 628,
-    "y": 1355,
+  "가산디지털역": {
+    "name": "가산디지털역",
+    "x": 667,
+    "y": 1350,
+    "is_circle_snapped": true,
     "confidence": 0.84
   },
   "총신대입구(이수)역": {
     "name": "총신대입구(이수)역",
-    "x": 1031,
-    "y": 1323,
+    "x": 993,
+    "y": 1350,
+    "is_circle_snapped": true,
     "confidence": 0.63
   },
   "단지역": {
     "name": "단지역",
-    "x": 628,
-    "y": 1355,
+    "x": 608,
+    "y": 1343,
+    "is_circle_snapped": true,
     "confidence": 1.0
   },
   "주만역": {
     "name": "주만역",
-    "x": 193,
-    "y": 1374,
+    "x": 177,
+    "y": 1389,
+    "is_circle_snapped": true,
     "confidence": 1.0
   },
   "간적오거리역": {
     "name": "간적오거리역",
-    "x": 281,
-    "y": 1360,
+    "x": 287,
+    "y": 1413,
+    "is_circle_snapped": true,
     "confidence": 0.36
   },
   "보리다법권역": {
     "name": "보리다법권역",
-    "x": 810,
-    "y": 1373,
+    "x": 783,
+    "y": 1335,
+    "is_circle_snapped": true,
     "confidence": 0.57
   },
   "김찰범권역": {
     "name": "김찰범권역",
-    "x": 1578,
-    "y": 1339,
+    "x": 1521,
+    "y": 1419,
+    "is_circle_snapped": true,
     "confidence": 0.59
   },
   "신대방역": {
     "name": "신대방역",
-    "x": 750,
-    "y": 1402,
+    "x": 783,
+    "y": 1335,
+    "is_circle_snapped": true,
     "confidence": 0.54
   },
   "인천시청역": {
     "name": "인천시청역",
     "x": 287,
-    "y": 1415,
+    "y": 1413,
+    "is_circle_snapped": true,
     "confidence": 0.68
   },
   "신림역": {
     "name": "신림역",
-    "x": 810,
-    "y": 1373,
+    "x": 773,
+    "y": 1423,
+    "is_circle_snapped": false,
     "confidence": 0.92
   },
-  "'강남역": {
-    "name": "'강남역",
-    "x": 1205,
-    "y": 1428,
+  "강남역": {
+    "name": "강남역",
+    "x": 1186,
+    "y": 1425,
+    "is_circle_snapped": true,
     "confidence": 0.94
   },
   "가락시장역": {
     "name": "가락시장역",
-    "x": 1482,
-    "y": 1456,
+    "x": 1490,
+    "y": 1422,
+    "is_circle_snapped": true,
     "confidence": 0.99
   },
   "문섭역": {
     "name": "문섭역",
-    "x": 1548,
-    "y": 1436,
+    "x": 1521,
+    "y": 1419,
+    "is_circle_snapped": true,
     "confidence": 0.49
   },
   "도회역": {
     "name": "도회역",
-    "x": 191,
-    "y": 1434,
+    "x": 177,
+    "y": 1389,
+    "is_circle_snapped": true,
     "confidence": 0.98
   },
   "본선역": {
     "name": "본선역",
-    "x": 834,
-    "y": 1441,
+    "x": 885,
+    "y": 1512,
+    "is_circle_snapped": true,
     "confidence": 0.46
   },
   "느래내시삼역": {
     "name": "느래내시삼역",
-    "x": 365,
-    "y": 1440,
+    "x": 452,
+    "y": 1475,
+    "is_circle_snapped": true,
     "confidence": 0.48
   },
   "교대역": {
     "name": "교대역",
-    "x": 1143,
-    "y": 1481,
+    "x": 1124,
+    "y": 1442,
+    "is_circle_snapped": true,
     "confidence": 1.0
   },
   "제문포역": {
     "name": "제문포역",
-    "x": 193,
-    "y": 1488,
+    "x": 202,
+    "y": 1538,
+    "is_circle_snapped": true,
     "confidence": 0.99
   },
   "복정역": {
     "name": "복정역",
-    "x": 1589,
-    "y": 1516,
+    "x": 1587,
+    "y": 1469,
+    "is_circle_snapped": true,
     "confidence": 0.99
   },
   "낙섭대역": {
     "name": "낙섭대역",
     "x": 885,
     "y": 1512,
+    "is_circle_snapped": true,
     "confidence": 0.91
   },
   "사당역": {
     "name": "사당역",
     "x": 1000,
     "y": 1479,
+    "is_circle_snapped": false,
     "confidence": 0.98
   },
   "양재역": {
     "name": "양재역",
-    "x": 1205,
-    "y": 1518,
+    "x": 1211,
+    "y": 1476,
+    "is_circle_snapped": true,
     "confidence": 0.99
   },
   "도곡역": {
     "name": "도곡역",
-    "x": 1282,
-    "y": 1524,
+    "x": 1211,
+    "y": 1476,
+    "is_circle_snapped": true,
     "confidence": 0.99
   },
   "예술되역": {
     "name": "예술되역",
-    "x": 288,
-    "y": 1540,
+    "x": 284,
+    "y": 1489,
+    "is_circle_snapped": true,
     "confidence": 0.64
   },
   "단스역": {
     "name": "단스역",
-    "x": 365,
-    "y": 1440,
+    "x": 284,
+    "y": 1489,
+    "is_circle_snapped": true,
     "confidence": 0.85
   },
   "IEr기lur역": {
     "name": "IEr기lur역",
-    "x": 1205,
-    "y": 1518,
+    "x": 1211,
+    "y": 1476,
+    "is_circle_snapped": true,
     "confidence": 0.36
   },
   "노문역": {
     "name": "노문역",
-    "x": 193,
-    "y": 1488,
+    "x": 202,
+    "y": 1538,
+    "is_circle_snapped": true,
     "confidence": 0.98
   },
   "인전터미널역": {
     "name": "인전터미널역",
-    "x": 288,
-    "y": 1540,
+    "x": 284,
+    "y": 1489,
+    "is_circle_snapped": true,
     "confidence": 0.52
   },
   "남부터미역": {
     "name": "남부터미역",
-    "x": 1143,
-    "y": 1481,
+    "x": 1186,
+    "y": 1491,
+    "is_circle_snapped": true,
     "confidence": 0.68
   },
   "대치역": {
     "name": "대치역",
-    "x": 1282,
-    "y": 1524,
+    "x": 1307,
+    "y": 1515,
+    "is_circle_snapped": false,
     "confidence": 0.98
   },
   "수서역": {
     "name": "수서역",
-    "x": 1481,
-    "y": 1509,
+    "x": 1464,
+    "y": 1500,
+    "is_circle_snapped": true,
     "confidence": 0.68
   },
   "간덕산역": {
     "name": "간덕산역",
     "x": 885,
     "y": 1512,
+    "is_circle_snapped": true,
     "confidence": 0.36
   },
   "문서역": {
     "name": "문서역",
     "x": 62,
     "y": 1530,
+    "is_circle_snapped": false,
     "confidence": 0.76
   },
   "인천역": {
     "name": "인천역",
-    "x": 191,
-    "y": 1541,
+    "x": 202,
+    "y": 1538,
+    "is_circle_snapped": true,
     "confidence": 0.97
   },
   "인천대공원역": {
     "name": "인천대공원역",
-    "x": 363,
-    "y": 1557,
+    "x": 346,
+    "y": 1593,
+    "is_circle_snapped": true,
     "confidence": 0.47
   },
   "선바뒤역": {
     "name": "선바뒤역",
-    "x": 995,
-    "y": 1560,
+    "x": 1003,
+    "y": 1544,
+    "is_circle_snapped": false,
     "confidence": 0.44
   },
   "태년역": {
     "name": "태년역",
-    "x": 1589,
-    "y": 1553,
+    "x": 1561,
+    "y": 1584,
+    "is_circle_snapped": true,
     "confidence": 0.56
   },
   "단대도거리역": {
     "name": "단대도거리역",
-    "x": 1650,
-    "y": 1576,
+    "x": 1648,
+    "y": 1600,
+    "is_circle_snapped": true,
     "confidence": 0.73
   },
   "신고역": {
     "name": "신고역",
-    "x": 191,
-    "y": 1541,
+    "x": 202,
+    "y": 1538,
+    "is_circle_snapped": true,
     "confidence": 0.45
   },
   "검마곧원역": {
     "name": "검마곧원역",
-    "x": 995,
-    "y": 1560,
+    "x": 1007,
+    "y": 1568,
+    "is_circle_snapped": false,
     "confidence": 0.41
   },
   "신천역": {
     "name": "신천역",
     "x": 480,
     "y": 1588,
+    "is_circle_snapped": false,
     "confidence": 0.53
   },
   "금점역": {
     "name": "금점역",
-    "x": 753,
-    "y": 1632,
+    "x": 762,
+    "y": 1592,
+    "is_circle_snapped": false,
     "confidence": 1.0
   },
   "순의역": {
     "name": "순의역",
-    "x": 192,
-    "y": 1626,
+    "x": 177,
+    "y": 1541,
+    "is_circle_snapped": true,
     "confidence": 0.83
   },
   "철거신입구역": {
     "name": "철거신입구역",
-    "x": 1226,
-    "y": 1602,
+    "x": 1217,
+    "y": 1601,
+    "is_circle_snapped": true,
     "confidence": 0.45
   },
   "연수역": {
     "name": "연수역",
-    "x": 277,
-    "y": 1602,
+    "x": 297,
+    "y": 1655,
+    "is_circle_snapped": true,
     "confidence": 0.69
   },
   "가탑역": {
     "name": "가탑역",
-    "x": 1589,
-    "y": 1553,
+    "x": 1582,
+    "y": 1640,
+    "is_circle_snapped": true,
     "confidence": 0.55
   },
   "팀계역": {
     "name": "팀계역",
-    "x": 753,
-    "y": 1632,
+    "x": 804,
+    "y": 1630,
+    "is_circle_snapped": false,
     "confidence": 0.69
   },
   "핑부역": {
     "name": "핑부역",
-    "x": 966,
-    "y": 1603,
+    "x": 918,
+    "y": 1631,
+    "is_circle_snapped": false,
     "confidence": 0.37
   },
   "과천역": {
     "name": "과천역",
-    "x": 966,
-    "y": 1603,
+    "x": 954,
+    "y": 1630,
+    "is_circle_snapped": false,
     "confidence": 0.98
   },
   "사년역": {
     "name": "사년역",
-    "x": 753,
-    "y": 1632,
+    "x": 752,
+    "y": 1644,
+    "is_circle_snapped": false,
     "confidence": 0.58
   },
   "과천청사역": {
     "name": "과천청사역",
-    "x": 966,
-    "y": 1603,
+    "x": 918,
+    "y": 1641,
+    "is_circle_snapped": false,
     "confidence": 0.35
   },
   "판교역": {
     "name": "판교역",
-    "x": 1497,
-    "y": 1636,
+    "x": 1509,
+    "y": 1640,
+    "is_circle_snapped": true,
     "confidence": 1.0
   },
   "원인재역": {
     "name": "원인재역",
-    "x": 315,
-    "y": 1653,
+    "x": 297,
+    "y": 1655,
+    "is_circle_snapped": true,
     "confidence": 0.98
   },
   "남능인더스피그역": {
     "name": "남능인더스피그역",
-    "x": 315,
-    "y": 1653,
+    "x": 346,
+    "y": 1593,
+    "is_circle_snapped": true,
     "confidence": 0.5
   },
   "군포역": {
     "name": "군포역",
-    "x": 749,
-    "y": 1662,
+    "x": 756,
+    "y": 1733,
+    "is_circle_snapped": true,
     "confidence": 0.92
   },
   "이매역": {
     "name": "이매역",
-    "x": 1594,
-    "y": 1655,
+    "x": 1598,
+    "y": 1653,
+    "is_circle_snapped": true,
     "confidence": 0.98
   },
   "경기감주역": {
     "name": "경기감주역",
-    "x": 1702,
-    "y": 1654,
+    "x": 1762,
+    "y": 1657,
+    "is_circle_snapped": true,
     "confidence": 0.88
   },
   "초권역": {
     "name": "초권역",
-    "x": 1758,
+    "x": 1762,
     "y": 1657,
+    "is_circle_snapped": true,
     "confidence": 0.77
   },
   "담점역": {
     "name": "담점역",
-    "x": 838,
-    "y": 1683,
+    "x": 910,
+    "y": 1758,
+    "is_circle_snapped": true,
     "confidence": 0.96
   },
   "곤지남역": {
     "name": "곤지남역",
-    "x": 1795,
-    "y": 1688,
+    "x": 1762,
+    "y": 1657,
+    "is_circle_snapped": true,
     "confidence": 0.45
   },
   "돕가역": {
     "name": "돕가역",
-    "x": 248,
-    "y": 1702,
+    "x": 275,
+    "y": 1656,
+    "is_circle_snapped": true,
     "confidence": 0.39
   },
   "대가미역": {
     "name": "대가미역",
-    "x": 749,
-    "y": 1662,
+    "x": 756,
+    "y": 1733,
+    "is_circle_snapped": true,
     "confidence": 0.87
   },
-  "'정자역": {
-    "name": "'정자역",
-    "x": 1543,
-    "y": 1697,
+  "정자역": {
+    "name": "정자역",
+    "x": 1531,
+    "y": 1733,
+    "is_circle_snapped": true,
     "confidence": 0.91
   },
   "인진금밥역": {
     "name": "인진금밥역",
-    "x": 64,
-    "y": 1734,
+    "x": 29,
+    "y": 1745,
+    "is_circle_snapped": true,
     "confidence": 0.44
   },
   "캠퍼스타문역": {
     "name": "캠퍼스타문역",
-    "x": 231,
-    "y": 1787,
+    "x": 275,
+    "y": 1656,
+    "is_circle_snapped": true,
     "confidence": 0.51
   },
   "미금역": {
     "name": "미금역",
-    "x": 1543,
-    "y": 1697,
+    "x": 1531,
+    "y": 1733,
+    "is_circle_snapped": true,
     "confidence": 1.0
   },
   "테크노파크역": {
     "name": "테크노파크역",
-    "x": 231,
-    "y": 1787,
+    "x": 232,
+    "y": 1820,
+    "is_circle_snapped": true,
     "confidence": 0.86
   },
   "삼록역": {
     "name": "삼록역",
-    "x": 721,
-    "y": 1774,
+    "x": 756,
+    "y": 1733,
+    "is_circle_snapped": true,
     "confidence": 0.57
   },
   "수원역": {
     "name": "수원역",
-    "x": 911,
-    "y": 1800,
+    "x": 910,
+    "y": 1758,
+    "is_circle_snapped": true,
     "confidence": 1.0
   },
   "기층역": {
     "name": "기층역",
-    "x": 1361,
-    "y": 1799,
+    "x": 1367,
+    "y": 1773,
+    "is_circle_snapped": true,
     "confidence": 0.52
   },
   "구성역": {
     "name": "구성역",
-    "x": 1440,
-    "y": 1763,
+    "x": 1457,
+    "y": 1755,
+    "is_circle_snapped": true,
     "confidence": 1.0
   },
   "모리역": {
     "name": "모리역",
-    "x": 1506,
-    "y": 1785,
+    "x": 1531,
+    "y": 1733,
+    "is_circle_snapped": true,
     "confidence": 0.97
   },
   "부발역": {
     "name": "부발역",
-    "x": 1886,
-    "y": 1785,
+    "x": 1880,
+    "y": 1784,
+    "is_circle_snapped": true,
     "confidence": 0.89
   },
   "-다역": {
     "name": "-다역",
-    "x": 246,
-    "y": 1812,
+    "x": 232,
+    "y": 1820,
+    "is_circle_snapped": true,
     "confidence": 0.78
   },
   "오이도역": {
     "name": "오이도역",
-    "x": 359,
-    "y": 1806,
+    "x": 347,
+    "y": 1771,
+    "is_circle_snapped": true,
     "confidence": 1.0
   },
   "안산역": {
     "name": "안산역",
-    "x": 587,
-    "y": 1809,
+    "x": 490,
+    "y": 1808,
+    "is_circle_snapped": true,
     "confidence": 1.0
   },
   "초지역": {
     "name": "초지역",
-    "x": 587,
-    "y": 1809,
+    "x": 568,
+    "y": 1778,
+    "is_circle_snapped": true,
     "confidence": 1.0
   },
   "고잔역": {
     "name": "고잔역",
-    "x": 636,
-    "y": 1805,
+    "x": 664,
+    "y": 1808,
+    "is_circle_snapped": true,
     "confidence": 0.76
   },
   "중앙역": {
     "name": "중앙역",
-    "x": 636,
-    "y": 1805,
+    "x": 664,
+    "y": 1808,
+    "is_circle_snapped": true,
     "confidence": 1.0
   },
   "한대앞역": {
     "name": "한대앞역",
-    "x": 721,
-    "y": 1774,
+    "x": 664,
+    "y": 1808,
+    "is_circle_snapped": true,
     "confidence": 0.99
   },
   "이선역": {
     "name": "이선역",
-    "x": 830,
-    "y": 1810,
+    "x": 756,
+    "y": 1733,
+    "is_circle_snapped": true,
     "confidence": 0.35
   },
   "수퇴시점역": {
     "name": "수퇴시점역",
-    "x": 1072,
-    "y": 1864,
+    "x": 1089,
+    "y": 1808,
+    "is_circle_snapped": true,
     "confidence": 0.63
   },
   "매란근신역": {
     "name": "매란근신역",
-    "x": 1072,
-    "y": 1864,
+    "x": 1089,
+    "y": 1808,
+    "is_circle_snapped": true,
     "confidence": 0.6
   },
   "석덕역": {
     "name": "석덕역",
-    "x": 1250,
-    "y": 1810,
+    "x": 1204,
+    "y": 1808,
+    "is_circle_snapped": true,
     "confidence": 0.64
   },
   "보점역": {
     "name": "보점역",
-    "x": 1506,
-    "y": 1785,
+    "x": 1457,
+    "y": 1755,
+    "is_circle_snapped": true,
     "confidence": 0.79
   },
   "감남대역": {
     "name": "감남대역",
-    "x": 1368,
-    "y": 1842,
+    "x": 1367,
+    "y": 1773,
+    "is_circle_snapped": true,
     "confidence": 0.51
   },
   "u주역": {
     "name": "u주역",
-    "x": 1954,
+    "x": 1953,
     "y": 1879,
+    "is_circle_snapped": true,
     "confidence": 0.38
   },
   "구제업무시구역": {
     "name": "구제업무시구역",
-    "x": 251,
-    "y": 1835,
+    "x": 232,
+    "y": 1820,
+    "is_circle_snapped": true,
     "confidence": 0.6
   },
   "미마r역": {
     "name": "미마r역",
     "x": 886,
     "y": 1879,
+    "is_circle_snapped": false,
     "confidence": 0.55
   },
   "머점역": {
     "name": "머점역",
-    "x": 1425,
-    "y": 1864,
+    "x": 1476,
+    "y": 1890,
+    "is_circle_snapped": true,
     "confidence": 0.8
   },
   "삼가역": {
     "name": "삼가역",
-    "x": 1546,
-    "y": 1892,
+    "x": 1476,
+    "y": 1890,
+    "is_circle_snapped": true,
     "confidence": 0.99
   },
   "시점역": {
     "name": "시점역",
     "x": 1580,
     "y": 1892,
+    "is_circle_snapped": false,
     "confidence": 0.72
   },
   "명대역": {
     "name": "명대역",
-    "x": 1619,
-    "y": 1892,
+    "x": 1693,
+    "y": 1891,
+    "is_circle_snapped": true,
     "confidence": 0.55
   },
   "고진역": {
     "name": "고진역",
-    "x": 1726,
+    "x": 1693,
     "y": 1891,
+    "is_circle_snapped": true,
     "confidence": 0.99
   },
   "부편역": {
     "name": "부편역",
-    "x": 1762,
-    "y": 1892,
+    "x": 1747,
+    "y": 1952,
+    "is_circle_snapped": true,
     "confidence": 0.88
   },
   "두전역": {
     "name": "두전역",
     "x": 1860,
     "y": 1879,
+    "is_circle_snapped": true,
     "confidence": 0.97
   },
   "저대.역": {
     "name": "저대.역",
     "x": 1860,
     "y": 1879,
+    "is_circle_snapped": true,
     "confidence": 0.86
   },
   "오신대역": {
     "name": "오신대역",
     "x": 865,
     "y": 1899,
+    "is_circle_snapped": false,
     "confidence": 0.45
   },
   "진위*역": {
     "name": "진위*역",
     "x": 830,
     "y": 1937,
+    "is_circle_snapped": false,
     "confidence": 0.5
   },
   "신침역": {
     "name": "신침역",
     "x": 173,
     "y": 1933,
+    "is_circle_snapped": true,
     "confidence": 0.97
   },
   "팀직역": {
     "name": "팀직역",
     "x": 326,
     "y": 1948,
+    "is_circle_snapped": false,
     "confidence": 0.42
   },
   "야산역": {
     "name": "야산역",
     "x": 368,
     "y": 1949,
+    "is_circle_snapped": false,
     "confidence": 0.75
   },
   "선단역": {
     "name": "선단역",
     "x": 494,
     "y": 1948,
+    "is_circle_snapped": false,
     "confidence": 0.98
   },
   "성판역": {
     "name": "성판역",
     "x": 620,
     "y": 1948,
+    "is_circle_snapped": false,
     "confidence": 0.49
   },
   "서집리역": {
     "name": "서집리역",
-    "x": 695,
-    "y": 1943,
+    "x": 746,
+    "y": 1948,
+    "is_circle_snapped": false,
     "confidence": 0.75
   },
   "신대역": {
     "name": "신대역",
-    "x": 1392,
-    "y": 504,
+    "x": 1379,
+    "y": 453,
+    "is_circle_snapped": true,
     "confidence": 0.76
   },
   "악수역": {
     "name": "악수역",
-    "x": 1153,
-    "y": 829,
+    "x": 1124,
+    "y": 885,
+    "is_circle_snapped": true,
     "confidence": 0.85
   }
 }

@@ -124,7 +124,7 @@
       pointer-events: none;
     }
 
-    /* 역 위에 꽂히는 핀 */
+    /* 역 원형 심볼 위에 정확히 꽂히는 핀 */
     #station-pin {
       position: absolute;
       width: 42px;
@@ -561,10 +561,10 @@
 
   <script>
     /* ========================================================
-       stations.json 데이터 로더 및 이름 정제(Sanitization)
+       stations.json 연동 엔진 (캐시 무효화 및 원형 심볼 매핑)
     ======================================================== */
     const MAP_SIZE = 2000;
-    let STATIONS_LIST = []; // 정제된 역 목록
+    let STATIONS_LIST = [];
 
     let currentSelectedStation = null;
     let currentIndoorMode = "2D";
@@ -585,30 +585,29 @@
 
     async function initStations() {
       try {
-        const response = await fetch("stations.json");
+        // 캐시 방지용 타임스탬프를 붙여 항상 최신 stations.json 호출
+        const response = await fetch("stations.json?v=" + Date.now());
         if (!response.ok) throw new Error("stations.json 로드 실패");
         const rawStations = await response.json();
 
-        // 역 이름 정제 및 리스트화
+        // 파이썬이 추출한 원형 심볼 중심 좌표를 기반으로 역 목록 생성
         STATIONS_LIST = Object.entries(rawStations).map(([key, data]) => {
-          const cleanedName = cleanStationName(data.name || key);
-          const displayName = cleanedName.endsWith("역") ? cleanedName : cleanedName + "역";
-          const queryTerm = displayName.replace("역", "");
+          const pureName = cleanStationName(data.name || key).replace(/역$/, "");
+          const fullName = pureName + "역";
 
           return {
-            rawName: key,
-            name: displayName,
-            queryTerm: queryTerm,
-            x: data.x,
-            y: data.y,
-            confidence: data.confidence
+            name: fullName,
+            queryTerm: pureName,
+            x: data.x, // 파이썬이 검출한 원형 심볼 중심 x
+            y: data.y, // 파이썬이 검출한 원형 심볼 중심 y
+            isSnapped: data.is_circle_snapped || false
           };
         });
 
-        console.log("정제된 역 데이터 로드 완료:", STATIONS_LIST.length, "개 역");
+        console.log(`원형 심볼 좌표 파싱 완료: ${STATIONS_LIST.length}개 역 로드됨`);
 
-        // 서울역을 기본 화면 중앙에 배치
-        const seoul = STATIONS_LIST.find(s => s.queryTerm === "서울");
+        // 서울역 중심 초기 화면 배치
+        const seoul = STATIONS_LIST.find(s => s.queryTerm === "서울" || s.name === "서울역");
         if (seoul) {
           panToStation(seoul.x, seoul.y, 1.0);
         }
@@ -618,7 +617,89 @@
     }
 
     /* ========================================================
-       스마트 줌 & 패닝 바운더리 락
+       역 선택 및 핀 고정 (원형 심볼에 정확히 꽂힘)
+    ======================================================== */
+    function selectStation(stationObj) {
+      currentSelectedStation = stationObj;
+
+      // 핀의 끝부분을 원형 심볼 중심점(x, y)에 고정
+      stationPin.style.left = `${stationObj.x}px`;
+      stationPin.style.top = `${stationObj.y}px`;
+      stationPin.style.display = "block";
+
+      // 원형 아이콘을 화면 중앙으로 줌인 정렬
+      panToStation(stationObj.x, stationObj.y, 1.35);
+
+      document.getElementById("card-station-name").innerText = stationObj.name;
+      stationCard.style.display = "block";
+
+      searchBox.value = stationObj.name;
+      clearSearchBtn.style.display = "block";
+      suggestions.style.display = "none";
+    }
+
+    function deselectStation() {
+      currentSelectedStation = null;
+      stationPin.style.display = "none";
+      stationCard.style.display = "none";
+      searchBox.value = "";
+      clearSearchBtn.style.display = "none";
+      suggestions.style.display = "none";
+
+      const seoul = STATIONS_LIST.find(s => s.queryTerm === "서울" || s.name === "서울역");
+      if (seoul) {
+        panToStation(seoul.x, seoul.y, 1.0);
+      }
+    }
+
+    /* ========================================================
+       유사 검색어 필터링
+    ======================================================== */
+    function onSearchInput(query) {
+      const q = cleanStationName(query.trim().toLowerCase()).replace(/역$/, "");
+      if (!q) {
+        suggestions.style.display = "none";
+        clearSearchBtn.style.display = "none";
+        return;
+      }
+
+      clearSearchBtn.style.display = "block";
+      suggestions.innerHTML = "";
+
+      const matched = STATIONS_LIST.filter(st => {
+        return st.queryTerm.toLowerCase().includes(q) || st.name.toLowerCase().includes(q);
+      });
+
+      if (matched.length === 0) {
+        suggestions.innerHTML = `<div style="padding:16px; text-align:center; color:#8e95a5; font-size:13px;">일치하는 역이 없습니다.</div>`;
+      } else {
+        matched.slice(0, 8).forEach(st => {
+          const item = document.createElement("div");
+          item.className = "suggestion-item";
+          item.innerHTML = `
+            <span><strong>${st.name}</strong></span>
+            <span style="color:#00e5ff; font-size:12px;">선택 ›</span>
+          `;
+          item.onclick = () => {
+            selectStation(st);
+          };
+          suggestions.appendChild(item);
+        });
+      }
+
+      suggestions.style.display = "block";
+    }
+
+    function clearSearchInput() {
+      deselectStation();
+    }
+
+    function triggerAI() {
+      alert("✨ AI 도우미: 역 편의시설 또는 최적 환승 경로를 질의할 수 있습니다.");
+    }
+
+    /* ========================================================
+       스마트 줌 & 패닝 바운더리 락 엔진
     ======================================================== */
     const viewportW = 412;
     const viewportH = 870;
@@ -710,7 +791,7 @@
       } else if (e.touches.length === 2 && initialPinchDistance) {
         const currentDistance = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
         const newScale = Math.min(Math.max(initialScale * (currentDistance / initialPinchDistance), minScale), maxScale);
-        
+
         const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
         const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
         panX = midX - (midX - panX) * (newScale / scale);
@@ -746,88 +827,7 @@
     }
 
     /* ========================================================
-       역 선택 및 핀 안착
-    ======================================================== */
-    function selectStation(stationObj) {
-      currentSelectedStation = stationObj;
-
-      // 검출된 원형 심볼 중심 좌표에 핀 꽂기
-      stationPin.style.left = `${stationObj.x}px`;
-      stationPin.style.top = `${stationObj.y}px`;
-      stationPin.style.display = "block";
-
-      panToStation(stationObj.x, stationObj.y, 1.35);
-
-      document.getElementById("card-station-name").innerText = stationObj.name;
-      stationCard.style.display = "block";
-
-      searchBox.value = stationObj.name;
-      clearSearchBtn.style.display = "block";
-      suggestions.style.display = "none";
-    }
-
-    function deselectStation() {
-      currentSelectedStation = null;
-      stationPin.style.display = "none";
-      stationCard.style.display = "none";
-      searchBox.value = "";
-      clearSearchBtn.style.display = "none";
-      suggestions.style.display = "none";
-
-      const seoul = STATIONS_LIST.find(s => s.queryTerm === "서울");
-      if (seoul) {
-        panToStation(seoul.x, seoul.y, 1.0);
-      }
-    }
-
-    /* ========================================================
-       유사 검색어 정밀 필터링 (특수문자 무시)
-    ======================================================== */
-    function onSearchInput(query) {
-      const q = cleanStationName(query.trim().toLowerCase()).replace("역", "");
-      if (!q) {
-        suggestions.style.display = "none";
-        clearSearchBtn.style.display = "none";
-        return;
-      }
-
-      clearSearchBtn.style.display = "block";
-      suggestions.innerHTML = "";
-
-      const matched = STATIONS_LIST.filter(st => {
-        return st.queryTerm.toLowerCase().includes(q) || st.name.toLowerCase().includes(q);
-      });
-
-      if (matched.length === 0) {
-        suggestions.innerHTML = `<div style="padding:16px; text-align:center; color:#8e95a5; font-size:13px;">일치하는 역이 없습니다.</div>`;
-      } else {
-        matched.slice(0, 8).forEach(st => {
-          const item = document.createElement("div");
-          item.className = "suggestion-item";
-          item.innerHTML = `
-            <span><strong>${st.name}</strong></span>
-            <span style="color:#00e5ff; font-size:12px;">선택 ›</span>
-          `;
-          item.onclick = () => {
-            selectStation(st);
-          };
-          suggestions.appendChild(item);
-        });
-      }
-
-      suggestions.style.display = "block";
-    }
-
-    function clearSearchInput() {
-      deselectStation();
-    }
-
-    function triggerAI() {
-      alert("✨ AI 도우미: 역 편의시설 또는 최적 환승 경로를 질의할 수 있습니다.");
-    }
-
-    /* ========================================================
-       실내 지도 전환
+       실내 지도 전환 (Three.js 및 층수 선택)
     ======================================================== */
     const mainView = document.getElementById("main-view");
     const indoorView = document.getElementById("indoor-view");
@@ -837,8 +837,8 @@
       if (!currentSelectedStation) return;
 
       document.getElementById("indoor-title-text").innerText = `${currentSelectedStation.name} 실내 지도`;
-      
       floorList.innerHTML = "";
+
       const floors = currentSelectedStation.name.includes("강남") 
         ? ["B1", "B2", "B3", "B4"] 
         : ["2F", "1F", "B1", "B2", "B3"];
@@ -868,7 +868,7 @@
       btnEl.classList.add("active");
     }
 
-    // Three.js 실내 3D 초기화
+    // Three.js 3D 초기화
     const canvas2D = document.getElementById("indoor-2d-canvas");
     const threeContainer = document.getElementById("three-container");
     const btn2D = document.getElementById("btn-2d");
