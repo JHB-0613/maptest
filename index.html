@@ -743,6 +743,9 @@
       suggestions.style.display = "none";
     }
 
+    /* ========================================================
+       역 선택 해제 (현재 화면 위치 유지 + 카드/핀만 숨김)
+    ======================================================== */
     function deselectStation() {
       currentSelectedStation = null;
       stationPin.style.display = "none";
@@ -750,11 +753,7 @@
       searchBox.value = "";
       clearSearchBtn.style.display = "none";
       suggestions.style.display = "none";
-
-      const seoul = STATIONS_LIST.find(s => s.queryTerm === "서울" || s.name === "서울역");
-      if (seoul) {
-        panToStation(seoul.x, seoul.y, 1.0);
-      }
+      // 서울역으로 강제 이동하던 panToStation(...) 호출을 제거하여 현재 위치를 그대로 유지합니다.
     }
 
     /* ========================================================
