@@ -323,7 +323,7 @@
     }
 
     /* ========================================================
-       2. 네이버/카카오 길찾기 스타일 모달 패널 (신규 추가)
+       2. 네이버/카카오 길찾기 스타일 모달 패널
     ======================================================== */
     .route-planning-card {
       position: absolute;
@@ -337,7 +337,7 @@
       z-index: 80;
       display: none;
       flex-direction: column;
-      overflow: hidden;
+      overflow: visible;
       animation: slideDown 0.35s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
@@ -378,24 +378,45 @@
       font-weight: 800;
     }
 
-    .btn-add-via {
-      background: #00d2d3;
-      color: white;
-      border: none;
+    .route-header-right {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-pick-map {
+      background: #e0f9ff;
+      color: #009cb2;
+      border: 1px solid #bcecf6;
       font-size: 12px;
       font-weight: 700;
-      padding: 6px 12px;
+      padding: 6px 10px;
       border-radius: 16px;
       cursor: pointer;
       display: flex;
       align-items: center;
       gap: 4px;
     }
+    .btn-pick-map.active {
+      background: #00d2d3;
+      color: #fff;
+    }
+
+    .btn-add-via {
+      background: #f1f4f9;
+      color: #4b5563;
+      border: 1px solid #e0e5ed;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 6px 10px;
+      border-radius: 16px;
+      cursor: pointer;
+    }
 
     /* 역 입력 슬롯 영역 */
     .route-slots-wrap {
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       padding: 0 16px 14px 16px;
       gap: 10px;
     }
@@ -444,32 +465,71 @@
     .slot-input-box {
       flex: 1;
       background: #f4f6fa;
-      border: 1px solid #e2e7f0;
+      border: 1.5px solid #e2e7f0;
       border-radius: 14px;
-      padding: 9px 14px;
+      padding: 6px 12px;
       display: flex;
       align-items: center;
       justify-content: space-between;
+      position: relative;
+      transition: border-color 0.2s ease, background 0.2s ease;
+    }
+    .slot-input-box:focus-within {
+      border-color: #00d2d3;
+      background: #ffffff;
+      box-shadow: 0 0 0 3px rgba(0, 210, 211, 0.15);
+    }
+
+    .slot-input-field {
+      flex: 1;
+      border: none;
+      background: transparent;
       font-size: 14px;
-      font-weight: 600;
+      font-weight: 700;
+      color: #1e293b;
+      outline: none;
+      user-select: text;
     }
-
-    .slot-name {
-      color: #222;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 180px;
-    }
-
-    .slot-name.empty {
-      color: #9aa2b1;
+    .slot-input-field::placeholder {
+      color: #94a3b8;
       font-weight: 500;
+    }
+
+    /* 슬롯 인라인 자동완성 드롭다운 */
+    .slot-autocomplete-dropdown {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      right: 0;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.18);
+      z-index: 120;
+      max-height: 180px;
+      overflow-y: auto;
+      display: none;
+    }
+
+    .slot-auto-item {
+      padding: 10px 14px;
+      font-size: 13px;
+      color: #334155;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .slot-auto-item:hover {
+      background: #f8fafc;
+      color: #009cb2;
     }
 
     .slot-controls {
       display: flex;
-      gap: 4px;
+      align-items: center;
+      gap: 2px;
     }
 
     .btn-slot-move {
@@ -487,6 +547,7 @@
       cursor: pointer;
       font-size: 13px;
       color: #9aa2b1;
+      padding: 2px 4px;
     }
 
     .btn-swap-points {
@@ -502,21 +563,22 @@
       font-size: 16px;
       color: #4b5563;
       flex-shrink: 0;
+      margin-top: 5px;
       transition: transform 0.25s ease;
     }
     .btn-swap-points:active { transform: rotate(180deg); }
 
-    /* ========================================================
-       하단 조건부 결과 패널 (출발/도착 모두 지정 시 노출)
-    ======================================================== */
+    /* 하단 조건부 결과 패널 */
     .route-result-section {
       background: #f8fafc;
       border-top: 1px solid #edf2f7;
       padding: 14px 16px 18px 16px;
-      display: none; /* JS에서 출발+도착 완료 시 flex로 전환 */
+      display: none;
       flex-direction: column;
       gap: 12px;
       animation: fadeIn 0.3s ease;
+      border-bottom-left-radius: 28px;
+      border-bottom-right-radius: 28px;
     }
 
     @keyframes fadeIn {
@@ -578,7 +640,7 @@
       margin-top: 2px;
     }
 
-    /* 경로 옵션 (계단없는길, 한산한길, 최단시간) */
+    /* 경로 옵션 */
     .route-options-title {
       font-size: 12px;
       font-weight: 700;
@@ -814,6 +876,7 @@
       color: white;
       font-size: 15px;
       outline: none;
+      user-select: text;
     }
 
     .search-input::placeholder { color: #636b7c; }
@@ -897,14 +960,14 @@
 
           <!-- 출발 전용 핀 (민트색) -->
           <svg id="pin-start" class="map-pin" width="40" height="52" viewBox="0 0 384 512">
-            <path fill="#00d2d3" d="M172.268 501.67C26.97 291.031 0 269.413 0 192 0 85.961 86.039 0 192 0s192 85.961 192 192c0 77.413-26.97 99.031-172.268 309.67-9.535 13.774-29.93 13.773-39.464 0z"/>
+            <path fill="#00d2d3" d="M172.268 501.67C26.97 291.031 0 269.413 0 192 0s192 85.961 192 192c0 77.413-26.97 99.031-172.268 309.67-9.535 13.774-29.93 13.773-39.464 0z"/>
             <circle cx="192" cy="192" r="70" fill="#ffffff"/>
             <text x="192" y="202" font-size="64" font-weight="900" fill="#00d2d3" text-anchor="middle">출</text>
           </svg>
 
           <!-- 도착 전용 핀 (초록색) -->
           <svg id="pin-dest" class="map-pin" width="40" height="52" viewBox="0 0 384 512">
-            <path fill="#26de81" d="M172.268 501.67C26.97 291.031 0 269.413 0 192 0 85.961 86.039 0 192 0s192 85.961 192 192c0 77.413-26.97 99.031-172.268 309.67-9.535 13.774-29.93 13.773-39.464 0z"/>
+            <path fill="#26de81" d="M172.268 501.67C26.97 291.031 0 269.413 0 192 0s192 85.961 192 192c0 77.413-26.97 99.031-172.268 309.67-9.535 13.774-29.93 13.773-39.464 0z"/>
             <circle cx="192" cy="192" r="70" fill="#ffffff"/>
             <text x="192" y="202" font-size="64" font-weight="900" fill="#26de81" text-anchor="middle">도</text>
           </svg>
@@ -920,25 +983,30 @@
         <button class="btn-zoom" onclick="zoomManual(-0.25)">−</button>
       </div>
 
-      <!-- 상단 길찾기 플래너 패널 (이미지 레이아웃 구현) -->
+      <!-- 상단 길찾기 플래너 패널 (검색 인풋 통합) -->
       <div class="route-planning-card" id="route-planning-card">
         <div class="route-header">
           <div class="route-header-left">
             <button class="btn-route-back" onclick="closeRoutePlanning()">‹</button>
             <div class="route-title">길찾기</div>
           </div>
-          <button class="btn-add-via" onclick="addViaSlot()">+ 경유</button>
+          <div class="route-header-right">
+            <button class="btn-pick-map" id="btn-pick-map" onclick="toggleMapPickMode()">📍 지도에서 선택</button>
+            <button class="btn-add-via" onclick="addViaSlot()">+ 경유</button>
+          </div>
         </div>
 
-        <!-- 슬롯 목록 (출발 / 경유 / 도착) -->
+        <!-- 슬롯 목록 (출발 / 경유 / 도착 검색 가능) -->
         <div class="route-slots-wrap">
           <div class="route-slots-list" id="route-slots-list">
             <!-- 출발 슬롯 -->
             <div class="route-slot-row" id="slot-row-start">
               <div class="slot-icon-dot dot-start"></div>
               <div class="slot-input-box">
-                <span class="slot-name empty" id="slot-name-start">출발역을 지정해주세요</span>
-                <span style="font-size:11px; color:#888;">출발</span>
+                <input type="text" class="slot-input-field" id="input-slot-start" placeholder="출발역 검색 또는 입력..." 
+                       onfocus="setActiveSlot('start')" oninput="onSlotSearchInput('start', this.value)">
+                <div class="slot-autocomplete-dropdown" id="dropdown-slot-start"></div>
+                <span style="font-size:11px; color:#888; margin-left:4px;">출발</span>
               </div>
             </div>
 
@@ -949,8 +1017,10 @@
             <div class="route-slot-row" id="slot-row-dest">
               <div class="slot-icon-dot dot-dest"></div>
               <div class="slot-input-box">
-                <span class="slot-name empty" id="slot-name-dest">도착역을 지정해주세요</span>
-                <span style="font-size:11px; color:#888;">도착</span>
+                <input type="text" class="slot-input-field" id="input-slot-dest" placeholder="도착역 검색 또는 입력..." 
+                       onfocus="setActiveSlot('dest')" oninput="onSlotSearchInput('dest', this.value)">
+                <div class="slot-autocomplete-dropdown" id="dropdown-slot-dest"></div>
+                <span style="font-size:11px; color:#888; margin-left:4px;">도착</span>
               </div>
             </div>
           </div>
@@ -1168,6 +1238,7 @@
     const routeResultSection = document.getElementById("route-result-section");
     const dynamicViaSlots = document.getElementById("dynamic-via-slots");
     const bottomSearchWrapper = document.getElementById("bottom-search-wrapper");
+    const btnPickMap = document.getElementById("btn-pick-map");
 
     function cleanStationName(rawName) {
       return rawName.replace(/['"{}\[\]*~`.,:;!?^]/g, "").trim();
@@ -1244,7 +1315,7 @@
     }
 
     /* ========================================================
-       길찾기 플래너 엔진 (출발 / 경유 다중 / 도착)
+       길찾기 플래너 엔진 (인라인 검색 및 지도 선택 지원)
     ======================================================== */
     let ROUTE_DATA = {
       start: null,
@@ -1258,23 +1329,89 @@
       fast: false
     };
 
-    // 역 카드에서 [출발], [경유], [도착] 클릭 시
+    let isMapPickMode = false;
+    let activeSlotType = "dest"; // 'start', 'dest', 또는 via index
+
+    function setActiveSlot(slotType) {
+      activeSlotType = slotType;
+    }
+
+    function toggleMapPickMode() {
+      isMapPickMode = !isMapPickMode;
+      btnPickMap.classList.toggle("active", isMapPickMode);
+      if (isMapPickMode) {
+        alert("🗺️ 지도에서 직접 원하는 역 심볼을 터치하면 현재 선택된 슬롯에 입력됩니다.");
+      }
+    }
+
+    // 슬롯 텍스트 직접 입력 시 자동완성 검색
+    function onSlotSearchInput(slotType, query) {
+      setActiveSlot(slotType);
+      const q = cleanStationName(query.trim().toLowerCase()).replace(/역$/, "");
+      const dropdownId = typeof slotType === 'number' ? `dropdown-slot-via-${slotType}` : `dropdown-slot-${slotType}`;
+      const dropdown = document.getElementById(dropdownId);
+      if (!dropdown) return;
+
+      if (!q) {
+        dropdown.style.display = "none";
+        return;
+      }
+
+      dropdown.innerHTML = "";
+      const matched = STATIONS_LIST.filter(st => st.queryTerm.toLowerCase().includes(q) || st.name.toLowerCase().includes(q));
+
+      if (matched.length === 0) {
+        dropdown.innerHTML = `<div style="padding:10px 14px; color:#94a3b8; font-size:12px;">일치하는 역이 없습니다.</div>`;
+      } else {
+        matched.slice(0, 6).forEach(st => {
+          const item = document.createElement("div");
+          item.className = "slot-auto-item";
+          const line = st.lines[0] || "";
+          item.innerHTML = `
+            <span><strong>${st.name}</strong></span>
+            <span class="suggestion-badge ${getLineBadgeClass(line)}">${formatLineName(line)}</span>
+          `;
+          item.onclick = (e) => {
+            e.stopPropagation();
+            assignStationToSlot(slotType, st);
+            dropdown.style.display = "none";
+          };
+          dropdown.appendChild(item);
+        });
+      }
+      dropdown.style.display = "block";
+    }
+
+    function assignStationToSlot(slotType, stationObj) {
+      if (slotType === "start") {
+        ROUTE_DATA.start = { ...stationObj };
+      } else if (slotType === "dest") {
+        ROUTE_DATA.dest = { ...stationObj };
+      } else if (typeof slotType === "number") {
+        ROUTE_DATA.vias[slotType] = { ...stationObj };
+      }
+
+      // 지도 포커스 이동 및 UI 재렌더링
+      panToStation(stationObj.x, stationObj.y, 1.25);
+      renderRouteUI();
+    }
+
+    // 카드에서 [출발], [경유], [도착] 클릭 시
     function assignRouteFromCard(type) {
       if (!currentSelectedStation) return;
 
       if (type === "start") {
         ROUTE_DATA.start = { ...currentSelectedStation };
+        activeSlotType = "dest";
       } else if (type === "dest") {
         ROUTE_DATA.dest = { ...currentSelectedStation };
       } else if (type === "via") {
-        // 중복 방지
         const alreadyExists = ROUTE_DATA.vias.some(v => v.name === currentSelectedStation.name);
         if (!alreadyExists) {
           ROUTE_DATA.vias.push({ ...currentSelectedStation });
         }
       }
 
-      // 카드 닫고 길찾기 모달 오픈
       stationCard.style.display = "none";
       pinGeneral.style.display = "none";
       openRoutePlanning();
@@ -1286,38 +1423,60 @@
       bottomSearchWrapper.style.display = "none";
     }
 
+    /* ========================================================
+       길찾기 창 닫기 및 모든 경로 핀 초기화
+    ======================================================== */
     function closeRoutePlanning() {
+      // 1. 길찾기 창 닫기 및 하단 검색바 복원
       routePlanningCard.style.display = "none";
       bottomSearchWrapper.style.display = "flex";
+      isMapPickMode = false;
+      btnPickMap.classList.remove("active");
+    
+      // 2. 출발, 도착 핀 숨기기
+      pinStart.style.display = "none";
+      pinDest.style.display = "none";
+    
+      // 3. 생성되어 있던 모든 경유 핀 및 동적 슬롯 제거
+      viaPinsContainer.innerHTML = "";
+      dynamicViaSlots.innerHTML = "";
+    
+      // 4. 경로 데이터 초기화
+      ROUTE_DATA = {
+        start: null,
+        vias: [],
+        dest: null
+      };
+    
+      // 5. 입력창 값 및 결과 패널 초기화
+      document.getElementById("input-slot-start").value = "";
+      document.getElementById("input-slot-dest").value = "";
+      routeResultSection.style.display = "none";
     }
 
     // UI 및 지도 위 핀 갱신
     function renderRouteUI() {
-      // 1. 출발역 슬롯
-      const startSlot = document.getElementById("slot-name-start");
+      // 1. 출발역 입력창
+      const startInput = document.getElementById("input-slot-start");
       if (ROUTE_DATA.start) {
-        startSlot.innerText = ROUTE_DATA.start.name;
-        startSlot.classList.remove("empty");
+        startInput.value = ROUTE_DATA.start.name;
         pinStart.style.left = `${ROUTE_DATA.start.x}px`;
         pinStart.style.top = `${ROUTE_DATA.start.y}px`;
         pinStart.style.display = "block";
       } else {
-        startSlot.innerText = "출발역을 지정해주세요";
-        startSlot.classList.add("empty");
+        startInput.value = "";
         pinStart.style.display = "none";
       }
 
-      // 2. 도착역 슬롯
-      const destSlot = document.getElementById("slot-name-dest");
+      // 2. 도착역 입력창
+      const destInput = document.getElementById("input-slot-dest");
       if (ROUTE_DATA.dest) {
-        destSlot.innerText = ROUTE_DATA.dest.name;
-        destSlot.classList.remove("empty");
+        destInput.value = ROUTE_DATA.dest.name;
         pinDest.style.left = `${ROUTE_DATA.dest.x}px`;
         pinDest.style.top = `${ROUTE_DATA.dest.y}px`;
         pinDest.style.display = "block";
       } else {
-        destSlot.innerText = "도착역을 지정해주세요";
-        destSlot.classList.add("empty");
+        destInput.value = "";
         pinDest.style.display = "none";
       }
 
@@ -1326,13 +1485,15 @@
       viaPinsContainer.innerHTML = "";
 
       ROUTE_DATA.vias.forEach((viaObj, idx) => {
-        // UI 슬롯 생성
         const slotEl = document.createElement("div");
         slotEl.className = "route-slot-row";
         slotEl.innerHTML = `
           <div class="slot-icon-dot dot-via"></div>
           <div class="slot-input-box">
-            <span class="slot-name">${viaObj.name}</span>
+            <input type="text" class="slot-input-field" id="input-slot-via-${idx}" value="${viaObj.name || ''}" 
+                   placeholder="경유역 ${idx+1} 검색 또는 입력..."
+                   onfocus="setActiveSlot(${idx})" oninput="onSlotSearchInput(${idx}, this.value)">
+            <div class="slot-autocomplete-dropdown" id="dropdown-slot-via-${idx}"></div>
             <div class="slot-controls">
               ${idx > 0 ? `<button class="btn-slot-move" onclick="moveVia(${idx}, -1)">▲</button>` : ''}
               ${idx < ROUTE_DATA.vias.length - 1 ? `<button class="btn-slot-move" onclick="moveVia(${idx}, 1)">▼</button>` : ''}
@@ -1342,20 +1503,22 @@
         `;
         dynamicViaSlots.appendChild(slotEl);
 
-        // 지도 위 보라색 경유 핀 생성
-        const viaPin = document.createElement("div");
-        viaPin.className = "map-pin";
-        viaPin.style.left = `${viaObj.x}px`;
-        viaPin.style.top = `${viaObj.y}px`;
-        viaPin.style.display = "block";
-        viaPin.innerHTML = `
-          <svg width="38" height="50" viewBox="0 0 384 512">
-            <path fill="#a55eea" d="M172.268 501.67C26.97 291.031 0 269.413 0 192 0 85.961 86.039 0 192 0s192 85.961 192 192c0 77.413-26.97 99.031-172.268 309.67-9.535 13.774-29.93 13.773-39.464 0z"/>
-            <rect x="152" y="152" width="80" height="80" rx="10" transform="rotate(45 192 192)" fill="#ffffff"/>
-            <text x="192" y="202" font-size="54" font-weight="900" fill="#a55eea" text-anchor="middle">${idx + 1}</text>
-          </svg>
-        `;
-        viaPinsContainer.appendChild(viaPin);
+        // 지도 위 보라색 경유 핀
+        if (viaObj.x && viaObj.y) {
+          const viaPin = document.createElement("div");
+          viaPin.className = "map-pin";
+          viaPin.style.left = `${viaObj.x}px`;
+          viaPin.style.top = `${viaObj.y}px`;
+          viaPin.style.display = "block";
+          viaPin.innerHTML = `
+            <svg width="38" height="50" viewBox="0 0 384 512">
+              <path fill="#a55eea" d="M172.268 501.67C26.97 291.031 0 269.413 0 192 0 85.961 86.039 0 192 0s192 85.961 192 192c0 77.413-26.97 99.031-172.268 309.67-9.535 13.774-29.93 13.773-39.464 0z"/>
+              <rect x="152" y="152" width="80" height="80" rx="10" transform="rotate(45 192 192)" fill="#ffffff"/>
+              <text x="192" y="202" font-size="54" font-weight="900" fill="#a55eea" text-anchor="middle">${idx + 1}</text>
+            </svg>
+          `;
+          viaPinsContainer.appendChild(viaPin);
+        }
       });
 
       // 4. 출발과 도착이 모두 지정되었을 때만 하단 결과창 표시
@@ -1367,16 +1530,18 @@
       }
     }
 
-    // 경유지 추가 (수동 빈 슬롯 생성 또는 현재 선택역 등록)
+    // 경유지 슬롯 추가
     function addViaSlot() {
-      if (currentSelectedStation) {
-        assignRouteFromCard('via');
-      } else {
-        alert("지도에서 경유할 역을 터치하거나 검색 후 [경유]를 눌러주세요.");
-      }
+      ROUTE_DATA.vias.push({ name: "", x: null, y: null, lines: [] });
+      activeSlotType = ROUTE_DATA.vias.length - 1;
+      renderRouteUI();
+      // 새로 추가된 인풋에 즉시 포커스
+      setTimeout(() => {
+        const newInput = document.getElementById(`input-slot-via-${activeSlotType}`);
+        if (newInput) newInput.focus();
+      }, 50);
     }
 
-    // 경유지 순서 변경
     function moveVia(index, direction) {
       const targetIdx = index + direction;
       if (targetIdx < 0 || targetIdx >= ROUTE_DATA.vias.length) return;
@@ -1386,13 +1551,11 @@
       renderRouteUI();
     }
 
-    // 경유지 제거
     function removeVia(index) {
       ROUTE_DATA.vias.splice(index, 1);
       renderRouteUI();
     }
 
-    // 출발-도착 맞바꾸기 (⇅)
     function swapStartAndDest() {
       const temp = ROUTE_DATA.start;
       ROUTE_DATA.start = ROUTE_DATA.dest;
@@ -1400,31 +1563,30 @@
       renderRouteUI();
     }
 
-    // 실제 거리/시간 시뮬레이션 계산
+    // 소요 시간 및 거리 시뮬레이션 계산
     function calculateMockRoute() {
       if (!ROUTE_DATA.start || !ROUTE_DATA.dest) return;
 
-      // 픽셀 거리 계산
       let totalDistPx = 0;
       let prevPt = ROUTE_DATA.start;
 
       for (const via of ROUTE_DATA.vias) {
-        totalDistPx += Math.hypot(via.x - prevPt.x, via.y - prevPt.y);
-        prevPt = via;
+        if (via.x && via.y) {
+          totalDistPx += Math.hypot(via.x - prevPt.x, via.y - prevPt.y);
+          prevPt = via;
+        }
       }
       totalDistPx += Math.hypot(ROUTE_DATA.dest.x - prevPt.x, ROUTE_DATA.dest.y - prevPt.y);
 
-      // 거리 변환 (대략 100px = 1.2km)
       const km = (totalDistPx / 100 * 1.2).toFixed(1);
       
-      // 시간 계산 (옵션 반영)
       let subwayBase = Math.round(km * 2.2 + 8);
       let busBase = Math.round(km * 3.4 + 12);
       let walkBase = Math.round(km * 14);
 
-      if (selectedOptions.stairs) subwayBase += 4; // 엘리베이터 우회 추가시간
-      if (selectedOptions.calm) subwayBase += 6;   // 혼잡역 우회 추가시간
-      if (selectedOptions.fast) subwayBase -= 2;   // 최단 시간 직행
+      if (selectedOptions.stairs) subwayBase += 4;
+      if (selectedOptions.calm) subwayBase += 6;
+      if (selectedOptions.fast) subwayBase -= 2;
 
       document.getElementById("val-time-subway").innerText = `${subwayBase}분`;
       document.getElementById("val-time-bus").innerText = `${busBase}분`;
@@ -1437,10 +1599,8 @@
       el.classList.add("active");
     }
 
-    // 경로 옵션 토글
     function toggleRouteOption(type) {
       if (type === 'fast') {
-        // 최단 시간은 단독 선택
         selectedOptions.fast = !selectedOptions.fast;
         if (selectedOptions.fast) {
           selectedOptions.stairs = false;
@@ -1461,7 +1621,7 @@
     }
 
     /* ========================================================
-       지도 직접 탭/클릭 시 가장 가까운 역 판별
+       지도 탭/클릭 시 가장 가까운 역 판별
     ======================================================== */
     function handleMapClick(clientX, clientY) {
       const rect = metroContainer.getBoundingClientRect();
@@ -1483,12 +1643,18 @@
       }
 
       if (nearestStation) {
-        selectStation(nearestStation);
+        // [지도에서 선택] 모드가 켜져 있는 경우 활성 슬롯에 직접 입력
+        if (routePlanningCard.style.display === "flex" && isMapPickMode) {
+          assignStationToSlot(activeSlotType, nearestStation);
+          toggleMapPickMode();
+        } else {
+          selectStation(nearestStation);
+        }
       }
     }
 
     /* ========================================================
-       실시간 검색 필터링
+       실시간 하단 검색바 필터링
     ======================================================== */
     function onSearchInput(query) {
       const q = cleanStationName(query.trim().toLowerCase()).replace(/역$/, "");
