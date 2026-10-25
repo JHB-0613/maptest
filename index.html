@@ -1034,7 +1034,7 @@
         <div class="route-result-section" id="route-result-section">
           <!-- 3개 교통수단 탭 -->
           <div class="transport-tabs-row">
-            <div class="trans-card active" onclick="setTransportMode(this, 'subway')">
+            <div class="trans-card active" id="tab-subway" onclick="setTransportMode('subway')">
               <div class="trans-header">
                 <span>🚇 지하철</span>
                 <span class="trans-tag">최단</span>
@@ -1043,7 +1043,7 @@
               <div class="trans-sub" id="val-sub-subway">환승 1회</div>
             </div>
 
-            <div class="trans-card" onclick="setTransportMode(this, 'bus')">
+            <div class="trans-card" id="tab-bus" onclick="setTransportMode('bus')">
               <div class="trans-header">
                 <span>🚌 버스</span>
               </div>
@@ -1051,7 +1051,7 @@
               <div class="trans-sub" id="val-sub-bus">환승 1회</div>
             </div>
 
-            <div class="trans-card" onclick="setTransportMode(this, 'walk')">
+            <div class="trans-card" id="tab-walk" onclick="setTransportMode('walk')">
               <div class="trans-header">
                 <span>🚶 도보</span>
               </div>
@@ -1060,10 +1060,9 @@
             </div>
           </div>
 
-          <!-- 경로 옵션 -->
+          <!-- 경로 옵션 타이틀 ("최단 시간은 단독 선택" 문구 제거) -->
           <div class="route-options-title">
             <span>경로 옵션</span>
-            <span style="font-size:11px; color:#94a3b8; font-weight:500;">최단 시간은 단독 선택</span>
           </div>
 
           <div class="route-options-grid">
@@ -1104,7 +1103,6 @@
             </div>
           </div>
         </div>
-      </div>
 
       <!-- 역 선택 팝업 카드 -->
       <div class="station-popup-card" id="station-card">
@@ -1562,7 +1560,19 @@
       ROUTE_DATA.dest = temp;
       renderRouteUI();
     }
-
+    /* ========================================================
+     교통수단 탭 전환 (지하철 / 버스 / 도보)
+    ======================================================== */
+    let currentTransportMode = 'subway';
+    
+    function setTransportMode(mode) {
+      currentTransportMode = mode;
+    
+      // 모든 탭의 active 클래스 제거 후 선택된 탭에만 부여
+      document.getElementById("tab-subway").classList.toggle("active", mode === 'subway');
+      document.getElementById("tab-bus").classList.toggle("active", mode === 'bus');
+      document.getElementById("tab-walk").classList.toggle("active", mode === 'walk');
+    }
     // 소요 시간 및 거리 시뮬레이션 계산
     function calculateMockRoute() {
       if (!ROUTE_DATA.start || !ROUTE_DATA.dest) return;
