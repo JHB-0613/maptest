@@ -987,7 +987,7 @@
       <div class="route-planning-card" id="route-planning-card">
         <div class="route-header">
           <div class="route-header-left">
-            <button class="btn-route-back" onclick="closeRoutePlanning()">‹</button>
+            <button class="btn-route-back" onclick="event.stopPropagation(); closeRoutePlanning();">‹</button>
             <div class="route-title">길찾기</div>
           </div>
           <div class="route-header-right">
@@ -1426,32 +1426,41 @@
     /* ========================================================
        길찾기 창 닫기 및 모든 경로 핀 초기화
     ======================================================== */
+    /* ========================================================
+     길찾기 창 닫기 및 모든 경로 핀 완전 제거
+    ======================================================== */
     function closeRoutePlanning() {
       // 1. 길찾기 창 닫기 및 하단 검색바 복원
       routePlanningCard.style.display = "none";
       bottomSearchWrapper.style.display = "flex";
       isMapPickMode = false;
-      btnPickMap.classList.remove("active");
+      if (btnPickMap) btnPickMap.classList.remove("active");
     
-      // 2. 출발, 도착 핀 숨기기
+      // 2. 출발, 도착, 일반 핀을 화면에서 완전 제거
       pinStart.style.display = "none";
       pinDest.style.display = "none";
+      pinGeneral.style.display = "none";
     
-      // 3. 생성되어 있던 모든 경유 핀 및 동적 슬롯 제거
+      // 3. 지도 위에 생성된 모든 보라색 경유 핀 DOM 완전 삭제
       viaPinsContainer.innerHTML = "";
-      dynamicViaSlots.innerHTML = "";
     
-      // 4. 경로 데이터 초기화
+      // 4. 슬롯 및 입력창 초기화
+      dynamicViaSlots.innerHTML = "";
+      const startInput = document.getElementById("input-slot-start");
+      const destInput = document.getElementById("input-slot-dest");
+      if (startInput) startInput.value = "";
+      if (destInput) destInput.value = "";
+      routeResultSection.style.display = "none";
+    
+      // 5. 열려있던 모든 자동완성 드롭다운 닫기
+      document.querySelectorAll(".slot-autocomplete-dropdown").forEach(el => el.style.display = "none");
+    
+      // 6. 경로 데이터 객체 완전 리셋
       ROUTE_DATA = {
         start: null,
         vias: [],
         dest: null
       };
-    
-      // 5. 입력창 값 및 결과 패널 초기화
-      document.getElementById("input-slot-start").value = "";
-      document.getElementById("input-slot-dest").value = "";
-      routeResultSection.style.display = "none";
     }
 
     // UI 및 지도 위 핀 갱신
@@ -1624,16 +1633,22 @@
        지도 탭/클릭 시 가장 가까운 역 판별
     ======================================================== */
     function handleMapClick(clientX, clientY) {
+      // 길찾기 카드나 상단/하단 UI 요소를 클릭한 경우 지도 클릭 처리 무시
+      const targetEl = document.elementFromPoint(clientX, clientY);
+      if (targetEl && (targetEl.closest(".route-planning-card") || targetEl.closest(".station-popup-card") || targetEl.closest(".bottom-search-wrapper") || targetEl.closest(".zoom-controls"))) {
+        return;
+      }
+    
       const rect = metroContainer.getBoundingClientRect();
       const screenX = clientX - rect.left;
       const screenY = clientY - rect.top;
-
+    
       const mapX = (screenX - panX) / scale;
       const mapY = (screenY - panY) / scale;
-
+    
       let nearestStation = null;
       let minDistance = 45;
-
+    
       for (const st of STATIONS_LIST) {
         const dist = Math.hypot(st.x - mapX, st.y - mapY);
         if (dist < minDistance) {
@@ -1641,9 +1656,8 @@
           nearestStation = st;
         }
       }
-
+    
       if (nearestStation) {
-        // [지도에서 선택] 모드가 켜져 있는 경우 활성 슬롯에 직접 입력
         if (routePlanningCard.style.display === "flex" && isMapPickMode) {
           assignStationToSlot(activeSlotType, nearestStation);
           toggleMapPickMode();
