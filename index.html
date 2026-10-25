@@ -617,39 +617,52 @@
     }
 
     /* ========================================================
-       역 선택 및 핀 고정 (원형 심볼에 정확히 꽂힘)
+    역 선택 시 정보 카드 및 호선 배지 자동 생성
     ======================================================== */
     function selectStation(stationObj) {
       currentSelectedStation = stationObj;
 
-      // 핀의 끝부분을 원형 심볼 중심점(x, y)에 고정
+      // 원형 심볼 중심 좌표에 핀 고정
       stationPin.style.left = `${stationObj.x}px`;
       stationPin.style.top = `${stationObj.y}px`;
       stationPin.style.display = "block";
 
-      // 원형 아이콘을 화면 중앙으로 줌인 정렬
+      // 카메라 줌인 이동
       panToStation(stationObj.x, stationObj.y, 1.35);
 
+      // 1. 역명 표시
       document.getElementById("card-station-name").innerText = stationObj.name;
-      stationCard.style.display = "block";
 
+      // 2. 호선 배지 자동 동적 렌더링 (공식 데이터셋 연동)
+      let badgeContainer = document.getElementById("card-station-badges");
+      if (!badgeContainer) {
+        badgeContainer = document.createElement("div");
+        badgeContainer.id = "card-station-badges";
+        badgeContainer.className = "badge-wrap";
+        document.querySelector(".station-title").appendChild(badgeContainer);
+      }
+      badgeContainer.innerHTML = "";
+
+      const lines = stationObj.lines || ["전철"];
+      lines.forEach(line => {
+        const span = document.createElement("span");
+        let badgeClass = "badge-1";
+        if (line.includes("02") || line.includes("2호")) badgeClass = "badge-2";
+        else if (line.includes("03") || line.includes("3호")) badgeClass = "badge-3";
+        else if (line.includes("04") || line.includes("4호")) badgeClass = "badge-4";
+        else if (line.includes("신분당")) badgeClass = "badge-shin";
+        else if (line.includes("공항")) badgeClass = "badge-air";
+        else if (line.includes("경의")) badgeClass = "badge-gyeong";
+
+        span.className = `badge ${badgeClass}`;
+        span.innerText = line.replace(/^0/, ""); // '02호선' -> '2호선'
+        badgeContainer.appendChild(span);
+      });
+
+      stationCard.style.display = "block";
       searchBox.value = stationObj.name;
       clearSearchBtn.style.display = "block";
       suggestions.style.display = "none";
-    }
-
-    function deselectStation() {
-      currentSelectedStation = null;
-      stationPin.style.display = "none";
-      stationCard.style.display = "none";
-      searchBox.value = "";
-      clearSearchBtn.style.display = "none";
-      suggestions.style.display = "none";
-
-      const seoul = STATIONS_LIST.find(s => s.queryTerm === "서울" || s.name === "서울역");
-      if (seoul) {
-        panToStation(seoul.x, seoul.y, 1.0);
-      }
     }
 
     /* ========================================================
