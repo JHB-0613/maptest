@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>서울 지하철 데이터 연동 스마트 네비게이션</title>
+  <title>서울 지하철 스마트 길찾기 & 실내 네비게이션</title>
   <!-- Three.js CDN (실내 3D 뷰어용) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
@@ -87,7 +87,7 @@
       transform: scale(0.96);
     }
 
-    /* 1. 메인 노선도 (정방형 2000x2000 캔버스) */
+    /* 1. 메인 노선도 캔버스 */
     #main-view {
       background: #f8f9fb;
       overflow: hidden;
@@ -124,17 +124,15 @@
       pointer-events: none;
     }
 
-    /* 역 원형 심볼 위에 꽂히는 핀 */
-    #station-pin {
+    /* 지도 위 핀 스타일 공통 */
+    .map-pin {
       position: absolute;
-      width: 42px;
-      height: 56px;
       transform: translate(-50%, -100%);
       z-index: 40;
       display: none;
       filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.45));
-      animation: pinDrop 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
       pointer-events: none;
+      animation: pinDrop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
 
     @keyframes pinDrop {
@@ -169,6 +167,7 @@
       box-shadow: 0 6px 16px rgba(0,0,0,0.3);
     }
 
+    /* 역 선택 팝업 카드 */
     .station-popup-card {
       position: absolute;
       bottom: 96px;
@@ -225,7 +224,7 @@
       display: inline-block;
     }
 
-    /* 노선별 공식 고유 색상 */
+    /* 노선별 공식 색상 */
     .badge-line-1 { background-color: #0052a4; }
     .badge-line-2 { background-color: #00a84d; }
     .badge-line-3 { background-color: #ef7c1c; }
@@ -267,11 +266,43 @@
       flex-shrink: 0;
     }
 
-    .card-desc {
+    /* 출발 / 경유 / 도착 액션 버튼 그룹 */
+    .route-action-group {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+      margin-bottom: 12px;
+    }
+
+    .btn-route-action {
+      flex: 1;
+      padding: 9px 0;
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
       font-size: 13px;
-      color: var(--text-sub);
-      margin-top: 6px;
-      margin-bottom: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      background: rgba(255, 255, 255, 0.06);
+      color: #d1d5db;
+    }
+
+    .btn-route-action:active { transform: scale(0.96); }
+
+    .btn-start:hover, .btn-start:active {
+      background: rgba(0, 229, 255, 0.2);
+      border-color: #00e5ff;
+      color: #00e5ff;
+    }
+    .btn-via:hover, .btn-via:active {
+      background: rgba(186, 104, 200, 0.2);
+      border-color: #ba68c8;
+      color: #ba68c8;
+    }
+    .btn-dest:hover, .btn-dest:active {
+      background: rgba(46, 213, 115, 0.2);
+      border-color: #2ed573;
+      color: #2ed573;
     }
 
     .btn-detail {
@@ -291,7 +322,345 @@
       box-shadow: 0 6px 18px rgba(0, 180, 255, 0.35);
     }
 
-    /* 2. 실내 지도 화면 */
+    /* ========================================================
+       2. 네이버/카카오 길찾기 스타일 모달 패널 (신규 추가)
+    ======================================================== */
+    .route-planning-card {
+      position: absolute;
+      top: 58px;
+      left: 14px;
+      right: 14px;
+      background: #ffffff;
+      color: #1e2430;
+      border-radius: 28px;
+      box-shadow: 0 20px 45px rgba(0, 0, 0, 0.45);
+      z-index: 80;
+      display: none;
+      flex-direction: column;
+      overflow: hidden;
+      animation: slideDown 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes slideDown {
+      from { transform: translateY(-30px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .route-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 18px 12px 18px;
+    }
+
+    .route-header-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn-route-back {
+      border: none;
+      background: #f1f3f7;
+      border-radius: 50%;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      cursor: pointer;
+      color: #333;
+    }
+
+    .route-title {
+      font-size: 18px;
+      font-weight: 800;
+    }
+
+    .btn-add-via {
+      background: #00d2d3;
+      color: white;
+      border: none;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 6px 12px;
+      border-radius: 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* 역 입력 슬롯 영역 */
+    .route-slots-wrap {
+      display: flex;
+      align-items: center;
+      padding: 0 16px 14px 16px;
+      gap: 10px;
+    }
+
+    .route-slots-list {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      position: relative;
+    }
+
+    /* 연결 점선 */
+    .route-slots-list::before {
+      content: "";
+      position: absolute;
+      left: 17px;
+      top: 20px;
+      bottom: 20px;
+      width: 2px;
+      border-left: 2px dashed #c8d0de;
+      z-index: 1;
+    }
+
+    .route-slot-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .slot-icon-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      margin-left: 11px;
+      border: 3px solid #fff;
+      box-shadow: 0 0 0 2px rgba(0,0,0,0.15);
+    }
+    .dot-start { background-color: #00d2d3; }
+    .dot-via { background-color: #a55eea; border-radius: 2px; transform: rotate(45deg); }
+    .dot-dest { background-color: #26de81; }
+
+    .slot-input-box {
+      flex: 1;
+      background: #f4f6fa;
+      border: 1px solid #e2e7f0;
+      border-radius: 14px;
+      padding: 9px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .slot-name {
+      color: #222;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 180px;
+    }
+
+    .slot-name.empty {
+      color: #9aa2b1;
+      font-weight: 500;
+    }
+
+    .slot-controls {
+      display: flex;
+      gap: 4px;
+    }
+
+    .btn-slot-move {
+      border: none;
+      background: none;
+      cursor: pointer;
+      font-size: 11px;
+      color: #888;
+      padding: 2px 4px;
+    }
+
+    .btn-slot-del {
+      border: none;
+      background: none;
+      cursor: pointer;
+      font-size: 13px;
+      color: #9aa2b1;
+    }
+
+    .btn-swap-points {
+      width: 36px;
+      height: 36px;
+      background: #f1f4f9;
+      border: 1px solid #e0e5ed;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      color: #4b5563;
+      flex-shrink: 0;
+      transition: transform 0.25s ease;
+    }
+    .btn-swap-points:active { transform: rotate(180deg); }
+
+    /* ========================================================
+       하단 조건부 결과 패널 (출발/도착 모두 지정 시 노출)
+    ======================================================== */
+    .route-result-section {
+      background: #f8fafc;
+      border-top: 1px solid #edf2f7;
+      padding: 14px 16px 18px 16px;
+      display: none; /* JS에서 출발+도착 완료 시 flex로 전환 */
+      flex-direction: column;
+      gap: 12px;
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* 3개 교통수단 카드 (지하철, 버스, 도보) */
+    .transport-tabs-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+    }
+
+    .trans-card {
+      background: #ffffff;
+      border: 1px solid #e5e9f0;
+      border-radius: 16px;
+      padding: 10px 8px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .trans-card.active {
+      background: #e0f9ff;
+      border-color: #00c6e0;
+      box-shadow: 0 4px 12px rgba(0, 198, 224, 0.2);
+    }
+
+    .trans-header {
+      font-size: 12px;
+      font-weight: 700;
+      color: #555;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      margin-bottom: 2px;
+    }
+
+    .trans-tag {
+      background: #111;
+      color: #fff;
+      font-size: 9px;
+      padding: 1px 4px;
+      border-radius: 4px;
+    }
+
+    .trans-time {
+      font-size: 18px;
+      font-weight: 800;
+      color: #111;
+    }
+
+    .trans-sub {
+      font-size: 10px;
+      color: #8892a0;
+      margin-top: 2px;
+    }
+
+    /* 경로 옵션 (계단없는길, 한산한길, 최단시간) */
+    .route-options-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: #64748b;
+      display: flex;
+      justify-content: space-between;
+      margin-top: 2px;
+    }
+
+    .route-options-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+    }
+
+    .option-btn-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 10px 8px;
+      cursor: pointer;
+      position: relative;
+      transition: all 0.2s ease;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      height: 82px;
+    }
+
+    .option-btn-card.selected {
+      background: #e9d5ff;
+      border-color: #a855f7;
+    }
+
+    .opt-icon-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .opt-icon {
+      width: 24px;
+      height: 24px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+    }
+    .icon-stairs { background: #e0f2fe; color: #0284c7; }
+    .icon-calm { background: #f3e8ff; color: #9333ea; }
+    .icon-fast { background: #dcfce7; color: #16a34a; }
+
+    .opt-check {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 1.5px solid #cbd5e1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      color: white;
+    }
+    .option-btn-card.selected .opt-check {
+      background: #111;
+      border-color: #111;
+    }
+
+    .opt-title {
+      font-size: 12px;
+      font-weight: 800;
+      color: #1e293b;
+      margin-top: 4px;
+    }
+
+    .opt-desc {
+      font-size: 9.5px;
+      color: #64748b;
+    }
+
+    /* 3. 실내 지도 화면 */
     #indoor-view {
       background: #181a20;
       display: flex;
@@ -320,17 +689,9 @@
       font-size: 20px;
     }
 
-    .indoor-title-wrap {
-      text-align: center;
-    }
-    .indoor-title {
-      font-size: 17px;
-      font-weight: 700;
-    }
-    .indoor-sub {
-      font-size: 12px;
-      color: var(--text-sub);
-    }
+    .indoor-title-wrap { text-align: center; }
+    .indoor-title { font-size: 17px; font-weight: 700; }
+    .indoor-sub { font-size: 12px; color: var(--text-sub); }
 
     .indoor-controls {
       position: absolute;
@@ -422,7 +783,7 @@
       display: none;
     }
 
-    /* 3. 하단 공통 검색바 */
+    /* 4. 하단 공통 검색바 */
     .bottom-search-wrapper {
       position: absolute;
       bottom: 24px;
@@ -455,9 +816,7 @@
       outline: none;
     }
 
-    .search-input::placeholder {
-      color: #636b7c;
-    }
+    .search-input::placeholder { color: #636b7c; }
 
     .clear-search-btn {
       color: var(--text-sub);
@@ -511,65 +870,9 @@
       font-size: 14px;
     }
 
-    .suggestion-item:hover {
-      background: rgba(255, 255, 255, 0.08);
-    }
-
-    .suggestion-left {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .suggestion-badge {
-      font-size: 10px;
-      padding: 1px 6px;
-      border-radius: 6px;
-      color: white;
-    }
-    /* 출발 / 경유 / 도착 버튼 그룹 스타일 */
-    .route-action-group {
-      display: flex;
-      gap: 8px;
-      margin-top: 10px;
-      margin-bottom: 14px;
-    }
-    
-    .btn-route-action {
-      flex: 1;
-      padding: 8px 0;
-      border-radius: 10px;
-      border: 1px solid var(--border-color);
-      font-size: 13px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      background: rgba(255, 255, 255, 0.06);
-      color: #d1d5db;
-    }
-    
-    .btn-route-action:active {
-      transform: scale(0.96);
-    }
-    
-    /* 개별 버튼 호버 및 액센트 색상 */
-    .btn-start:hover {
-      background: rgba(0, 229, 255, 0.15);
-      border-color: #00e5ff;
-      color: #00e5ff;
-    }
-    
-    .btn-via:hover {
-      background: rgba(245, 162, 0, 0.15);
-      border-color: #f5a200;
-      color: #f5a200;
-    }
-    
-    .btn-dest:hover {
-      background: rgba(230, 24, 108, 0.15);
-      border-color: #e6186c;
-      color: #ff4081;
-    }
+    .suggestion-item:hover { background: rgba(255, 255, 255, 0.08); }
+    .suggestion-left { display: flex; align-items: center; gap: 8px; }
+    .suggestion-badge { font-size: 10px; padding: 1px 6px; border-radius: 6px; color: white; }
   </style>
 </head>
 <body>
@@ -587,10 +890,27 @@
         <div id="map-wrapper">
           <img src="metroimg.jpg" id="official-metro-img" alt="서울 지하철 노선도" onerror="this.src='metroimg.svg'">
 
-          <!-- 역 원형 심볼에 꽂히는 핀 -->
-          <svg id="station-pin" viewBox="0 0 384 512">
+          <!-- 개별 핀들 (출발/경유/도착/일반) -->
+          <svg id="pin-general" class="map-pin" width="38" height="50" viewBox="0 0 384 512">
             <path fill="#00e5ff" d="M172.268 501.67C26.97 291.031 0 269.413 0 192 0 85.961 86.039 0 192 0s192 85.961 192 192c0 77.413-26.97 99.031-172.268 309.67-9.535 13.774-29.93 13.773-39.464 0zM192 272c44.183 0 80-35.817 80-80s-35.817-80-80-80-80 35.817-80 80 35.817 80 80 80z"/>
           </svg>
+
+          <!-- 출발 전용 핀 (민트색) -->
+          <svg id="pin-start" class="map-pin" width="40" height="52" viewBox="0 0 384 512">
+            <path fill="#00d2d3" d="M172.268 501.67C26.97 291.031 0 269.413 0 192 0 85.961 86.039 0 192 0s192 85.961 192 192c0 77.413-26.97 99.031-172.268 309.67-9.535 13.774-29.93 13.773-39.464 0z"/>
+            <circle cx="192" cy="192" r="70" fill="#ffffff"/>
+            <text x="192" y="202" font-size="64" font-weight="900" fill="#00d2d3" text-anchor="middle">출</text>
+          </svg>
+
+          <!-- 도착 전용 핀 (초록색) -->
+          <svg id="pin-dest" class="map-pin" width="40" height="52" viewBox="0 0 384 512">
+            <path fill="#26de81" d="M172.268 501.67C26.97 291.031 0 269.413 0 192 0 85.961 86.039 0 192 0s192 85.961 192 192c0 77.413-26.97 99.031-172.268 309.67-9.535 13.774-29.93 13.773-39.464 0z"/>
+            <circle cx="192" cy="192" r="70" fill="#ffffff"/>
+            <text x="192" y="202" font-size="64" font-weight="900" fill="#26de81" text-anchor="middle">도</text>
+          </svg>
+
+          <!-- 경유 핀 동적 컨테이너 -->
+          <div id="via-pins-container"></div>
         </div>
       </div>
 
@@ -600,20 +920,138 @@
         <button class="btn-zoom" onclick="zoomManual(-0.25)">−</button>
       </div>
 
-      <!-- 역 간략 카드 -->
+      <!-- 상단 길찾기 플래너 패널 (이미지 레이아웃 구현) -->
+      <div class="route-planning-card" id="route-planning-card">
+        <div class="route-header">
+          <div class="route-header-left">
+            <button class="btn-route-back" onclick="closeRoutePlanning()">‹</button>
+            <div class="route-title">길찾기</div>
+          </div>
+          <button class="btn-add-via" onclick="addViaSlot()">+ 경유</button>
+        </div>
+
+        <!-- 슬롯 목록 (출발 / 경유 / 도착) -->
+        <div class="route-slots-wrap">
+          <div class="route-slots-list" id="route-slots-list">
+            <!-- 출발 슬롯 -->
+            <div class="route-slot-row" id="slot-row-start">
+              <div class="slot-icon-dot dot-start"></div>
+              <div class="slot-input-box">
+                <span class="slot-name empty" id="slot-name-start">출발역을 지정해주세요</span>
+                <span style="font-size:11px; color:#888;">출발</span>
+              </div>
+            </div>
+
+            <!-- 경유 슬롯들이 동적으로 여기에 삽입됩니다 -->
+            <div id="dynamic-via-slots" style="display:contents;"></div>
+
+            <!-- 도착 슬롯 -->
+            <div class="route-slot-row" id="slot-row-dest">
+              <div class="slot-icon-dot dot-dest"></div>
+              <div class="slot-input-box">
+                <span class="slot-name empty" id="slot-name-dest">도착역을 지정해주세요</span>
+                <span style="font-size:11px; color:#888;">도착</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 출발-도착 맞바꾸기 버튼 -->
+          <button class="btn-swap-points" onclick="swapStartAndDest()" title="출발·도착 반전">⇅</button>
+        </div>
+
+        <!-- 하단 경로 결과 및 옵션 (출발과 도착이 모두 지정되었을 때만 열림) -->
+        <div class="route-result-section" id="route-result-section">
+          <!-- 3개 교통수단 탭 -->
+          <div class="transport-tabs-row">
+            <div class="trans-card active" onclick="setTransportMode(this, 'subway')">
+              <div class="trans-header">
+                <span>🚇 지하철</span>
+                <span class="trans-tag">최단</span>
+              </div>
+              <div class="trans-time" id="val-time-subway">--분</div>
+              <div class="trans-sub" id="val-sub-subway">환승 1회</div>
+            </div>
+
+            <div class="trans-card" onclick="setTransportMode(this, 'bus')">
+              <div class="trans-header">
+                <span>🚌 버스</span>
+              </div>
+              <div class="trans-time" id="val-time-bus">--분</div>
+              <div class="trans-sub" id="val-sub-bus">환승 1회</div>
+            </div>
+
+            <div class="trans-card" onclick="setTransportMode(this, 'walk')">
+              <div class="trans-header">
+                <span>🚶 도보</span>
+              </div>
+              <div class="trans-time" id="val-time-walk">--분</div>
+              <div class="trans-sub" id="val-sub-walk">--km</div>
+            </div>
+          </div>
+
+          <!-- 경로 옵션 -->
+          <div class="route-options-title">
+            <span>경로 옵션</span>
+            <span style="font-size:11px; color:#94a3b8; font-weight:500;">최단 시간은 단독 선택</span>
+          </div>
+
+          <div class="route-options-grid">
+            <!-- 계단 없는 길 -->
+            <div class="option-btn-card" id="opt-stairs" onclick="toggleRouteOption('stairs')">
+              <div class="opt-icon-row">
+                <div class="opt-icon icon-stairs">🛗</div>
+                <div class="opt-check">✓</div>
+              </div>
+              <div>
+                <div class="opt-title">계단 없는 길</div>
+                <div class="opt-desc">엘리베이터 위주</div>
+              </div>
+            </div>
+
+            <!-- 한산한 길 -->
+            <div class="option-btn-card selected" id="opt-calm" onclick="toggleRouteOption('calm')">
+              <div class="opt-icon-row">
+                <div class="opt-icon icon-calm">👥</div>
+                <div class="opt-check">✓</div>
+              </div>
+              <div>
+                <div class="opt-title">한산한 길</div>
+                <div class="opt-desc">혼잡한 역 피하기</div>
+              </div>
+            </div>
+
+            <!-- 최단 시간 -->
+            <div class="option-btn-card" id="opt-fast" onclick="toggleRouteOption('fast')">
+              <div class="opt-icon-row">
+                <div class="opt-icon icon-fast">⚡</div>
+                <div class="opt-check">✓</div>
+              </div>
+              <div>
+                <div class="opt-title">최단 시간</div>
+                <div class="opt-desc">가장 빠른 경로</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 역 선택 팝업 카드 -->
       <div class="station-popup-card" id="station-card">
         <div class="card-header">
           <div class="station-title-box">
             <span class="station-title" id="card-station-name">강남역</span>
             <div class="badge-wrap" id="card-station-badges"></div>
           </div>
-        <button class="btn-close-card" onclick="event.stopPropagation(); deselectStation();">✕</button>
+          <button class="btn-close-card" onclick="event.stopPropagation(); deselectStation();">✕</button>
         </div>
+
+        <!-- 출발 / 경유 / 도착 지정 버튼 그룹 -->
         <div class="route-action-group">
-          <button class="btn-route-action btn-start" onclick="event.stopPropagation(); setRoutePoint('start');">출발</button>
-          <button class="btn-route-action btn-via" onclick="event.stopPropagation(); setRoutePoint('via');">경유</button>
-          <button class="btn-route-action btn-dest" onclick="event.stopPropagation(); setRoutePoint('dest');">도착</button>
+          <button class="btn-route-action btn-start" onclick="event.stopPropagation(); assignRouteFromCard('start');">출발</button>
+          <button class="btn-route-action btn-via" onclick="event.stopPropagation(); assignRouteFromCard('via');">경유</button>
+          <button class="btn-route-action btn-dest" onclick="event.stopPropagation(); assignRouteFromCard('dest');">도착</button>
         </div>
+
         <button class="btn-detail" onclick="enterIndoorView()">
           <span>실내 지도 자세히 보기</span>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
@@ -660,9 +1098,9 @@
     </div>
 
     <!-- 3. 하단 공통 검색바 -->
-    <div class="bottom-search-wrapper">
+    <div class="bottom-search-wrapper" id="bottom-search-wrapper">
       <span class="search-icon">🔍</span>
-      <input type="text" id="search-box" class="search-input" placeholder="역 이름 검색 (예: 강남, 서울역)..." oninput="onSearchInput(this.value)">
+      <input type="text" id="search-box" class="search-input" placeholder="길찾기를 도와드릴 까요?" oninput="onSearchInput(this.value)">
       <button class="clear-search-btn" id="clear-search" onclick="event.stopPropagation(); clearSearchInput();">✕</button>
       <button class="ai-btn" onclick="triggerAI()">AI</button>
       <div class="search-suggestions" id="suggestions"></div>
@@ -702,7 +1140,7 @@
     }
 
     function formatLineName(lineName) {
-      return lineName.replace(/^0/, ""); // '02호선' -> '2호선'
+      return lineName.replace(/^0/, "");
     }
 
     /* ========================================================
@@ -717,11 +1155,19 @@
 
     const metroContainer = document.getElementById("metro-container");
     const mapWrapper = document.getElementById("map-wrapper");
-    const stationPin = document.getElementById("station-pin");
+    const pinGeneral = document.getElementById("pin-general");
+    const pinStart = document.getElementById("pin-start");
+    const pinDest = document.getElementById("pin-dest");
+    const viaPinsContainer = document.getElementById("via-pins-container");
+
     const stationCard = document.getElementById("station-card");
     const searchBox = document.getElementById("search-box");
     const clearSearchBtn = document.getElementById("clear-search");
     const suggestions = document.getElementById("suggestions");
+    const routePlanningCard = document.getElementById("route-planning-card");
+    const routeResultSection = document.getElementById("route-result-section");
+    const dynamicViaSlots = document.getElementById("dynamic-via-slots");
+    const bottomSearchWrapper = document.getElementById("bottom-search-wrapper");
 
     function cleanStationName(rawName) {
       return rawName.replace(/['"{}\[\]*~`.,:;!?^]/g, "").trim();
@@ -759,14 +1205,14 @@
     }
 
     /* ========================================================
-       역 선택 및 핀 고정
+       역 개별 선택 및 기본 핀 고정
     ======================================================== */
     function selectStation(stationObj) {
       currentSelectedStation = stationObj;
 
-      stationPin.style.left = `${stationObj.x}px`;
-      stationPin.style.top = `${stationObj.y}px`;
-      stationPin.style.display = "block";
+      pinGeneral.style.left = `${stationObj.x}px`;
+      pinGeneral.style.top = `${stationObj.y}px`;
+      pinGeneral.style.display = "block";
 
       panToStation(stationObj.x, stationObj.y, 1.35);
 
@@ -787,31 +1233,235 @@
       clearSearchBtn.style.display = "block";
       suggestions.style.display = "none";
     }
-        /* ========================================================
-       경로 설정 핸들러 (출발 / 경유 / 도착)
-    ======================================================== */
-    const ROUTE_PLAN = {
-      start: null,
-      via: null,
-      dest: null
-    };
-    
-    function setRoutePoint(type) {
-      if (!currentSelectedStation) return;
-    
-      const typeLabels = {
-        start: "출발역",
-        via: "경유역",
-        dest: "도착역"
-      };
-    
-      ROUTE_PLAN[type] = currentSelectedStation;
-      alert(`📍 [${typeLabels[type]}]으로 '${currentSelectedStation.name}'이(가) 설정되었습니다.`);
-      console.log("현재 경로 계획:", ROUTE_PLAN);
+
+    function deselectStation() {
+      currentSelectedStation = null;
+      pinGeneral.style.display = "none";
+      stationCard.style.display = "none";
+      searchBox.value = "";
+      clearSearchBtn.style.display = "none";
+      suggestions.style.display = "none";
     }
 
     /* ========================================================
-       지도 직접 클릭/탭 시 좌표 판별 및 역 선택
+       길찾기 플래너 엔진 (출발 / 경유 다중 / 도착)
+    ======================================================== */
+    let ROUTE_DATA = {
+      start: null,
+      vias: [], // [{ name, x, y, lines }, ...]
+      dest: null
+    };
+
+    let selectedOptions = {
+      stairs: false,
+      calm: true,
+      fast: false
+    };
+
+    // 역 카드에서 [출발], [경유], [도착] 클릭 시
+    function assignRouteFromCard(type) {
+      if (!currentSelectedStation) return;
+
+      if (type === "start") {
+        ROUTE_DATA.start = { ...currentSelectedStation };
+      } else if (type === "dest") {
+        ROUTE_DATA.dest = { ...currentSelectedStation };
+      } else if (type === "via") {
+        // 중복 방지
+        const alreadyExists = ROUTE_DATA.vias.some(v => v.name === currentSelectedStation.name);
+        if (!alreadyExists) {
+          ROUTE_DATA.vias.push({ ...currentSelectedStation });
+        }
+      }
+
+      // 카드 닫고 길찾기 모달 오픈
+      stationCard.style.display = "none";
+      pinGeneral.style.display = "none";
+      openRoutePlanning();
+      renderRouteUI();
+    }
+
+    function openRoutePlanning() {
+      routePlanningCard.style.display = "flex";
+      bottomSearchWrapper.style.display = "none";
+    }
+
+    function closeRoutePlanning() {
+      routePlanningCard.style.display = "none";
+      bottomSearchWrapper.style.display = "flex";
+    }
+
+    // UI 및 지도 위 핀 갱신
+    function renderRouteUI() {
+      // 1. 출발역 슬롯
+      const startSlot = document.getElementById("slot-name-start");
+      if (ROUTE_DATA.start) {
+        startSlot.innerText = ROUTE_DATA.start.name;
+        startSlot.classList.remove("empty");
+        pinStart.style.left = `${ROUTE_DATA.start.x}px`;
+        pinStart.style.top = `${ROUTE_DATA.start.y}px`;
+        pinStart.style.display = "block";
+      } else {
+        startSlot.innerText = "출발역을 지정해주세요";
+        startSlot.classList.add("empty");
+        pinStart.style.display = "none";
+      }
+
+      // 2. 도착역 슬롯
+      const destSlot = document.getElementById("slot-name-dest");
+      if (ROUTE_DATA.dest) {
+        destSlot.innerText = ROUTE_DATA.dest.name;
+        destSlot.classList.remove("empty");
+        pinDest.style.left = `${ROUTE_DATA.dest.x}px`;
+        pinDest.style.top = `${ROUTE_DATA.dest.y}px`;
+        pinDest.style.display = "block";
+      } else {
+        destSlot.innerText = "도착역을 지정해주세요";
+        destSlot.classList.add("empty");
+        pinDest.style.display = "none";
+      }
+
+      // 3. 경유지 슬롯 및 핀 렌더링
+      dynamicViaSlots.innerHTML = "";
+      viaPinsContainer.innerHTML = "";
+
+      ROUTE_DATA.vias.forEach((viaObj, idx) => {
+        // UI 슬롯 생성
+        const slotEl = document.createElement("div");
+        slotEl.className = "route-slot-row";
+        slotEl.innerHTML = `
+          <div class="slot-icon-dot dot-via"></div>
+          <div class="slot-input-box">
+            <span class="slot-name">${viaObj.name}</span>
+            <div class="slot-controls">
+              ${idx > 0 ? `<button class="btn-slot-move" onclick="moveVia(${idx}, -1)">▲</button>` : ''}
+              ${idx < ROUTE_DATA.vias.length - 1 ? `<button class="btn-slot-move" onclick="moveVia(${idx}, 1)">▼</button>` : ''}
+              <button class="btn-slot-del" onclick="removeVia(${idx})">✕</button>
+            </div>
+          </div>
+        `;
+        dynamicViaSlots.appendChild(slotEl);
+
+        // 지도 위 보라색 경유 핀 생성
+        const viaPin = document.createElement("div");
+        viaPin.className = "map-pin";
+        viaPin.style.left = `${viaObj.x}px`;
+        viaPin.style.top = `${viaObj.y}px`;
+        viaPin.style.display = "block";
+        viaPin.innerHTML = `
+          <svg width="38" height="50" viewBox="0 0 384 512">
+            <path fill="#a55eea" d="M172.268 501.67C26.97 291.031 0 269.413 0 192 0 85.961 86.039 0 192 0s192 85.961 192 192c0 77.413-26.97 99.031-172.268 309.67-9.535 13.774-29.93 13.773-39.464 0z"/>
+            <rect x="152" y="152" width="80" height="80" rx="10" transform="rotate(45 192 192)" fill="#ffffff"/>
+            <text x="192" y="202" font-size="54" font-weight="900" fill="#a55eea" text-anchor="middle">${idx + 1}</text>
+          </svg>
+        `;
+        viaPinsContainer.appendChild(viaPin);
+      });
+
+      // 4. 출발과 도착이 모두 지정되었을 때만 하단 결과창 표시
+      if (ROUTE_DATA.start && ROUTE_DATA.dest) {
+        routeResultSection.style.display = "flex";
+        calculateMockRoute();
+      } else {
+        routeResultSection.style.display = "none";
+      }
+    }
+
+    // 경유지 추가 (수동 빈 슬롯 생성 또는 현재 선택역 등록)
+    function addViaSlot() {
+      if (currentSelectedStation) {
+        assignRouteFromCard('via');
+      } else {
+        alert("지도에서 경유할 역을 터치하거나 검색 후 [경유]를 눌러주세요.");
+      }
+    }
+
+    // 경유지 순서 변경
+    function moveVia(index, direction) {
+      const targetIdx = index + direction;
+      if (targetIdx < 0 || targetIdx >= ROUTE_DATA.vias.length) return;
+      const temp = ROUTE_DATA.vias[index];
+      ROUTE_DATA.vias[index] = ROUTE_DATA.vias[targetIdx];
+      ROUTE_DATA.vias[targetIdx] = temp;
+      renderRouteUI();
+    }
+
+    // 경유지 제거
+    function removeVia(index) {
+      ROUTE_DATA.vias.splice(index, 1);
+      renderRouteUI();
+    }
+
+    // 출발-도착 맞바꾸기 (⇅)
+    function swapStartAndDest() {
+      const temp = ROUTE_DATA.start;
+      ROUTE_DATA.start = ROUTE_DATA.dest;
+      ROUTE_DATA.dest = temp;
+      renderRouteUI();
+    }
+
+    // 실제 거리/시간 시뮬레이션 계산
+    function calculateMockRoute() {
+      if (!ROUTE_DATA.start || !ROUTE_DATA.dest) return;
+
+      // 픽셀 거리 계산
+      let totalDistPx = 0;
+      let prevPt = ROUTE_DATA.start;
+
+      for (const via of ROUTE_DATA.vias) {
+        totalDistPx += Math.hypot(via.x - prevPt.x, via.y - prevPt.y);
+        prevPt = via;
+      }
+      totalDistPx += Math.hypot(ROUTE_DATA.dest.x - prevPt.x, ROUTE_DATA.dest.y - prevPt.y);
+
+      // 거리 변환 (대략 100px = 1.2km)
+      const km = (totalDistPx / 100 * 1.2).toFixed(1);
+      
+      // 시간 계산 (옵션 반영)
+      let subwayBase = Math.round(km * 2.2 + 8);
+      let busBase = Math.round(km * 3.4 + 12);
+      let walkBase = Math.round(km * 14);
+
+      if (selectedOptions.stairs) subwayBase += 4; // 엘리베이터 우회 추가시간
+      if (selectedOptions.calm) subwayBase += 6;   // 혼잡역 우회 추가시간
+      if (selectedOptions.fast) subwayBase -= 2;   // 최단 시간 직행
+
+      document.getElementById("val-time-subway").innerText = `${subwayBase}분`;
+      document.getElementById("val-time-bus").innerText = `${busBase}분`;
+      document.getElementById("val-time-walk").innerText = `${walkBase}분`;
+      document.getElementById("val-sub-walk").innerText = `${km}km`;
+    }
+
+    function setTransportMode(el, mode) {
+      document.querySelectorAll(".trans-card").forEach(c => c.classList.remove("active"));
+      el.classList.add("active");
+    }
+
+    // 경로 옵션 토글
+    function toggleRouteOption(type) {
+      if (type === 'fast') {
+        // 최단 시간은 단독 선택
+        selectedOptions.fast = !selectedOptions.fast;
+        if (selectedOptions.fast) {
+          selectedOptions.stairs = false;
+          selectedOptions.calm = false;
+        }
+      } else {
+        selectedOptions[type] = !selectedOptions[type];
+        if (selectedOptions[type]) {
+          selectedOptions.fast = false;
+        }
+      }
+
+      document.getElementById("opt-stairs").classList.toggle("selected", selectedOptions.stairs);
+      document.getElementById("opt-calm").classList.toggle("selected", selectedOptions.calm);
+      document.getElementById("opt-fast").classList.toggle("selected", selectedOptions.fast);
+
+      calculateMockRoute();
+    }
+
+    /* ========================================================
+       지도 직접 탭/클릭 시 가장 가까운 역 판별
     ======================================================== */
     function handleMapClick(clientX, clientY) {
       const rect = metroContainer.getBoundingClientRect();
@@ -822,7 +1472,7 @@
       const mapY = (screenY - panY) / scale;
 
       let nearestStation = null;
-      let minDistance = 45; // 클릭 감지 유효 반경(px)
+      let minDistance = 45;
 
       for (const st of STATIONS_LIST) {
         const dist = Math.hypot(st.x - mapX, st.y - mapY);
@@ -838,19 +1488,7 @@
     }
 
     /* ========================================================
-       역 선택 해제 (현재 화면 위치 유지 + 카드/핀만 숨김)
-    ======================================================== */
-    function deselectStation() {
-      currentSelectedStation = null;
-      stationPin.style.display = "none";
-      stationCard.style.display = "none";
-      searchBox.value = "";
-      clearSearchBtn.style.display = "none";
-      suggestions.style.display = "none";
-    }
-
-    /* ========================================================
-       실시간 검색 자동완성
+       실시간 검색 필터링
     ======================================================== */
     function onSearchInput(query) {
       const q = cleanStationName(query.trim().toLowerCase()).replace(/역$/, "");
@@ -898,13 +1536,11 @@
       searchBox.value = "";
       clearSearchBtn.style.display = "none";
       suggestions.style.display = "none";
-      currentSelectedStation = null;
-      stationPin.style.display = "none";
-      stationCard.style.display = "none";
+      deselectStation();
     }
 
     function triggerAI() {
-      alert("✨ AI 도우미: 원하는 역이나 환승 경로를 자유롭게 물어보세요.");
+      alert("✨ AI 도우미: 계단이 적은 최적 환승 위치를 실내 지도와 함께 안내해 드립니다.");
     }
 
     /* ========================================================
@@ -965,7 +1601,7 @@
     }, { passive: false });
 
     metroContainer.addEventListener("mousedown", (e) => {
-      if (e.target.closest(".zoom-controls") || e.target.closest(".station-popup-card") || e.target.closest(".bottom-search-wrapper")) return;
+      if (e.target.closest(".zoom-controls") || e.target.closest(".station-popup-card") || e.target.closest(".bottom-search-wrapper") || e.target.closest(".route-planning-card")) return;
       isDragging = true;
       isMovedDrag = false;
       downClientX = e.clientX;
@@ -996,6 +1632,7 @@
     let touchDownX = 0, touchDownY = 0;
 
     metroContainer.addEventListener("touchstart", (e) => {
+      if (e.target.closest(".route-planning-card")) return;
       if (e.touches.length === 1) {
         isDragging = true;
         touchMoved = false;
