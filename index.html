@@ -787,6 +787,28 @@
       clearSearchBtn.style.display = "block";
       suggestions.style.display = "none";
     }
+        /* ========================================================
+       경로 설정 핸들러 (출발 / 경유 / 도착)
+    ======================================================== */
+    const ROUTE_PLAN = {
+      start: null,
+      via: null,
+      dest: null
+    };
+    
+    function setRoutePoint(type) {
+      if (!currentSelectedStation) return;
+    
+      const typeLabels = {
+        start: "출발역",
+        via: "경유역",
+        dest: "도착역"
+      };
+    
+      ROUTE_PLAN[type] = currentSelectedStation;
+      alert(`📍 [${typeLabels[type]}]으로 '${currentSelectedStation.name}'이(가) 설정되었습니다.`);
+      console.log("현재 경로 계획:", ROUTE_PLAN);
+    }
 
     /* ========================================================
        지도 직접 클릭/탭 시 좌표 판별 및 역 선택
@@ -1151,28 +1173,6 @@
         renderer.render(scene, camera);
       }
       animate();
-    }
-    /* ========================================================
-       경로 설정 핸들러 (출발 / 경유 / 도착)
-    ======================================================== */
-    const ROUTE_PLAN = {
-      start: null,
-      via: null,
-      dest: null
-    };
-    
-    function setRoutePoint(type) {
-      if (!currentSelectedStation) return;
-    
-      const typeLabels = {
-        start: "출발역",
-        via: "경유역",
-        dest: "도착역"
-      };
-    
-      ROUTE_PLAN[type] = currentSelectedStation;
-      alert(`📍 [${typeLabels[type]}]으로 '${currentSelectedStation.name}'이(가) 설정되었습니다.`);
-      console.log("현재 경로 계획:", ROUTE_PLAN);
     }
 
     window.addEventListener("DOMContentLoaded", () => {
