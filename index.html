@@ -30,16 +30,21 @@
       display: flex;
       justify-content: center;
       align-items: center;
+      /* 모바일 동적 뷰포트 높이 대응 */
       min-height: 100vh;
+      min-height: 100dvh;
       font-family: -apple-system, BlinkMacSystemFont, "Pretendard", "Segoe UI", Roboto, sans-serif;
       color: var(--text-main);
       overflow: hidden;
     }
-
+    
     .phone-container {
       width: 100%;
       max-width: 412px;
-      height: 870px;
+      /* PC에서는 최대 870px, 모바일에서는 화면 전체 높이에 정확히 맞춤 */
+      height: 100vh;
+      height: 100dvh;
+      max-height: 870px;
       background: var(--bg-dark);
       border-radius: 46px;
       position: relative;
@@ -48,129 +53,39 @@
       display: flex;
       flex-direction: column;
     }
-
-    .status-bar {
-      height: 48px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 0 28px;
-      font-size: 14px;
-      font-weight: 600;
-      z-index: 100;
-      pointer-events: none;
+    
+    /* 모바일 화면(폭 480px 이하)에서는 테두리 라운드 제거 및 전체 화면 밀착 */
+    @media (max-width: 480px) {
+      .phone-container {
+        max-height: none;
+        border-radius: 0;
+        box-shadow: none;
+      }
     }
-
-    .island {
-      width: 110px;
-      height: 26px;
-      background: #000;
-      border-radius: 20px;
+    
+    /* 하단 검색바 위치 조정 (모바일 브라우저 하단 툴바 및 홈 인디케이터 세이프에리어 반영) */
+    .bottom-search-wrapper {
       position: absolute;
-      top: 10px;
-      left: 50%;
-      transform: translateX(-50%);
-    }
-
-    .view {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      transition: opacity 0.35s ease, transform 0.35s ease;
-    }
-
-    .view.hidden {
-      opacity: 0;
-      pointer-events: none;
-      transform: scale(0.96);
-    }
-
-    /* 1. 메인 노선도 캔버스 */
-    #main-view {
-      background: #f8f9fb;
-      overflow: hidden;
-      touch-action: none;
-    }
-
-    .metro-canvas-container {
-      width: 100%;
-      height: 100%;
-      position: relative;
-      overflow: hidden;
-      cursor: grab;
-    }
-
-    .metro-canvas-container:active {
-      cursor: grabbing;
-    }
-
-    #map-wrapper {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 2000px;
-      height: 2000px;
-      transform-origin: 0 0;
-      will-change: transform;
-    }
-
-    #official-metro-img {
-      width: 100%;
-      height: 100%;
-      display: block;
-      object-fit: contain;
-      pointer-events: none;
-    }
-
-    /* 지도 위 핀 스타일 공통 */
-    .map-pin {
-      position: absolute;
-      transform: translate(-50%, -100%);
-      z-index: 45;
-      display: none;
-      opacity: 1 !important; /* 투명화 방지 강제 적용 */
-      pointer-events: none;
-      animation: pinDrop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    }
-
-    @keyframes pinDrop {
-      0% { transform: translate(-50%, -180%); opacity: 0; }
-      100% { transform: translate(-50%, -100%); opacity: 1; }
-    }
-
-    .zoom-controls {
-      position: absolute;
+      /* 기본 20px + 모바일 하단 제스처 바 여백 확보 */
+      bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+      left: 18px;
       right: 18px;
-      top: 90px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      z-index: 60;
-    }
-
-    .btn-zoom {
-      width: 40px;
-      height: 40px;
-      background: rgba(22, 26, 35, 0.88);
-      backdrop-filter: blur(15px);
+      height: 56px;
+      background: rgba(22, 26, 35, 0.92);
+      backdrop-filter: blur(25px);
       border: 1px solid var(--border-color);
-      border-radius: 12px;
-      color: #fff;
-      font-size: 20px;
-      font-weight: 700;
+      border-radius: 28px;
       display: flex;
       align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      box-shadow: 0 6px 16px rgba(0,0,0,0.3);
+      padding: 0 8px 0 16px;
+      z-index: 100;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
     }
-
-    /* 역 선택 팝업 카드 */
+    
+    /* 역 선택 팝업 카드 위치도 검색바 위로 알맞게 정렬 */
     .station-popup-card {
       position: absolute;
-      bottom: 96px;
+      bottom: calc(88px + env(safe-area-inset-bottom, 0px));
       left: 18px;
       right: 18px;
       background: var(--card-bg);
@@ -1724,10 +1639,58 @@
     }
 
     /* ========================================================
-       스마트 줌 & 패닝 바운더리 락 엔진 (클릭/드래그 분리)
+       스마트 줌 & 패닝 바운더리 락 엔진 (동적 뷰포트 반영)
     ======================================================== */
-    const viewportW = 412;
-    const viewportH = 870;
+    function getViewportDimensions() {
+      return {
+        w: metroContainer.clientWidth || 412,
+        h: metroContainer.clientHeight || window.innerHeight
+      };
+    }
+    
+    let scale = 1.0;
+    let panX = 0;
+    let panY = 0;
+    const maxScale = 2.4;
+    
+    function getMinScale() {
+      const { w, h } = getViewportDimensions();
+      return Math.max(w / MAP_SIZE, h / MAP_SIZE);
+    }
+    
+    function clampPan() {
+      const { w, h } = getViewportDimensions();
+      const currentMapW = MAP_SIZE * scale;
+      const currentMapH = MAP_SIZE * scale;
+      const minX = w - currentMapW;
+      const minY = h - currentMapH;
+    
+      panX = Math.min(Math.max(panX, minX), 0);
+      panY = Math.min(Math.max(panY, minY), 0);
+    }
+    
+    function zoomManual(delta) {
+      const minScale = getMinScale();
+      const newScale = Math.min(Math.max(scale + delta, minScale), maxScale);
+      const { w, h } = getViewportDimensions();
+      const viewCenterX = w / 2;
+      const viewCenterY = h / 2;
+      panX = viewCenterX - (viewCenterX - panX) * (newScale / scale);
+      panY = viewCenterY - (viewCenterY - panY) * (newScale / scale);
+      scale = newScale;
+      updateTransform(true);
+    }
+    
+    function panToStation(stationX, stationY, targetScale = 1.15) {
+      const minScale = getMinScale();
+      scale = Math.min(Math.max(targetScale, minScale), maxScale);
+      const { w, h } = getViewportDimensions();
+      const viewCenterX = w / 2;
+      const viewCenterY = h / 2;
+      panX = viewCenterX - (stationX * scale);
+      panY = viewCenterY - (stationY * scale);
+      updateTransform(true);
+    }
 
     const minScale = Math.max(viewportW / MAP_SIZE, viewportH / MAP_SIZE);
     const maxScale = 2.4;
