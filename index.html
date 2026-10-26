@@ -30,7 +30,6 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      /* 모바일 동적 뷰포트 높이 대응 */
       min-height: 100vh;
       min-height: 100dvh;
       font-family: -apple-system, BlinkMacSystemFont, "Pretendard", "Segoe UI", Roboto, sans-serif;
@@ -41,7 +40,6 @@
     .phone-container {
       width: 100%;
       max-width: 412px;
-      /* PC에서는 최대 870px, 모바일에서는 화면 전체 높이에 정확히 맞춤 */
       height: 100vh;
       height: 100dvh;
       max-height: 870px;
@@ -54,7 +52,6 @@
       flex-direction: column;
     }
     
-    /* 모바일 화면(폭 480px 이하)에서는 테두리 라운드 제거 및 전체 화면 밀착 */
     @media (max-width: 480px) {
       .phone-container {
         max-height: none;
@@ -63,26 +60,125 @@
       }
     }
     
-    /* 하단 검색바 위치 조정 (모바일 브라우저 하단 툴바 및 홈 인디케이터 세이프에리어 반영) */
-    .bottom-search-wrapper {
+    .status-bar {
+      height: 48px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 28px;
+      font-size: 14px;
+      font-weight: 600;
+      z-index: 100;
+      pointer-events: none;
+    }
+
+    .island {
+      width: 110px;
+      height: 26px;
+      background: #000;
+      border-radius: 20px;
       position: absolute;
-      /* 기본 20px + 모바일 하단 제스처 바 여백 확보 */
-      bottom: calc(20px + env(safe-area-inset-bottom, 0px));
-      left: 18px;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    .view {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      transition: opacity 0.35s ease, transform 0.35s ease;
+    }
+
+    .view.hidden {
+      opacity: 0;
+      pointer-events: none;
+      transform: scale(0.96);
+      visibility: hidden;
+    }
+
+    /* 1. 메인 노선도 캔버스 */
+    #main-view {
+      background: #f8f9fb;
+      overflow: hidden;
+      touch-action: none;
+    }
+
+    .metro-canvas-container {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      overflow: hidden;
+      cursor: grab;
+    }
+
+    .metro-canvas-container:active {
+      cursor: grabbing;
+    }
+
+    #map-wrapper {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 2000px;
+      height: 2000px;
+      transform-origin: 0 0;
+      will-change: transform;
+    }
+
+    #official-metro-img {
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: contain;
+      pointer-events: none;
+    }
+
+    .map-pin {
+      position: absolute;
+      transform: translate(-50%, -100%);
+      z-index: 45;
+      display: none;
+      opacity: 1 !important;
+      pointer-events: none;
+      animation: pinDrop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    @keyframes pinDrop {
+      0% { transform: translate(-50%, -180%); opacity: 0; }
+      100% { transform: translate(-50%, -100%); opacity: 1; }
+    }
+
+    .zoom-controls {
+      position: absolute;
       right: 18px;
-      height: 56px;
-      background: rgba(22, 26, 35, 0.92);
-      backdrop-filter: blur(25px);
+      top: 90px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      z-index: 60;
+    }
+
+    .btn-zoom {
+      width: 40px;
+      height: 40px;
+      background: rgba(22, 26, 35, 0.88);
+      backdrop-filter: blur(15px);
       border: 1px solid var(--border-color);
-      border-radius: 28px;
+      border-radius: 12px;
+      color: #fff;
+      font-size: 20px;
+      font-weight: 700;
       display: flex;
       align-items: center;
-      padding: 0 8px 0 16px;
-      z-index: 100;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.3);
     }
-    
-    /* 역 선택 팝업 카드 위치도 검색바 위로 알맞게 정렬 */
+
+    /* 역 선택 팝업 카드 */
     .station-popup-card {
       position: absolute;
       bottom: calc(88px + env(safe-area-inset-bottom, 0px));
@@ -139,7 +235,6 @@
       display: inline-block;
     }
 
-    /* 노선별 공식 색상 */
     .badge-line-1 { background-color: #0052a4; }
     .badge-line-2 { background-color: #00a84d; }
     .badge-line-3 { background-color: #ef7c1c; }
@@ -181,7 +276,6 @@
       flex-shrink: 0;
     }
 
-    /* 출발 / 경유 / 도착 액션 버튼 그룹 */
     .route-action-group {
       display: flex;
       gap: 8px;
@@ -237,9 +331,7 @@
       box-shadow: 0 6px 18px rgba(0, 180, 255, 0.35);
     }
 
-    /* ========================================================
-       2. 네이버/카카오 길찾기 스타일 모달 패널
-    ======================================================== */
+    /* 2. 길찾기 스타일 모달 패널 */
     .route-planning-card {
       position: absolute;
       top: 58px;
@@ -299,24 +391,6 @@
       gap: 6px;
     }
 
-    .btn-pick-map {
-      background: #e0f9ff;
-      color: #009cb2;
-      border: 1px solid #bcecf6;
-      font-size: 12px;
-      font-weight: 700;
-      padding: 6px 10px;
-      border-radius: 16px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-    .btn-pick-map.active {
-      background: #00d2d3;
-      color: #fff;
-    }
-
     .btn-add-via {
       background: #f1f4f9;
       color: #4b5563;
@@ -328,7 +402,6 @@
       cursor: pointer;
     }
 
-    /* 역 입력 슬롯 영역 */
     .route-slots-wrap {
       display: flex;
       align-items: flex-start;
@@ -344,7 +417,6 @@
       position: relative;
     }
 
-    /* 연결 점선 */
     .route-slots-list::before {
       content: "";
       position: absolute;
@@ -410,7 +482,6 @@
       font-weight: 500;
     }
 
-    /* 슬롯 인라인 자동완성 드롭다운 */
     .slot-autocomplete-dropdown {
       position: absolute;
       top: calc(100% + 4px);
@@ -483,7 +554,6 @@
     }
     .btn-swap-points:active { transform: rotate(180deg); }
 
-    /* 하단 조건부 결과 패널 */
     .route-result-section {
       background: #f8fafc;
       border-top: 1px solid #edf2f7;
@@ -501,7 +571,6 @@
       to { opacity: 1; transform: translateY(0); }
     }
 
-    /* 3개 교통수단 카드 (지하철, 버스, 도보) */
     .transport-tabs-row {
       display: grid;
       grid-template-columns: 1fr 1fr 1fr;
@@ -555,7 +624,6 @@
       margin-top: 2px;
     }
 
-    /* 경로 옵션 */
     .route-options-title {
       font-size: 12px;
       font-weight: 700;
@@ -642,6 +710,7 @@
       background: #181a20;
       display: flex;
       flex-direction: column;
+      z-index: 150;
     }
 
     .indoor-header {
@@ -763,17 +832,17 @@
     /* 4. 하단 공통 검색바 */
     .bottom-search-wrapper {
       position: absolute;
-      bottom: 24px;
+      bottom: calc(20px + env(safe-area-inset-bottom, 0px));
       left: 18px;
       right: 18px;
-      height: 60px;
-      background: rgba(22, 26, 35, 0.88);
+      height: 56px;
+      background: rgba(22, 26, 35, 0.92);
       backdrop-filter: blur(25px);
       border: 1px solid var(--border-color);
-      border-radius: 30px;
+      border-radius: 28px;
       display: flex;
       align-items: center;
-      padding: 0 8px 0 18px;
+      padding: 0 8px 0 16px;
       z-index: 100;
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
     }
@@ -868,28 +937,27 @@
         <div id="map-wrapper">
           <img src="metroimg.jpg" id="official-metro-img" alt="서울 지하철 노선도" onerror="this.src='metroimg.svg'">
 
-          <!-- 1. 일반 선택 핀 (하늘색) -->
+          <!-- 일반 선택 핀 -->
           <svg id="pin-general" class="map-pin" width="38" height="52" viewBox="0 0 384 512" style="z-index: 40; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.5));">
             <path fill="#00e5ff" stroke="#ffffff" stroke-width="14" d="M172.268 501.67C26.97 291.031 0 269.413 0 192 0 85.961 86.039 0 192 0s192 85.961 192 192c0 77.413-26.97 99.031-172.268 309.67-9.535 13.774-29.93 13.773-39.464 0z"/>
             <circle cx="192" cy="192" r="75" fill="#ffffff"/>
             <circle cx="192" cy="192" r="45" fill="#00e5ff"/>
           </svg>
 
-          <!-- 2. 출발 전용 핀 (완전 불투명 솔리드 민트) -->
+          <!-- 출발 전용 핀 (완전 불투명) -->
           <svg id="pin-start" class="map-pin" width="42" height="56" viewBox="0 0 384 512" style="z-index: 45; filter: drop-shadow(0 6px 12px rgba(0,0,0,0.55));">
             <path fill="#00b894" stroke="#ffffff" stroke-width="16" stroke-linejoin="round" d="M172.268 501.67C26.97 291.031 0 269.413 0 192 0 85.961 86.039 0 192 0s192 85.961 192 192c0 77.413-26.97 99.031-172.268 309.67-9.535 13.774-29.93 13.773-39.464 0z"/>
             <circle cx="192" cy="192" r="85" fill="#ffffff"/>
             <text x="192" y="222" font-size="88" font-weight="900" fill="#00b894" text-anchor="middle" dominant-baseline="central" font-family="-apple-system, Pretendard, sans-serif">출</text>
           </svg>
 
-          <!-- 3. 도착 전용 핀 (완전 불투명 솔리드 레드/로즈) -->
+          <!-- 도착 전용 핀 (완전 불투명) -->
           <svg id="pin-dest" class="map-pin" width="42" height="56" viewBox="0 0 384 512" style="z-index: 46; filter: drop-shadow(0 6px 12px rgba(0,0,0,0.55));">
             <path fill="#ff4757" stroke="#ffffff" stroke-width="16" stroke-linejoin="round" d="M172.268 501.67C26.97 291.031 0 269.413 0 192 0 85.961 86.039 0 192 0s192 85.961 192 192c0 77.413-26.97 99.031-172.268 309.67-9.535 13.774-29.93 13.773-39.464 0z"/>
             <circle cx="192" cy="192" r="85" fill="#ffffff"/>
             <text x="192" y="222" font-size="88" font-weight="900" fill="#ff4757" text-anchor="middle" dominant-baseline="central" font-family="-apple-system, Pretendard, sans-serif">도</text>
           </svg>
 
-          <!-- 경유 핀 동적 컨테이너 -->
           <div id="via-pins-container"></div>
         </div>
       </div>
@@ -900,7 +968,7 @@
         <button class="btn-zoom" onclick="zoomManual(-0.25)">−</button>
       </div>
 
-      <!-- 상단 길찾기 플래너 패널 (검색 인풋 통합) -->
+      <!-- 상단 길찾기 플래너 패널 -->
       <div class="route-planning-card" id="route-planning-card">
         <div class="route-header">
           <div class="route-header-left">
@@ -912,7 +980,6 @@
           </div>
         </div>
 
-        <!-- 슬롯 목록 (출발 / 경유 / 도착 검색 가능) -->
         <div class="route-slots-wrap">
           <div class="route-slots-list" id="route-slots-list">
             <!-- 출발 슬롯 -->
@@ -926,7 +993,6 @@
               </div>
             </div>
 
-            <!-- 경유 슬롯들이 동적으로 여기에 삽입됩니다 -->
             <div id="dynamic-via-slots" style="display:contents;"></div>
 
             <!-- 도착 슬롯 -->
@@ -941,13 +1007,11 @@
             </div>
           </div>
 
-          <!-- 출발-도착 맞바꾸기 버튼 -->
           <button class="btn-swap-points" onclick="swapStartAndDest()" title="출발·도착 반전">⇅</button>
         </div>
 
-        <!-- 하단 경로 결과 및 옵션 (출발과 도착이 모두 지정되었을 때만 열림) -->
+        <!-- 하단 경로 결과 및 옵션 -->
         <div class="route-result-section" id="route-result-section">
-          <!-- 3개 교통수단 탭 -->
           <div class="transport-tabs-row">
             <div class="trans-card active" id="tab-subway" onclick="setTransportMode('subway')">
               <div class="trans-header">
@@ -975,13 +1039,11 @@
             </div>
           </div>
 
-          <!-- 경로 옵션 타이틀 ("최단 시간은 단독 선택" 문구 제거) -->
           <div class="route-options-title">
             <span>경로 옵션</span>
           </div>
 
           <div class="route-options-grid">
-            <!-- 계단 없는 길 -->
             <div class="option-btn-card" id="opt-stairs" onclick="toggleRouteOption('stairs')">
               <div class="opt-icon-row">
                 <div class="opt-icon icon-stairs">🛗</div>
@@ -993,7 +1055,6 @@
               </div>
             </div>
 
-            <!-- 한산한 길 -->
             <div class="option-btn-card selected" id="opt-calm" onclick="toggleRouteOption('calm')">
               <div class="opt-icon-row">
                 <div class="opt-icon icon-calm">👥</div>
@@ -1005,7 +1066,6 @@
               </div>
             </div>
 
-            <!-- 최단 시간 -->
             <div class="option-btn-card" id="opt-fast" onclick="toggleRouteOption('fast')">
               <div class="opt-icon-row">
                 <div class="opt-icon icon-fast">⚡</div>
@@ -1030,7 +1090,6 @@
           <button class="btn-close-card" onclick="event.stopPropagation(); deselectStation();">✕</button>
         </div>
 
-        <!-- 출발 / 경유 / 도착 지정 버튼 그룹 -->
         <div class="route-action-group">
           <button class="btn-route-action btn-start" onclick="event.stopPropagation(); assignRouteFromCard('start');">출발</button>
           <button class="btn-route-action btn-via" onclick="event.stopPropagation(); assignRouteFromCard('via');">경유</button>
@@ -1042,9 +1101,18 @@
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
         </button>
       </div>
-    </div>
 
-    <!-- 2. 실내 지도 화면 -->
+      <!-- 하단 공통 검색바 -->
+      <div class="bottom-search-wrapper" id="bottom-search-wrapper">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="search-box" class="search-input" placeholder="길찾기를 도와드릴 까요?" oninput="onSearchInput(this.value)">
+        <button class="clear-search-btn" id="clear-search" onclick="event.stopPropagation(); clearSearchInput();">✕</button>
+        <button class="ai-btn" onclick="triggerAI()">AI</button>
+        <div class="search-suggestions" id="suggestions"></div>
+      </div>
+    </div> <!-- #main-view 닫힘 -->
+
+    <!-- 2. 실내 지도 화면 (처음에는 숨김) -->
     <div id="indoor-view" class="view hidden">
       <div class="indoor-header">
         <button class="btn-back" onclick="exitIndoorView()">‹</button>
@@ -1080,17 +1148,8 @@
       </div>
 
       <div id="three-container"></div>
-    </div>
-
-    <!-- 3. 하단 공통 검색바 -->
-    <div class="bottom-search-wrapper" id="bottom-search-wrapper">
-      <span class="search-icon">🔍</span>
-      <input type="text" id="search-box" class="search-input" placeholder="길찾기를 도와드릴 까요?" oninput="onSearchInput(this.value)">
-      <button class="clear-search-btn" id="clear-search" onclick="event.stopPropagation(); clearSearchInput();">✕</button>
-      <button class="ai-btn" onclick="triggerAI()">AI</button>
-      <div class="search-suggestions" id="suggestions"></div>
-    </div>
-  </div>
+    </div> <!-- #indoor-view 닫힘 -->
+  </div> <!-- .phone-container 닫힘 -->
 
   <script>
     /* ========================================================
@@ -1129,7 +1188,7 @@
     }
 
     /* ========================================================
-       데이터 로딩 및 정제 (stations.json)
+       데이터 로딩 및 정제
     ======================================================== */
     const MAP_SIZE = 2000;
     let STATIONS_LIST = [];
@@ -1153,7 +1212,6 @@
     const routeResultSection = document.getElementById("route-result-section");
     const dynamicViaSlots = document.getElementById("dynamic-via-slots");
     const bottomSearchWrapper = document.getElementById("bottom-search-wrapper");
-    const btnPickMap = document.getElementById("btn-pick-map");
 
     function cleanStationName(rawName) {
       return rawName.replace(/['"{}\[\]*~`.,:;!?^]/g, "").trim();
@@ -1230,36 +1288,22 @@
     }
 
     /* ========================================================
-       길찾기 플래너 엔진 (인라인 검색 및 지도 선택 지원)
+       길찾기 플래너 엔진
     ======================================================== */
     let ROUTE_DATA = {
       start: null,
-      vias: [], // [{ name, x, y, lines }, ...]
+      vias: [],
       dest: null
     };
 
-    let selectedOptions = {
-      stairs: false,
-      calm: true,
-      fast: false
-    };
-
-    let isMapPickMode = false;
-    let activeSlotType = "dest"; // 'start', 'dest', 또는 via index
+    let currentRouteOption = 'calm';
+    let currentTransportMode = 'subway';
+    let activeSlotType = "dest";
 
     function setActiveSlot(slotType) {
       activeSlotType = slotType;
     }
 
-    function toggleMapPickMode() {
-      isMapPickMode = !isMapPickMode;
-      btnPickMap.classList.toggle("active", isMapPickMode);
-      if (isMapPickMode) {
-        alert("🗺️ 지도에서 직접 원하는 역 심볼을 터치하면 현재 선택된 슬롯에 입력됩니다.");
-      }
-    }
-
-    // 슬롯 텍스트 직접 입력 시 자동완성 검색
     function onSlotSearchInput(slotType, query) {
       setActiveSlot(slotType);
       const q = cleanStationName(query.trim().toLowerCase()).replace(/역$/, "");
@@ -1306,12 +1350,10 @@
         ROUTE_DATA.vias[slotType] = { ...stationObj };
       }
 
-      // 지도 포커스 이동 및 UI 재렌더링
       panToStation(stationObj.x, stationObj.y, 1.25);
       renderRouteUI();
     }
 
-    // 카드에서 [출발], [경유], [도착] 클릭 시
     function assignRouteFromCard(type) {
       if (!currentSelectedStation) return;
 
@@ -1338,9 +1380,6 @@
       bottomSearchWrapper.style.display = "none";
     }
     
-    /* ========================================================
-     길찾기 창 닫기 및 모든 경로 핀 완전 제거
-    ======================================================== */
     function closeRoutePlanning() {
       routePlanningCard.style.display = "none";
       bottomSearchWrapper.style.display = "flex";
@@ -1367,9 +1406,7 @@
       };
     }
 
-    // UI 및 지도 위 핀 갱신
     function renderRouteUI() {
-      // 1. 출발역 입력창
       const startInput = document.getElementById("input-slot-start");
       if (ROUTE_DATA.start) {
         startInput.value = ROUTE_DATA.start.name;
@@ -1381,7 +1418,6 @@
         pinStart.style.display = "none";
       }
 
-      // 2. 도착역 입력창
       const destInput = document.getElementById("input-slot-dest");
       if (ROUTE_DATA.dest) {
         destInput.value = ROUTE_DATA.dest.name;
@@ -1393,7 +1429,6 @@
         pinDest.style.display = "none";
       }
 
-      // 3. 경유지 슬롯 및 핀 렌더링
       dynamicViaSlots.innerHTML = "";
       viaPinsContainer.innerHTML = "";
 
@@ -1416,7 +1451,6 @@
         `;
         dynamicViaSlots.appendChild(slotEl);
 
-        // 지도 위 보라색 경유 핀
         if (viaObj.x && viaObj.y) {
           const viaPin = document.createElement("div");
           viaPin.className = "map-pin";
@@ -1435,7 +1469,6 @@
         }
       });
 
-      // 4. 출발과 도착이 모두 지정되었을 때만 하단 결과창 표시
       if (ROUTE_DATA.start && ROUTE_DATA.dest) {
         routeResultSection.style.display = "flex";
         calculateMockRoute();
@@ -1444,12 +1477,10 @@
       }
     }
 
-    // 경유지 슬롯 추가
     function addViaSlot() {
       ROUTE_DATA.vias.push({ name: "", x: null, y: null, lines: [] });
       activeSlotType = ROUTE_DATA.vias.length - 1;
       renderRouteUI();
-      // 새로 추가된 인풋에 즉시 포커스
       setTimeout(() => {
         const newInput = document.getElementById(`input-slot-via-${activeSlotType}`);
         if (newInput) newInput.focus();
@@ -1476,20 +1507,14 @@
       ROUTE_DATA.dest = temp;
       renderRouteUI();
     }
-    /* ========================================================
-     교통수단 탭 전환 (지하철 / 버스 / 도보)
-    ======================================================== */
-    let currentTransportMode = 'subway';
-    
+
     function setTransportMode(mode) {
       currentTransportMode = mode;
-    
-      // 모든 탭의 active 클래스 제거 후 선택된 탭에만 부여
       document.getElementById("tab-subway").classList.toggle("active", mode === 'subway');
       document.getElementById("tab-bus").classList.toggle("active", mode === 'bus');
       document.getElementById("tab-walk").classList.toggle("active", mode === 'walk');
     }
-    // 소요 시간 및 거리 시뮬레이션 계산
+
     function calculateMockRoute() {
       if (!ROUTE_DATA.start || !ROUTE_DATA.dest) return;
     
@@ -1510,13 +1535,12 @@
       let busBase = Math.round(km * 3.4 + 12);
       let walkBase = Math.round(km * 14);
     
-      // 단일 옵션에 따른 가감 시간 계산
       if (currentRouteOption === 'stairs') {
-        subwayBase += 4; // 엘리베이터 우회
+        subwayBase += 4;
       } else if (currentRouteOption === 'calm') {
-        subwayBase += 6; // 혼잡역 우회
+        subwayBase += 6;
       } else if (currentRouteOption === 'fast') {
-        subwayBase -= 2; // 최단 시간 경로
+        subwayBase -= 2;
       }
     
       document.getElementById("val-time-subway").innerText = `${subwayBase}분`;
@@ -1525,30 +1549,183 @@
       document.getElementById("val-sub-walk").innerText = `${km}km`;
     }
 
-    /* ========================================================
-       경로 옵션 단일 선택 (중복 선택 방지)
-    ======================================================== */
-    // 기본 선택값을 하나만 지정 (예: 'calm' 또는 'fast')
-    let currentRouteOption = 'calm'; // 'stairs' | 'calm' | 'fast'
-    
     function toggleRouteOption(type) {
-      // 이미 선택된 옵션을 다시 눌러도 최소 1개는 유지되도록 단일 선택 적용
       currentRouteOption = type;
-    
-      // 세 버튼의 선택 UI 클래스 토글 (오직 선택된 하나만 .selected 부여)
       document.getElementById("opt-stairs").classList.toggle("selected", currentRouteOption === 'stairs');
       document.getElementById("opt-calm").classList.toggle("selected", currentRouteOption === 'calm');
       document.getElementById("opt-fast").classList.toggle("selected", currentRouteOption === 'fast');
-    
-      // 변경된 단일 옵션을 바탕으로 소요 시간 재계산
       calculateMockRoute();
     }
 
     /* ========================================================
-       지도 탭/클릭 시 가장 가까운 역 판별
+       스마트 줌 & 패닝 바운더리 락 엔진
     ======================================================== */
+    function getViewportDimensions() {
+      return {
+        w: metroContainer.clientWidth || 412,
+        h: metroContainer.clientHeight || window.innerHeight
+      };
+    }
+    
+    let scale = 1.0;
+    let panX = 0;
+    let panY = 0;
+    const maxScale = 2.4;
+    
+    function getMinScale() {
+      const { w, h } = getViewportDimensions();
+      return Math.max(w / MAP_SIZE, h / MAP_SIZE);
+    }
+    
+    function clampPan() {
+      const { w, h } = getViewportDimensions();
+      const currentMapW = MAP_SIZE * scale;
+      const currentMapH = MAP_SIZE * scale;
+      const minX = w - currentMapW;
+      const minY = h - currentMapH;
+    
+      panX = Math.min(Math.max(panX, minX), 0);
+      panY = Math.min(Math.max(panY, minY), 0);
+    }
+
+    function updateTransform(animate = false) {
+      clampPan();
+      if (animate) {
+        mapWrapper.style.transition = "transform 0.45s cubic-bezier(0.19, 1, 0.22, 1)";
+      } else {
+        mapWrapper.style.transition = "none";
+      }
+      mapWrapper.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
+    }
+    
+    function zoomManual(delta) {
+      const minScale = getMinScale();
+      const newScale = Math.min(Math.max(scale + delta, minScale), maxScale);
+      const { w, h } = getViewportDimensions();
+      const viewCenterX = w / 2;
+      const viewCenterY = h / 2;
+      panX = viewCenterX - (viewCenterX - panX) * (newScale / scale);
+      panY = viewCenterY - (viewCenterY - panY) * (newScale / scale);
+      scale = newScale;
+      updateTransform(true);
+    }
+    
+    function panToStation(stationX, stationY, targetScale = 1.15) {
+      const minScale = getMinScale();
+      scale = Math.min(Math.max(targetScale, minScale), maxScale);
+      const { w, h } = getViewportDimensions();
+      const viewCenterX = w / 2;
+      const viewCenterY = h / 2;
+      panX = viewCenterX - (stationX * scale);
+      panY = viewCenterY - (stationY * scale);
+      updateTransform(true);
+    }
+
+    let isDragging = false;
+    let startX = 0, startY = 0;
+    let initialPinchDistance = null;
+    let initialScale = 1.0;
+    let isMovedDrag = false;
+    let downClientX = 0, downClientY = 0;
+
+    metroContainer.addEventListener("wheel", (e) => {
+      e.preventDefault();
+      const rect = metroContainer.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+
+      const zoomFactor = e.deltaY < 0 ? 1.15 : 0.87;
+      let newScale = scale * zoomFactor;
+      newScale = Math.min(Math.max(newScale, getMinScale()), maxScale);
+
+      panX = mouseX - (mouseX - panX) * (newScale / scale);
+      panY = mouseY - (mouseY - panY) * (newScale / scale);
+      scale = newScale;
+
+      updateTransform(false);
+    }, { passive: false });
+
+    metroContainer.addEventListener("mousedown", (e) => {
+      if (e.target.closest(".zoom-controls") || e.target.closest(".station-popup-card") || e.target.closest(".bottom-search-wrapper") || e.target.closest(".route-planning-card")) return;
+      isDragging = true;
+      isMovedDrag = false;
+      downClientX = e.clientX;
+      downClientY = e.clientY;
+      startX = e.clientX - panX;
+      startY = e.clientY - panY;
+    });
+
+    window.addEventListener("mousemove", (e) => {
+      if (!isDragging) return;
+      if (Math.hypot(e.clientX - downClientX, e.clientY - downClientY) > 5) {
+        isMovedDrag = true;
+      }
+      panX = e.clientX - startX;
+      panY = e.clientY - startY;
+      updateTransform(false);
+    });
+
+    window.addEventListener("mouseup", (e) => {
+      if (!isDragging) return;
+      isDragging = false;
+      if (!isMovedDrag) {
+        handleMapClick(e.clientX, e.clientY);
+      }
+    });
+
+    let touchMoved = false;
+    let touchDownX = 0, touchDownY = 0;
+
+    metroContainer.addEventListener("touchstart", (e) => {
+      if (e.target.closest(".route-planning-card") || e.target.closest(".station-popup-card") || e.target.closest(".bottom-search-wrapper")) return;
+      if (e.touches.length === 1) {
+        isDragging = true;
+        touchMoved = false;
+        touchDownX = e.touches[0].clientX;
+        touchDownY = e.touches[0].clientY;
+        startX = e.touches[0].clientX - panX;
+        startY = e.touches[0].clientY - panY;
+      } else if (e.touches.length === 2) {
+        isDragging = false;
+        touchMoved = true;
+        initialPinchDistance = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+        initialScale = scale;
+      }
+    }, { passive: false });
+
+    metroContainer.addEventListener("touchmove", (e) => {
+      e.preventDefault();
+      if (e.touches.length === 1 && isDragging) {
+        if (Math.hypot(e.touches[0].clientX - touchDownX, e.touches[0].clientY - touchDownY) > 6) {
+          touchMoved = true;
+        }
+        panX = e.touches[0].clientX - startX;
+        panY = e.touches[0].clientY - startY;
+        updateTransform(false);
+      } else if (e.touches.length === 2 && initialPinchDistance) {
+        touchMoved = true;
+        const currentDistance = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+        const newScale = Math.min(Math.max(initialScale * (currentDistance / initialPinchDistance), getMinScale()), maxScale);
+
+        const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+        const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+        panX = midX - (midX - panX) * (newScale / scale);
+        panY = midY - (midY - panY) * (newScale / scale);
+        scale = newScale;
+
+        updateTransform(false);
+      }
+    }, { passive: false });
+
+    metroContainer.addEventListener("touchend", (e) => {
+      isDragging = false;
+      initialPinchDistance = null;
+      if (!touchMoved && e.changedTouches.length > 0) {
+        handleMapClick(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+      }
+    });
+
     function handleMapClick(clientX, clientY) {
-      // 길찾기 카드나 상단/하단 UI 요소를 클릭한 경우 지도 클릭 처리 무시
       const targetEl = document.elementFromPoint(clientX, clientY);
       if (targetEl && (targetEl.closest(".route-planning-card") || targetEl.closest(".station-popup-card") || targetEl.closest(".bottom-search-wrapper") || targetEl.closest(".zoom-controls"))) {
         return;
@@ -1573,18 +1750,10 @@
       }
     
       if (nearestStation) {
-        if (routePlanningCard.style.display === "flex" && isMapPickMode) {
-          assignStationToSlot(activeSlotType, nearestStation);
-          toggleMapPickMode();
-        } else {
-          selectStation(nearestStation);
-        }
+        selectStation(nearestStation);
       }
     }
 
-    /* ========================================================
-       실시간 하단 검색바 필터링
-    ======================================================== */
     function onSearchInput(query) {
       const q = cleanStationName(query.trim().toLowerCase()).replace(/역$/, "");
       if (!q) {
@@ -1639,210 +1808,6 @@
     }
 
     /* ========================================================
-       스마트 줌 & 패닝 바운더리 락 엔진 (동적 뷰포트 반영)
-    ======================================================== */
-    function getViewportDimensions() {
-      return {
-        w: metroContainer.clientWidth || 412,
-        h: metroContainer.clientHeight || window.innerHeight
-      };
-    }
-    
-    let scale = 1.0;
-    let panX = 0;
-    let panY = 0;
-    const maxScale = 2.4;
-    
-    function getMinScale() {
-      const { w, h } = getViewportDimensions();
-      return Math.max(w / MAP_SIZE, h / MAP_SIZE);
-    }
-    
-    function clampPan() {
-      const { w, h } = getViewportDimensions();
-      const currentMapW = MAP_SIZE * scale;
-      const currentMapH = MAP_SIZE * scale;
-      const minX = w - currentMapW;
-      const minY = h - currentMapH;
-    
-      panX = Math.min(Math.max(panX, minX), 0);
-      panY = Math.min(Math.max(panY, minY), 0);
-    }
-    
-    function zoomManual(delta) {
-      const minScale = getMinScale();
-      const newScale = Math.min(Math.max(scale + delta, minScale), maxScale);
-      const { w, h } = getViewportDimensions();
-      const viewCenterX = w / 2;
-      const viewCenterY = h / 2;
-      panX = viewCenterX - (viewCenterX - panX) * (newScale / scale);
-      panY = viewCenterY - (viewCenterY - panY) * (newScale / scale);
-      scale = newScale;
-      updateTransform(true);
-    }
-    
-    function panToStation(stationX, stationY, targetScale = 1.15) {
-      const minScale = getMinScale();
-      scale = Math.min(Math.max(targetScale, minScale), maxScale);
-      const { w, h } = getViewportDimensions();
-      const viewCenterX = w / 2;
-      const viewCenterY = h / 2;
-      panX = viewCenterX - (stationX * scale);
-      panY = viewCenterY - (stationY * scale);
-      updateTransform(true);
-    }
-
-    const minScale = Math.max(viewportW / MAP_SIZE, viewportH / MAP_SIZE);
-    const maxScale = 2.4;
-    let scale = 1.0;
-    let panX = 0;
-    let panY = 0;
-
-    let isDragging = false;
-    let startX = 0, startY = 0;
-    let initialPinchDistance = null;
-    let initialScale = 1.0;
-
-    let isMovedDrag = false;
-    let downClientX = 0, downClientY = 0;
-
-    function clampPan() {
-      const currentMapW = MAP_SIZE * scale;
-      const currentMapH = MAP_SIZE * scale;
-      const minX = viewportW - currentMapW;
-      const minY = viewportH - currentMapH;
-
-      panX = Math.min(Math.max(panX, minX), 0);
-      panY = Math.min(Math.max(panY, minY), 0);
-    }
-
-    function updateTransform(animate = false) {
-      clampPan();
-      if (animate) {
-        mapWrapper.style.transition = "transform 0.45s cubic-bezier(0.19, 1, 0.22, 1)";
-      } else {
-        mapWrapper.style.transition = "none";
-      }
-      mapWrapper.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
-    }
-
-    metroContainer.addEventListener("wheel", (e) => {
-      e.preventDefault();
-      const rect = metroContainer.getBoundingClientRect();
-      const mouseX = e.clientX - rect.left;
-      const mouseY = e.clientY - rect.top;
-
-      const zoomFactor = e.deltaY < 0 ? 1.15 : 0.87;
-      let newScale = scale * zoomFactor;
-      newScale = Math.min(Math.max(newScale, minScale), maxScale);
-
-      panX = mouseX - (mouseX - panX) * (newScale / scale);
-      panY = mouseY - (mouseY - panY) * (newScale / scale);
-      scale = newScale;
-
-      updateTransform(false);
-    }, { passive: false });
-
-    metroContainer.addEventListener("mousedown", (e) => {
-      if (e.target.closest(".zoom-controls") || e.target.closest(".station-popup-card") || e.target.closest(".bottom-search-wrapper") || e.target.closest(".route-planning-card")) return;
-      isDragging = true;
-      isMovedDrag = false;
-      downClientX = e.clientX;
-      downClientY = e.clientY;
-      startX = e.clientX - panX;
-      startY = e.clientY - panY;
-    });
-
-    window.addEventListener("mousemove", (e) => {
-      if (!isDragging) return;
-      if (Math.hypot(e.clientX - downClientX, e.clientY - downClientY) > 5) {
-        isMovedDrag = true;
-      }
-      panX = e.clientX - startX;
-      panY = e.clientY - startY;
-      updateTransform(false);
-    });
-
-    window.addEventListener("mouseup", (e) => {
-      if (!isDragging) return;
-      isDragging = false;
-      if (!isMovedDrag) {
-        handleMapClick(e.clientX, e.clientY);
-      }
-    });
-
-    let touchMoved = false;
-    let touchDownX = 0, touchDownY = 0;
-
-    metroContainer.addEventListener("touchstart", (e) => {
-      if (e.target.closest(".route-planning-card")) return;
-      if (e.touches.length === 1) {
-        isDragging = true;
-        touchMoved = false;
-        touchDownX = e.touches[0].clientX;
-        touchDownY = e.touches[0].clientY;
-        startX = e.touches[0].clientX - panX;
-        startY = e.touches[0].clientY - panY;
-      } else if (e.touches.length === 2) {
-        isDragging = false;
-        touchMoved = true;
-        initialPinchDistance = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
-        initialScale = scale;
-      }
-    }, { passive: false });
-
-    metroContainer.addEventListener("touchmove", (e) => {
-      e.preventDefault();
-      if (e.touches.length === 1 && isDragging) {
-        if (Math.hypot(e.touches[0].clientX - touchDownX, e.touches[0].clientY - touchDownY) > 6) {
-          touchMoved = true;
-        }
-        panX = e.touches[0].clientX - startX;
-        panY = e.touches[0].clientY - startY;
-        updateTransform(false);
-      } else if (e.touches.length === 2 && initialPinchDistance) {
-        touchMoved = true;
-        const currentDistance = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
-        const newScale = Math.min(Math.max(initialScale * (currentDistance / initialPinchDistance), minScale), maxScale);
-
-        const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
-        const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
-        panX = midX - (midX - panX) * (newScale / scale);
-        panY = midY - (midY - panY) * (newScale / scale);
-        scale = newScale;
-
-        updateTransform(false);
-      }
-    }, { passive: false });
-
-    metroContainer.addEventListener("touchend", (e) => {
-      isDragging = false;
-      initialPinchDistance = null;
-      if (!touchMoved && e.changedTouches.length > 0) {
-        handleMapClick(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
-      }
-    });
-
-    function zoomManual(delta) {
-      const newScale = Math.min(Math.max(scale + delta, minScale), maxScale);
-      const viewCenterX = viewportW / 2;
-      const viewCenterY = viewportH / 2;
-      panX = viewCenterX - (viewCenterX - panX) * (newScale / scale);
-      panY = viewCenterY - (viewCenterY - panY) * (newScale / scale);
-      scale = newScale;
-      updateTransform(true);
-    }
-
-    function panToStation(stationX, stationY, targetScale = 1.15) {
-      scale = Math.min(Math.max(targetScale, minScale), maxScale);
-      const viewCenterX = viewportW / 2;
-      const viewCenterY = viewportH / 2;
-      panX = viewCenterX - (stationX * scale);
-      panY = viewCenterY - (stationY * scale);
-      updateTransform(true);
-    }
-
-    /* ========================================================
        실내 지도 전환 (Three.js 및 층수 선택)
     ======================================================== */
     const mainView = document.getElementById("main-view");
@@ -1884,7 +1849,6 @@
       btnEl.classList.add("active");
     }
 
-    // Three.js 3D 초기화
     const canvas2D = document.getElementById("indoor-2d-canvas");
     const threeContainer = document.getElementById("three-container");
     const btn2D = document.getElementById("btn-2d");
