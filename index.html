@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>서울 지하철 스마트 실내 네비게이션 & 강남역 3D</title>
+  <title>서울 지하철 스마트 실내 네비게이션 & 강남역 3D (Figma Edition)</title>
   <!-- Three.js CDN -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
@@ -12,12 +12,15 @@
 
   <style>
     :root {
-      --bg-dark: #121418;
-      --card-bg: rgba(22, 26, 35, 0.94);
-      --accent-cyan: #00e5ff;
-      --text-main: #ffffff;
-      --text-sub: #8e95a5;
-      --border-color: rgba(255, 255, 255, 0.12);
+      --bg-main: #f7f8fa;
+      --card-bg: rgba(255, 255, 255, 0.95);
+      --primary-mint: #c6e8dc;
+      --primary-dark: #367b67;
+      --accent-green: #66b69d;
+      --text-main: #29373d;
+      --text-sub: #808691;
+      --border-color: #e4e8eb;
+      --border-light: #edf0f2;
     }
 
     * {
@@ -29,13 +32,13 @@
     }
 
     body {
-      background-color: #0b0c10;
+      background-color: #e5e7eb;
       display: flex;
       justify-content: center;
       align-items: center;
       min-height: 100vh;
       min-height: 100dvh;
-      font-family: -apple-system, BlinkMacSystemFont, "Pretendard", "Segoe UI", Roboto, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
       color: var(--text-main);
       overflow: hidden;
     }
@@ -46,11 +49,11 @@
       height: 100vh;
       height: 100dvh;
       max-height: 870px;
-      background: var(--bg-dark);
-      border-radius: 46px;
+      background: var(--bg-main);
+      border-radius: 44px;
       position: relative;
       overflow: hidden;
-      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.85), inset 0 0 0 4px #2b303c;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.18), inset 0 0 0 3px #ffffff;
       display: flex;
       flex-direction: column;
     }
@@ -63,22 +66,24 @@
       }
     }
 
+    /* 상단 상태표시줄 */
     .status-bar {
-      height: 48px;
+      height: 44px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 0 28px;
-      font-size: 14px;
-      font-weight: 600;
-      z-index: 100;
+      padding: 0 24px;
+      font-size: 13px;
+      font-weight: 700;
+      z-index: 120;
       pointer-events: none;
+      color: #374151;
     }
 
     .island {
-      width: 110px;
-      height: 26px;
-      background: #000;
+      width: 100px;
+      height: 24px;
+      background: #111827;
       border-radius: 20px;
       position: absolute;
       top: 10px;
@@ -92,23 +97,25 @@
       left: 0;
       width: 100%;
       height: 100%;
-      transition: opacity 0.35s ease, transform 0.35s ease;
+      transition: opacity 0.3s ease, transform 0.3s ease;
     }
 
     .view.hidden {
       opacity: 0;
       pointer-events: none;
-      transform: scale(0.96);
+      transform: scale(0.97);
       visibility: hidden;
     }
 
-    /* 1. 메인 노선도 화면 */
+    /* ========================================================
+       1. 메인 노선도 화면 (Figma 테마 반영)
+    ======================================================== */
     #main-view {
-      background: #f8f9fb;
+      background: #f8fafc;
       overflow: hidden;
       touch-action: none;
     }
-    
+
     .metro-canvas-container {
       width: 100%;
       height: 100%;
@@ -142,7 +149,6 @@
       transform: translate(-50%, -100%);
       z-index: 45;
       display: none;
-      opacity: 1 !important;
       pointer-events: none;
       animation: pinDrop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
@@ -155,7 +161,7 @@
     .zoom-controls {
       position: absolute;
       right: 18px;
-      top: 90px;
+      top: 80px;
       display: flex;
       flex-direction: column;
       gap: 8px;
@@ -165,33 +171,32 @@
     .btn-zoom {
       width: 40px;
       height: 40px;
-      background: rgba(22, 26, 35, 0.88);
-      backdrop-filter: blur(15px);
+      background: #ffffff;
       border: 1px solid var(--border-color);
-      border-radius: 12px;
-      color: #fff;
+      border-radius: 14px;
+      color: #4b5563;
       font-size: 20px;
       font-weight: 700;
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      box-shadow: 0 6px 16px rgba(0,0,0,0.3);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
     }
+    .btn-zoom:hover { background: #f3f4f6; }
 
     .station-popup-card {
       position: absolute;
-      bottom: calc(88px + env(safe-area-inset-bottom, 0px));
-      left: 18px;
-      right: 18px;
-      background: var(--card-bg);
-      backdrop-filter: blur(25px);
+      bottom: calc(86px + env(safe-area-inset-bottom, 0px));
+      left: 16px;
+      right: 16px;
+      background: #ffffff;
       border: 1px solid var(--border-color);
       border-radius: 24px;
       padding: 18px 20px;
       z-index: 50;
       display: none;
-      box-shadow: 0 16px 36px rgba(0,0,0,0.6);
+      box-shadow: 0 16px 36px rgba(0,0,0,0.12);
       animation: slideUp 0.3s ease;
     }
 
@@ -214,9 +219,9 @@
     }
 
     .station-title {
-      font-size: 20px;
-      font-weight: 700;
-      color: #ffffff;
+      font-size: 21px;
+      font-weight: 800;
+      color: #1f2937;
     }
 
     .badge-wrap {
@@ -229,7 +234,7 @@
       font-size: 11px;
       font-weight: 700;
       padding: 2px 8px;
-      border-radius: 10px;
+      border-radius: 8px;
       color: #ffffff;
       line-height: 1.4;
       display: inline-block;
@@ -259,12 +264,12 @@
     .badge-incheon2 { background-color: #ed8b00; }
     .badge-gtx { background-color: #9a5f78; }
     .badge-gimpo { background-color: #ad8605; }
-    .badge-default { background-color: #555e6d; }
+    .badge-default { background-color: #6b7280; }
 
     .btn-close-card {
-      background: rgba(255, 255, 255, 0.12);
+      background: #f3f4f6;
       border: none;
-      color: #fff;
+      color: #6b7280;
       width: 28px;
       height: 28px;
       border-radius: 50%;
@@ -272,30 +277,87 @@
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      font-size: 15px;
-      flex-shrink: 0;
+      font-size: 14px;
     }
 
     .btn-detail {
       width: 100%;
-      background: linear-gradient(135deg, #1f78ff, #00d2ff);
-      color: white;
+      background: #c6e8dc;
+      color: #367b67;
       border: none;
       padding: 13px;
       border-radius: 14px;
-      font-size: 15px;
-      font-weight: 700;
+      font-size: 14px;
+      font-weight: 800;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 6px;
-      box-shadow: 0 6px 18px rgba(0, 180, 255, 0.35);
+      box-shadow: 0 4px 14px rgba(102, 182, 157, 0.25);
     }
 
-    /* 2. 실내 지도 화면 */
+    /* 하단 노선도 검색창 */
+    .bottom-search-wrapper {
+      position: absolute;
+      bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+      left: 16px;
+      right: 16px;
+      height: 54px;
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      border-radius: 27px;
+      display: flex;
+      align-items: center;
+      padding: 0 12px 0 18px;
+      z-index: 100;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    }
+
+    .search-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: #1f2937;
+      font-size: 14px;
+      font-weight: 600;
+      outline: none;
+      user-select: text;
+    }
+    .search-input::placeholder { color: #9ca3af; }
+
+    .search-suggestions {
+      position: absolute;
+      bottom: 64px;
+      left: 0;
+      right: 0;
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      overflow: hidden;
+      display: none;
+      max-height: 220px;
+      overflow-y: auto;
+      z-index: 110;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.12);
+    }
+
+    .suggestion-item {
+      padding: 12px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      border-bottom: 1px solid #f3f4f6;
+      font-size: 13px;
+    }
+    .suggestion-item:hover { background: #f8fafc; }
+
+    /* ========================================================
+       2. 실내 지도 화면 (Figma UI & 기능 완전 이식)
+    ======================================================== */
     #indoor-view {
-      background: #181a20;
+      background: #f7f8fa;
       display: flex;
       flex-direction: column;
       z-index: 150;
@@ -306,148 +368,151 @@
       height: 100%;
     }
 
-    .indoor-header {
-      padding: 50px 20px 14px 20px;
+    /* Figma 상단 헤더 */
+    .figma-header {
+      padding: 44px 16px 10px 16px;
+      background: #ffffff;
+      border-bottom: 1px solid var(--border-color);
       display: flex;
       align-items: center;
       justify-content: space-between;
-      z-index: 50;
+      z-index: 60;
     }
 
-    .btn-back {
-      background: rgba(255, 255, 255, 0.08);
+    .header-logo-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-header-back {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
       border: 1px solid var(--border-color);
-      color: white;
-      width: 38px;
-      height: 38px;
-      border-radius: 50%;
+      background: #ffffff;
       display: flex;
       align-items: center;
       justify-content: center;
+      font-size: 18px;
+      color: #4b5563;
       cursor: pointer;
-      font-size: 20px;
     }
 
-    .indoor-title-wrap { text-align: center; }
-    .indoor-title { font-size: 17px; font-weight: 700; }
-    .indoor-sub { font-size: 12px; color: var(--text-sub); }
-
-    .btn-indoor-route {
-      background: linear-gradient(135deg, #00d2d3, #00b894);
-      color: white;
-      border: none;
-      padding: 8px 12px;
-      border-radius: 14px;
-      font-size: 12px;
-      font-weight: 800;
-      cursor: pointer;
+    .brand-title {
+      font-size: 19px;
+      font-weight: 900;
+      letter-spacing: -0.5px;
       display: flex;
       align-items: center;
-      gap: 4px;
+      gap: 6px;
+    }
+    .brand-icon {
+      width: 28px;
+      height: 28px;
+      background: #e4f6ef;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--primary-dark);
+      font-size: 14px;
     }
 
-    .indoor-controls {
+    .header-nav {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .nav-btn {
+      padding: 6px 10px;
+      border-radius: 9px;
+      background: #a6a8bf;
+      color: #ffffff;
+      font-size: 11px;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+    }
+    .nav-btn.active { background: #878aa9; }
+
+    .nav-user-circle {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: #eeedf6;
+      color: #9292ae;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    /* 우측 상단 모드 & 층 선택기 */
+    .indoor-top-controls {
       position: absolute;
-      top: 110px;
-      left: 18px;
+      top: 100px;
+      right: 14px;
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      align-items: flex-end;
+      gap: 10px;
       z-index: 50;
     }
 
     .toggle-mode {
-      background: rgba(255, 255, 255, 0.08);
-      backdrop-filter: blur(10px);
+      background: #ffffff;
       border: 1px solid var(--border-color);
-      border-radius: 20px;
+      border-radius: 14px;
       padding: 3px;
       display: flex;
-      width: 90px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
     }
 
     .toggle-btn {
-      flex: 1;
-      padding: 6px 0;
+      padding: 6px 12px;
       border: none;
       background: transparent;
-      color: var(--text-sub);
-      font-size: 13px;
-      font-weight: 700;
-      border-radius: 16px;
+      color: #9b9fae;
+      font-size: 12px;
+      font-weight: 800;
+      border-radius: 10px;
       cursor: pointer;
     }
 
     .toggle-btn.active {
-      background: #2a3346;
-      color: #00e5ff;
+      background: var(--primary-mint);
+      color: var(--primary-dark);
     }
 
     .floor-selector {
       display: flex;
       flex-direction: column;
-      gap: 6px;
-      background: rgba(25, 28, 36, 0.7);
-      backdrop-filter: blur(10px);
-      padding: 5px;
+      gap: 4px;
+      background: #ffffff;
+      padding: 4px;
       border-radius: 16px;
       border: 1px solid var(--border-color);
-      max-height: 240px;
-      overflow-y: auto;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
     }
 
     .floor-btn {
-      width: 44px;
-      height: 40px;
+      width: 42px;
+      height: 42px;
       border-radius: 12px;
-      border: 1px solid transparent;
-      background: rgba(255, 255, 255, 0.05);
-      color: #a0a8b9;
-      font-size: 14px;
-      font-weight: 700;
+      border: none;
+      background: transparent;
+      color: #9da2ae;
+      font-size: 13px;
+      font-weight: 800;
       cursor: pointer;
     }
 
     .floor-btn.active {
-      background: rgba(255, 255, 255, 0.2);
-      border-color: #ffffff;
-      color: #ffffff;
-    }
-
-    /* 2D 캔버스 뷰 (필요시 백업용으로 유지) */
-    #indoor-2d-canvas {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      display: none;
-      justify-content: center;
-      align-items: center;
-      z-index: 10;
-      touch-action: none;
-    }
-
-    #indoor-svg-wrap {
-      width: 360px;
-      height: 520px;
-      position: relative;
-    }
-
-    #indoor-svg {
-      width: 100%;
-      height: 100%;
-      display: block;
-      cursor: crosshair;
-    }
-
-    .fixture-item {
-      cursor: pointer;
-      transition: transform 0.15s ease, opacity 0.15s ease;
-    }
-    .fixture-item:hover {
-      opacity: 0.85;
-      filter: brightness(1.2);
+      background: var(--primary-mint);
+      color: var(--primary-dark);
     }
 
     /* 3D WebGL 캔버스 컨테이너 */
@@ -458,7 +523,7 @@
       width: 100%;
       height: 100%;
       z-index: 10;
-      display: none;
+      background: #f3f4f6;
     }
 
     #loading-indicator {
@@ -466,219 +531,240 @@
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      background: rgba(0, 0, 0, 0.75);
-      color: #00e5ff;
+      background: rgba(255, 255, 255, 0.95);
+      color: var(--primary-dark);
       padding: 12px 20px;
       border-radius: 16px;
       font-size: 13px;
-      font-weight: 700;
+      font-weight: 800;
       display: none;
       z-index: 60;
-      backdrop-filter: blur(8px);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
       border: 1px solid var(--border-color);
     }
 
-    /* 실내 핑 마커 */
-    .indoor-pin-marker {
+    /* 좌측 EXPLORE 드로어 패널 */
+    #explore-panel {
       position: absolute;
-      transform: translate(-50%, -100%);
-      cursor: pointer;
-      z-index: 30;
-      filter: drop-shadow(0 4px 8px rgba(0,0,0,0.4));
-      transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    }
-    .indoor-pin-marker:hover, .indoor-pin-marker:active {
-      transform: translate(-50%, -115%) scale(1.15);
-    }
-
-    /* 핑 등록 및 상세 모달 */
-    .pin-modal {
-      position: absolute;
-      bottom: calc(88px + env(safe-area-inset-bottom, 0px));
-      left: 18px;
-      right: 18px;
-      background: #ffffff;
-      color: #1e2430;
+      top: 96px;
+      bottom: 84px;
+      left: 12px;
+      width: calc(100% - 24px);
+      max-width: 320px;
+      background: rgba(255, 255, 255, 0.96);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--border-color);
       border-radius: 24px;
-      padding: 18px;
-      z-index: 80;
+      z-index: 70;
       display: none;
-      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
       flex-direction: column;
-      gap: 10px;
-      animation: slideUp 0.3s ease;
+      overflow-y: auto;
+      padding: 18px;
+      box-shadow: 0 18px 40px rgba(0,0,0,0.12);
+      animation: slideRight 0.25s ease-out;
     }
 
-    .pin-modal-header {
+    @keyframes slideRight {
+      from { transform: translateX(-20px); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    .explore-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
+      margin-bottom: 12px;
     }
 
-    .pin-modal-title {
-      font-size: 16px;
-      font-weight: 800;
+    .category-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      margin: 12px 0;
     }
 
-    .pin-input {
-      width: 100%;
-      padding: 9px 12px;
-      border: 1px solid #cbd5e1;
-      border-radius: 12px;
-      font-size: 14px;
-      outline: none;
-      user-select: text;
-    }
-
-    .pin-textarea {
-      width: 100%;
+    .cat-item-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
       height: 60px;
-      padding: 9px 12px;
-      border: 1px solid #cbd5e1;
+      border-radius: 12px;
+      border: 1px solid var(--border-light);
+      background: #ffffff;
+      font-size: 10px;
+      font-weight: 700;
+      color: #6b7280;
+      cursor: pointer;
+    }
+    .cat-item-btn.active {
+      border-color: #a7d7c9;
+      background: #e6f5ee;
+      color: var(--primary-dark);
+    }
+
+    /* 좌측 하단 플로팅 메뉴 도구 */
+    .floating-tools-left {
+      position: absolute;
+      bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+      left: 14px;
+      z-index: 50;
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-circle-tool {
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      color: #808691;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+      cursor: pointer;
+    }
+    .btn-circle-tool.active {
+      background: var(--primary-mint);
+      color: var(--primary-dark);
+    }
+
+    /* 도구 팝오버 메뉴 */
+    .tools-popover {
+      position: absolute;
+      bottom: 56px;
+      left: 0;
+      width: 170px;
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      border-radius: 18px;
+      padding: 10px;
+      box-shadow: 0 10px 26px rgba(0,0,0,0.12);
+      display: none;
+      flex-direction: column;
+      gap: 6px;
+      z-index: 55;
+    }
+
+    /* 우측 하단 확장형 AI 캡슐바 */
+    .floating-ai-capsule {
+      position: absolute;
+      bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+      right: 14px;
+      height: 46px;
+      background: var(--primary-mint);
+      border-radius: 23px;
+      display: flex;
+      align-items: center;
+      box-shadow: 0 8px 20px rgba(108, 162, 139, 0.25);
+      z-index: 50;
+      overflow: hidden;
+      transition: width 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.2);
+      width: 46px;
+    }
+    .floating-ai-capsule.expanded {
+      width: calc(100% - 28px);
+      left: 14px;
+    }
+
+    .ai-input-wrap {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      padding-left: 16px;
+    }
+    .ai-input {
+      width: 100%;
+      border: none;
+      background: transparent;
+      outline: none;
+      font-size: 13px;
+      font-weight: 600;
+      color: #2b5545;
+    }
+    .ai-input::placeholder { color: #598775; }
+
+    .btn-ai-toggle {
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      border: none;
+      background: transparent;
+      color: #326851;
+      font-size: 14px;
+      font-weight: 900;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    /* 핑 등록 및 상세 모달 (Figma 스타일) */
+    .pin-modal {
+      position: absolute;
+      bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+      left: 16px;
+      right: 16px;
+      background: #ffffff;
+      border-radius: 24px;
+      padding: 20px;
+      z-index: 80;
+      display: none;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.15);
+      flex-direction: column;
+      gap: 10px;
+      border: 1px solid var(--border-color);
+      animation: slideUp 0.3s ease;
+    }
+
+    .pin-input, .pin-textarea, .pin-select {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid #dfe5e5;
       border-radius: 12px;
       font-size: 13px;
       outline: none;
-      resize: none;
       user-select: text;
     }
-
-    .pin-img-preview {
-      width: 100%;
-      max-height: 120px;
-      object-fit: cover;
-      border-radius: 12px;
-      display: none;
-    }
+    .pin-textarea { height: 60px; resize: none; }
 
     .pin-btn-group {
       display: flex;
       gap: 8px;
       margin-top: 4px;
     }
-
     .btn-pin-action {
       flex: 1;
-      padding: 10px;
+      padding: 11px;
       border-radius: 12px;
       border: none;
-      font-weight: 700;
+      font-weight: 800;
       font-size: 13px;
       cursor: pointer;
     }
-    .btn-pin-save { background: #00b894; color: white; }
-    .btn-pin-route { background: #0984e3; color: white; }
-    .btn-pin-delete { background: #ff7675; color: white; }
+    .btn-pin-save { background: var(--primary-mint); color: var(--primary-dark); }
+    .btn-pin-route { background: #3b82f6; color: white; }
+    .btn-pin-delete { background: #fee2e2; color: #dc2626; }
 
-    /* 실내 길안내 상단 카드 */
-    .indoor-navigation-card {
+    /* 서브 탭(커뮤니티 / MEMO) 오버레이 */
+    .subpage-overlay {
       position: absolute;
       top: 96px;
-      left: 14px;
-      right: 14px;
-      background: #ffffff;
-      color: #1e2430;
-      border-radius: 24px;
-      box-shadow: 0 16px 36px rgba(0,0,0,0.35);
-      z-index: 70;
+      left: 0;
+      width: 100%;
+      bottom: 0;
+      background: #f7f8fa;
+      z-index: 65;
       display: none;
       flex-direction: column;
-      padding: 16px;
-      gap: 12px;
-      animation: slideDown 0.3s ease;
-    }
-
-    .indoor-nav-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-weight: 800;
-      font-size: 15px;
-    }
-
-    .indoor-route-summary {
-      background: #f1f5f9;
-      padding: 12px;
-      border-radius: 14px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .indoor-route-time { font-size: 22px; font-weight: 900; color: #00b894; }
-    .indoor-route-dist { font-size: 13px; font-weight: 700; color: #64748b; }
-
-    /* 하단 검색바 */
-    .bottom-search-wrapper {
-      position: absolute;
-      bottom: calc(20px + env(safe-area-inset-bottom, 0px));
-      left: 18px;
-      right: 18px;
-      height: 56px;
-      background: rgba(22, 26, 35, 0.92);
-      backdrop-filter: blur(25px);
-      border: 1px solid var(--border-color);
-      border-radius: 28px;
-      display: flex;
-      align-items: center;
-      padding: 0 8px 0 16px;
-      z-index: 100;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
-    }
-
-    .search-icon {
-      color: var(--text-sub);
-      font-size: 18px;
-      margin-right: 10px;
-    }
-
-    .search-input {
-      flex: 1;
-      background: transparent;
-      border: none;
-      color: white;
-      font-size: 15px;
-      outline: none;
-      user-select: text;
-    }
-    .search-input::placeholder { color: #636b7c; }
-
-    .clear-search-btn {
-      color: var(--text-sub);
-      font-size: 16px;
-      background: none;
-      border: none;
-      cursor: pointer;
-      padding: 6px;
-      display: none;
-      margin-right: 4px;
-    }
-
-    .search-suggestions {
-      position: absolute;
-      bottom: 70px;
-      left: 0;
-      right: 0;
-      background: var(--card-bg);
-      backdrop-filter: blur(25px);
-      border: 1px solid var(--border-color);
-      border-radius: 20px;
-      overflow: hidden;
-      display: none;
-      max-height: 220px;
+      padding: 20px;
       overflow-y: auto;
-      z-index: 110;
     }
-
-    .suggestion-item {
-      padding: 12px 18px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      cursor: pointer;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-      font-size: 14px;
-    }
-    .suggestion-item:hover { background: rgba(255, 255, 255, 0.08); }
-    .suggestion-badge { font-size: 10px; padding: 1px 6px; border-radius: 6px; color: white; }
   </style>
 </head>
 <body>
@@ -687,7 +773,7 @@
     <div class="status-bar">
       <span>9:41</span>
       <div class="island"></div>
-      <span style="font-size:12px; color:#aaa;">5G ▮ 100%</span>
+      <span style="font-size:11px;">5G ▮ 100%</span>
     </div>
 
     <!-- 1. 메인 노선도 화면 -->
@@ -697,9 +783,9 @@
           <img src="metroimg.jpg" id="official-metro-img" alt="서울 지하철 노선도" onerror="this.src='metroimg.svg'">
 
           <svg id="pin-general" class="map-pin" width="38" height="52" viewBox="0 0 384 512">
-            <path fill="#00e5ff" stroke="#ffffff" stroke-width="14" d="M172.268 501.67C26.97 291.031 0 269.413 0 192 0 85.961 86.039 0 192 0s192 85.961 192 192c0 77.413-26.97 99.031-172.268 309.67-9.535 13.774-29.93 13.773-39.464 0z"/>
+            <path fill="#367b67" stroke="#ffffff" stroke-width="14" d="M172.268 501.67C26.97 291.031 0 269.413 0 192 0 85.961 86.039 0 192 0s192 85.961 192 192c0 77.413-26.97 99.031-172.268 309.67-9.535 13.774-29.93 13.773-39.464 0z"/>
             <circle cx="192" cy="192" r="75" fill="#ffffff"/>
-            <circle cx="192" cy="192" r="45" fill="#00e5ff"/>
+            <circle cx="192" cy="192" r="45" fill="#c6e8dc"/>
           </svg>
         </div>
       </div>
@@ -724,26 +810,33 @@
         </button>
       </div>
 
-      <div class="bottom-search-wrapper" id="main-search-wrapper">
-        <span class="search-icon">🔍</span>
+      <div class="bottom-search-wrapper">
+        <span style="font-size:16px; margin-right:8px; color:#9ca3af;">🔍</span>
         <input type="text" id="main-search-box" class="search-input" placeholder="어떤 역을 찾으시나요?" oninput="onMainSearchInput(this.value)">
-        <button class="clear-search-btn" id="main-clear-search" onclick="event.stopPropagation(); clearMainSearch();">✕</button>
+        <button id="main-clear-search" style="border:none; background:none; color:#9ca3af; display:none;" onclick="clearMainSearch()">✕</button>
         <div class="search-suggestions" id="main-suggestions"></div>
       </div>
     </div>
 
-    <!-- 2. 실내 지도 화면 -->
+    <!-- 2. 실내 지도 화면 (Figma 인터페이스 및 기능 통합) -->
     <div id="indoor-view" class="view hidden">
-      <div class="indoor-header">
-        <button class="btn-back" onclick="exitIndoorView()">‹</button>
-        <div class="indoor-title-wrap">
-          <div class="indoor-title" id="indoor-title-text">지하철 실내 지도</div>
-          <div class="indoor-sub">원하는 위치를 클릭하여 핑을 찍어보세요</div>
+      <!-- Figma 헤더 바 -->
+      <header class="figma-header">
+        <div class="header-logo-group">
+          <button class="btn-header-back" onclick="exitIndoorView()">‹</button>
+          <div class="brand-title">
+            <span class="brand-icon">🗺️</span> mapping
+          </div>
         </div>
-        <button class="btn-indoor-route" onclick="openIndoorNavigation()">길안내</button>
-      </div>
+        <nav class="header-nav">
+          <button class="nav-btn" id="btn-nav-comm" onclick="toggleSubpage('community')">커뮤니티</button>
+          <button class="nav-btn" id="btn-nav-memo" onclick="toggleSubpage('memo')">MEMO</button>
+          <div class="nav-user-circle" onclick="alert('마이페이지 기능 준비 중입니다.')">👤</div>
+        </nav>
+      </header>
 
-      <div class="indoor-controls">
+      <!-- 우측 상단 모드/층 선택기 -->
+      <div class="indoor-top-controls">
         <div class="toggle-mode">
           <button class="toggle-btn active" id="btn-2d" onclick="setIndoorMode('2D')">2D</button>
           <button class="toggle-btn" id="btn-3d" onclick="setIndoorMode('3D')">3D</button>
@@ -751,111 +844,96 @@
         <div class="floor-selector" id="floor-list"></div>
       </div>
 
+      <!-- 로딩 인디케이터 -->
       <div id="loading-indicator">3D 모델 로딩 중...</div>
-
-      <!-- 2D 캔버스 (SVG 시설물 및 백업 레이어) -->
-      <div id="indoor-2d-canvas">
-        <div id="indoor-svg-wrap">
-          <svg id="indoor-svg" viewBox="0 0 360 520">
-            <g fill="#2e3440" stroke="#1c202a" stroke-width="3">
-              <rect x="130" y="40" width="100" height="440" rx="12"/>
-              <rect x="40" y="200" width="280" height="120" rx="12"/>
-            </g>
-
-            <g id="indoor-fixtures"></g>
-
-            <path id="indoor-path-line" d="" fill="none" stroke="#00e5ff" stroke-width="4" stroke-dasharray="6,4" stroke-linecap="round" style="display:none;"/>
-          </svg>
-
-          <div id="indoor-pins-layer"></div>
-        </div>
-      </div>
 
       <!-- 3D WebGL 캔버스 -->
       <div id="three-container"></div>
 
-      <!-- 실내 길안내 패널 -->
-      <div class="indoor-navigation-card" id="indoor-nav-card">
-        <div class="indoor-nav-header">
-          <span>🚶 실내 길안내 경로</span>
-          <button style="border:none; background:none; font-size:16px; cursor:pointer;" onclick="closeIndoorNavigation()">✕</button>
+      <!-- 좌측 EXPLORE 서랍 패널 (Figma) -->
+      <aside id="explore-panel">
+        <div class="explore-header">
+          <div style="font-size:10px; font-weight:800; letter-spacing:1px; color:#9ca3af;">EXPLORE UNDERGROUND</div>
+          <button style="border:none; background:none; font-size:16px; color:#6b7280; cursor:pointer;" onclick="toggleExplorePanel(false)">✕</button>
         </div>
-        <div class="indoor-route-summary">
-          <div>
-            <div style="font-size:11px; color:#64748b; font-weight:700;">내 위치 ➔ <span id="nav-target-name">목적지</span></div>
-            <div class="indoor-route-time" id="nav-time-text">1분 소요</div>
+        <h2 style="font-size:18px; font-weight:800; color:#1f2937;">어디를 찾으시나요?</h2>
+        
+        <input type="text" id="explore-search-input" class="pin-input" style="margin-top:10px;" placeholder="시설물 및 핑 이름 검색..." oninput="onExploreSearch(this.value)">
+
+        <div style="margin-top:14px; font-size:11px; font-weight:800; color:#4b5563;">편의 시설 필터</div>
+        <div class="category-grid" id="category-filter-grid"></div>
+
+        <!-- 핑 목록 -->
+        <div style="margin-top:12px; font-size:12px; font-weight:800; display:flex; justify-content:space-between;">
+          <span>등록된 핀 목록</span>
+          <span style="color:var(--primary-dark);" id="explore-pins-count">0</span>
+        </div>
+        <div id="explore-pins-list" style="margin-top:8px; display:flex; flex-direction:column; gap:6px;"></div>
+      </aside>
+
+      <!-- 좌측 하단 플로팅 메뉴 도구 -->
+      <div class="floating-tools-left">
+        <button class="btn-circle-tool" id="btn-tool-explore" onclick="toggleExplorePanel()">🔍</button>
+        <button class="btn-circle-tool" id="btn-tool-menu" onclick="toggleToolsPopover()">⚙️</button>
+
+        <div class="tools-popover" id="tools-popover">
+          <button style="border:none; background:none; text-align:left; font-size:12px; font-weight:700; padding:6px; cursor:pointer;" onclick="resetMapView()">🎯 시점 초기화</button>
+          <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid #f3f4f6; padding-top:6px;">
+            <button class="btn-zoom" style="width:32px; height:32px; font-size:16px;" onclick="zoom3D(-0.2)">−</button>
+            <span style="font-size:11px; font-weight:700; color:#6b7280;">확대/축소</span>
+            <button class="btn-zoom" style="width:32px; height:32px; font-size:16px;" onclick="zoom3D(0.2)">+</button>
           </div>
-          <div class="indoor-route-dist" id="nav-dist-text">약 45m</div>
         </div>
+      </div>
+
+      <!-- 우측 하단 확장형 AI 캡슐바 (Figma) -->
+      <div class="floating-ai-capsule" id="ai-capsule">
+        <div class="ai-input-wrap">
+          <input type="text" id="ai-query-input" class="ai-input" placeholder="AI에게 역 내 길안내나 편의시설을 물어보세요..." onkeydown="handleAiSubmit(event)">
+        </div>
+        <button class="btn-ai-toggle" onclick="toggleAiCapsule()">AI</button>
       </div>
 
       <!-- 핑 등록/조회 모달 -->
       <div class="pin-modal" id="pin-modal">
-        <div class="pin-modal-header">
-          <span class="pin-modal-title" id="pin-modal-title">새로운 장소 핑 등록</span>
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <b id="pin-modal-title" style="font-size:15px;">새로운 장소 핑 등록</b>
           <button style="border:none; background:none; font-size:16px; cursor:pointer;" onclick="closePinModal()">✕</button>
         </div>
         <input type="text" class="pin-input" id="pin-title-input" placeholder="장소 이름 (예: 물품보관함, 만남의 장소)">
+        <select class="pin-select" id="pin-category-select"></select>
         <textarea class="pin-textarea" id="pin-desc-input" placeholder="장소 설명이나 메모를 남겨주세요."></textarea>
-        
-        <input type="file" id="pin-file-input" accept="image/*" style="font-size:12px;" onchange="handlePinImageUpload(event)">
-        <img id="pin-modal-preview" class="pin-img-preview" alt="장소 사진">
 
         <div class="pin-btn-group">
           <button class="btn-pin-action btn-pin-save" id="btn-save-pin" onclick="saveCurrentPin()">핑 저장하기</button>
-          <button class="btn-pin-action btn-pin-route" id="btn-route-pin" style="display:none;" onclick="startRouteToCurrentPin()">여기로 길안내</button>
           <button class="btn-pin-action btn-pin-delete" id="btn-delete-pin" style="display:none;" onclick="deleteCurrentPin()">삭제</button>
         </div>
       </div>
 
-      <!-- 실내 핑 & 시설물 검색바 -->
-      <div class="bottom-search-wrapper" id="indoor-search-wrapper">
-        <span class="search-icon">📍</span>
-        <input type="text" id="indoor-search-box" class="search-input" placeholder="이 역의 핑 및 시설물 검색..." oninput="onIndoorSearchInput(this.value)">
-        <button class="clear-search-btn" id="indoor-clear-search" onclick="clearIndoorSearch()">✕</button>
-        <div class="search-suggestions" id="indoor-suggestions"></div>
+      <!-- 커뮤니티 & MEMO 서브페이지 오버레이 -->
+      <div class="subpage-overlay" id="subpage-community">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+          <h2 style="font-size:20px; font-weight:800;">역사 커뮤니티</h2>
+          <button style="border:none; background:none; font-size:18px;" onclick="toggleSubpage(null)">✕</button>
+        </div>
+        <p style="font-size:12px; color:#6b7280; margin-bottom:14px;">이용자분들이 공유한 실시간 역 내 팁과 소식입니다.</p>
+        <div id="community-card-list" style="display:flex; flex-direction:column; gap:10px;"></div>
+      </div>
+
+      <div class="subpage-overlay" id="subpage-memo">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+          <h2 style="font-size:20px; font-weight:800;">내 보관 메모</h2>
+          <button style="border:none; background:none; font-size:18px;" onclick="toggleSubpage(null)">✕</button>
+        </div>
+        <p style="font-size:12px; color:#6b7280; margin-bottom:14px;">내가 저장해 둔 핀들의 메모 모음입니다.</p>
+        <div id="memo-card-list" style="display:flex; flex-direction:column; gap:10px;"></div>
       </div>
     </div>
   </div>
 
   <script>
     /* ========================================================
-       호선 배지 색상 매핑
-    ======================================================== */
-    function getLineBadgeClass(lineName) {
-      if (lineName.includes("01") || lineName.includes("1호")) return "badge-line-1";
-      if (lineName.includes("02") || lineName.includes("2호")) return "badge-line-2";
-      if (lineName.includes("03") || lineName.includes("3호")) return "badge-line-3";
-      if (lineName.includes("04") || lineName.includes("4호")) return "badge-line-4";
-      if (lineName.includes("05") || lineName.includes("5호")) return "badge-line-5";
-      if (lineName.includes("06") || lineName.includes("6호")) return "badge-line-6";
-      if (lineName.includes("07") || lineName.includes("7호")) return "badge-line-7";
-      if (lineName.includes("08") || lineName.includes("8호")) return "badge-line-8";
-      if (lineName.includes("09") || lineName.includes("9호")) return "badge-line-9";
-      if (lineName.includes("신분당")) return "badge-shin";
-      if (lineName.includes("수인분당")) return "badge-suin";
-      if (lineName.includes("경의")) return "badge-gyeongui";
-      if (lineName.includes("경춘")) return "badge-gyeongchun";
-      if (lineName.includes("공항")) return "badge-airport";
-      if (lineName.includes("경강")) return "badge-gyeonggang";
-      if (lineName.includes("서해")) return "badge-seohae";
-      if (lineName.includes("신림")) return "badge-sillim";
-      if (lineName.includes("우이")) return "badge-ui";
-      if (lineName.includes("의정부")) return "badge-uijeongbu";
-      if (lineName.includes("용인") || lineName.includes("에버")) return "badge-ever";
-      if (lineName.includes("인천2")) return "badge-incheon2";
-      if (lineName.includes("인천")) return "badge-incheon1";
-      if (lineName.includes("GTX")) return "badge-gtx";
-      if (lineName.includes("김포")) return "badge-gimpo";
-      return "badge-default";
-    }
-
-    function formatLineName(lineName) {
-      return lineName.replace(/^0/, "");
-    }
-
-    /* ========================================================
-       1. 노선도 및 역 데이터 엔진
+       1. 노선도 엔진 및 역 데이터
     ======================================================== */
     const MAP_SIZE = 2000;
     let STATIONS_LIST = [];
@@ -869,8 +947,22 @@
     const mainClearSearch = document.getElementById("main-clear-search");
     const mainSuggestions = document.getElementById("main-suggestions");
 
-    function cleanStationName(rawName) {
-      return rawName.replace(/['"{}\[\]*~`.,:;!?^]/g, "").trim();
+    function getLineBadgeClass(lineName) {
+      if (lineName.includes("01") || lineName.includes("1호")) return "badge-line-1";
+      if (lineName.includes("02") || lineName.includes("2호")) return "badge-line-2";
+      if (lineName.includes("03") || lineName.includes("3호")) return "badge-line-3";
+      if (lineName.includes("04") || lineName.includes("4호")) return "badge-line-4";
+      if (lineName.includes("05") || lineName.includes("5호")) return "badge-line-5";
+      if (lineName.includes("06") || lineName.includes("6호")) return "badge-line-6";
+      if (lineName.includes("07") || lineName.includes("7호")) return "badge-line-7";
+      if (lineName.includes("08") || lineName.includes("8호")) return "badge-line-8";
+      if (lineName.includes("09") || lineName.includes("9호")) return "badge-line-9";
+      if (lineName.includes("신분당")) return "badge-shin";
+      return "badge-default";
+    }
+
+    function formatLineName(lineName) {
+      return lineName.replace(/^0/, "");
     }
 
     async function initStations() {
@@ -880,7 +972,7 @@
         const rawStations = await response.json();
 
         STATIONS_LIST = Object.entries(rawStations).map(([key, data]) => {
-          const pure = cleanStationName(data.queryTerm || data.name || key).replace(/역$/, "");
+          const pure = (data.queryTerm || data.name || key).replace(/['"{}\[\]*~`.,:;!?^]/g, "").replace(/역$/, "").trim();
           return {
             name: pure + "역",
             queryTerm: pure,
@@ -899,7 +991,6 @@
 
     function selectStation(stationObj) {
       currentSelectedStation = stationObj;
-
       pinGeneral.style.left = `${stationObj.x}px`;
       pinGeneral.style.top = `${stationObj.y}px`;
       pinGeneral.style.display = "block";
@@ -933,7 +1024,7 @@
     }
 
     function onMainSearchInput(query) {
-      const q = cleanStationName(query.trim().toLowerCase()).replace(/역$/, "");
+      const q = query.trim().replace(/역$/, "").toLowerCase();
       if (!q) {
         mainSuggestions.style.display = "none";
         mainClearSearch.style.display = "none";
@@ -946,7 +1037,7 @@
       const matched = STATIONS_LIST.filter(st => st.queryTerm.toLowerCase().includes(q) || st.name.toLowerCase().includes(q));
 
       if (matched.length === 0) {
-        mainSuggestions.innerHTML = `<div style="padding:16px; text-align:center; color:#8e95a5; font-size:13px;">일치하는 역이 없습니다.</div>`;
+        mainSuggestions.innerHTML = `<div style="padding:14px; text-align:center; color:#9ca3af; font-size:12px;">일치하는 역이 없습니다.</div>`;
       } else {
         matched.slice(0, 8).forEach(st => {
           const item = document.createElement("div");
@@ -954,7 +1045,7 @@
           const primaryLine = st.lines[0] || "";
           item.innerHTML = `
             <span><strong>${st.name}</strong></span>
-            <span class="suggestion-badge ${getLineBadgeClass(primaryLine)}">${formatLineName(primaryLine)}</span>
+            <span class="badge ${getLineBadgeClass(primaryLine)}">${formatLineName(primaryLine)}</span>
           `;
           item.onclick = () => selectStation(st);
           mainSuggestions.appendChild(item);
@@ -970,39 +1061,16 @@
       deselectStation();
     }
 
-    /* ========================================================
-       스마트 줌 & 패닝 엔진
-    ======================================================== */
-    function getViewportDimensions() {
-      const rect = metroContainer.getBoundingClientRect();
-      return {
-        w: rect.width || 412,
-        h: rect.height || window.innerHeight
-      };
-    }
-
-    let scale = 1.0;
-    let panX = 0;
-    let panY = 0;
-    const minScale = 0.45;
-    const maxScale = 3.5;
+    let scale = 1.0, panX = 0, panY = 0;
+    const minScale = 0.45, maxScale = 3.5;
 
     function clampPan() {
-      const { w, h } = getViewportDimensions();
-      const currentMapW = MAP_SIZE * scale;
-      const currentMapH = MAP_SIZE * scale;
+      const rect = metroContainer.getBoundingClientRect();
+      const w = rect.width || 412, h = rect.height || window.innerHeight;
+      const curW = MAP_SIZE * scale, curH = MAP_SIZE * scale;
 
-      if (currentMapW > w) {
-        panX = Math.min(Math.max(panX, w - currentMapW), 0);
-      } else {
-        panX = (w - currentMapW) / 2;
-      }
-
-      if (currentMapH > h) {
-        panY = Math.min(Math.max(panY, h - currentMapH), 0);
-      } else {
-        panY = (h - currentMapH) / 2;
-      }
+      panX = curW > w ? Math.min(Math.max(panX, w - curW), 0) : (w - curW) / 2;
+      panY = curH > h ? Math.min(Math.max(panY, h - curH), 0) : (h - curH) / 2;
     }
 
     function updateTransform(animate = false) {
@@ -1014,22 +1082,20 @@
     metroContainer.addEventListener("wheel", (e) => {
       e.preventDefault();
       const rect = metroContainer.getBoundingClientRect();
-      const mouseX = e.clientX - rect.left;
-      const mouseY = e.clientY - rect.top;
-
+      const mouseX = e.clientX - rect.left, mouseY = e.clientY - rect.top;
       const zoomFactor = e.deltaY < 0 ? 1.12 : 0.89;
       const newScale = Math.min(Math.max(scale * zoomFactor, minScale), maxScale);
 
       panX = mouseX - (mouseX - panX) * (newScale / scale);
       panY = mouseY - (mouseY - panY) * (newScale / scale);
       scale = newScale;
-
       updateTransform(false);
     }, { passive: false });
 
     function zoomManual(delta) {
       const newScale = Math.min(Math.max(scale + delta, minScale), maxScale);
-      const { w, h } = getViewportDimensions();
+      const rect = metroContainer.getBoundingClientRect();
+      const w = rect.width || 412, h = rect.height || 800;
       panX = (w / 2) - ((w / 2) - panX) * (newScale / scale);
       panY = (h / 2) - ((h / 2) - panY) * (newScale / scale);
       scale = newScale;
@@ -1038,32 +1104,27 @@
 
     function panToStation(stationX, stationY, targetScale = 1.2) {
       scale = Math.min(Math.max(targetScale, minScale), maxScale);
-      const { w, h } = getViewportDimensions();
+      const rect = metroContainer.getBoundingClientRect();
+      const w = rect.width || 412, h = rect.height || 800;
       panX = (w / 2) - (stationX * scale);
       panY = (h / 2) - (stationY * scale);
       updateTransform(true);
     }
 
-    let isDragging = false;
-    let startX = 0, startY = 0;
-    let isMovedDrag = false;
-    let downClientX = 0, downClientY = 0;
+    let isDragging = false, startX = 0, startY = 0, isMovedDrag = false, downClientX = 0, downClientY = 0;
 
     metroContainer.addEventListener("mousedown", (e) => {
       if (e.target.closest(".zoom-controls") || e.target.closest(".station-popup-card") || e.target.closest(".bottom-search-wrapper")) return;
       isDragging = true;
       isMovedDrag = false;
-      downClientX = e.clientX;
-      downClientY = e.clientY;
-      startX = e.clientX - panX;
-      startY = e.clientY - panY;
+      downClientX = e.clientX; downClientY = e.clientY;
+      startX = e.clientX - panX; startY = e.clientY - panY;
     });
 
     window.addEventListener("mousemove", (e) => {
       if (!isDragging) return;
       if (Math.hypot(e.clientX - downClientX, e.clientY - downClientY) > 5) isMovedDrag = true;
-      panX = e.clientX - startX;
-      panY = e.clientY - startY;
+      panX = e.clientX - startX; panY = e.clientY - startY;
       updateTransform(false);
     });
 
@@ -1073,158 +1134,102 @@
       if (!isMovedDrag) handleMapClick(e.clientX, e.clientY);
     });
 
-    let touchMoved = false;
-    let touchDownX = 0, touchDownY = 0;
-    let initialPinchDist = 0;
-    let initialScale = 1.0;
-    let pinchMidX = 0, pinchMidY = 0;
-
-    metroContainer.addEventListener("touchstart", (e) => {
-      if (e.target.closest(".zoom-controls") || e.target.closest(".station-popup-card") || e.target.closest(".bottom-search-wrapper")) return;
-
-      const rect = metroContainer.getBoundingClientRect();
-
-      if (e.touches.length === 1) {
-        isDragging = true;
-        touchMoved = false;
-        touchDownX = e.touches[0].clientX;
-        touchDownY = e.touches[0].clientY;
-        startX = e.touches[0].clientX - panX;
-        startY = e.touches[0].clientY - panY;
-      } else if (e.touches.length === 2) {
-        isDragging = false;
-        touchMoved = true;
-        const dx = e.touches[0].clientX - e.touches[1].clientX;
-        const dy = e.touches[0].clientY - e.touches[1].clientY;
-        initialPinchDist = Math.hypot(dx, dy);
-        initialScale = scale;
-
-        pinchMidX = ((e.touches[0].clientX + e.touches[1].clientX) / 2) - rect.left;
-        pinchMidY = ((e.touches[0].clientY + e.touches[1].clientY) / 2) - rect.top;
-      }
-    }, { passive: false });
-
-    metroContainer.addEventListener("touchmove", (e) => {
-      if (e.target.closest(".zoom-controls") || e.target.closest(".station-popup-card") || e.target.closest(".bottom-search-wrapper")) return;
-      e.preventDefault();
-
-      const rect = metroContainer.getBoundingClientRect();
-
-      if (e.touches.length === 1 && isDragging) {
-        if (Math.hypot(e.touches[0].clientX - touchDownX, e.touches[0].clientY - touchDownY) > 6) {
-          touchMoved = true;
-        }
-        panX = e.touches[0].clientX - startX;
-        panY = e.touches[0].clientY - startY;
-        updateTransform(false);
-      } else if (e.touches.length === 2 && initialPinchDist > 0) {
-        touchMoved = true;
-        const dx = e.touches[0].clientX - e.touches[1].clientX;
-        const dy = e.touches[0].clientY - e.touches[1].clientY;
-        const currentDist = Math.hypot(dx, dy);
-
-        const currentMidX = ((e.touches[0].clientX + e.touches[1].clientX) / 2) - rect.left;
-        const currentMidY = ((e.touches[0].clientY + e.touches[1].clientY) / 2) - rect.top;
-
-        const factor = currentDist / initialPinchDist;
-        const newScale = Math.min(Math.max(initialScale * factor, minScale), maxScale);
-
-        panX = currentMidX - (pinchMidX - panX) * (newScale / scale);
-        panY = currentMidY - (pinchMidY - panY) * (newScale / scale);
-        scale = newScale;
-
-        pinchMidX = currentMidX;
-        pinchMidY = currentMidY;
-
-        updateTransform(false);
-      }
-    }, { passive: false });
-
-    metroContainer.addEventListener("touchend", (e) => {
-      if (e.touches.length === 0) {
-        isDragging = false;
-        initialPinchDist = 0;
-        if (!touchMoved && e.changedTouches.length > 0) {
-          handleMapClick(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
-        }
-      } else if (e.touches.length === 1) {
-        isDragging = true;
-        initialPinchDist = 0;
-        startX = e.touches[0].clientX - panX;
-        startY = e.touches[0].clientY - panY;
-      }
-    });
-
     function handleMapClick(clientX, clientY) {
       const targetEl = document.elementFromPoint(clientX, clientY);
-      if (targetEl && (targetEl.closest(".station-popup-card") || targetEl.closest(".bottom-search-wrapper") || targetEl.closest(".zoom-controls"))) {
-        return;
-      }
+      if (targetEl && (targetEl.closest(".station-popup-card") || targetEl.closest(".bottom-search-wrapper") || targetEl.closest(".zoom-controls"))) return;
 
       const rect = metroContainer.getBoundingClientRect();
       const mapX = (clientX - rect.left - panX) / scale;
       const mapY = (clientY - rect.top - panY) / scale;
 
-      let nearestStation = null;
-      let minDistance = 45;
-
+      let nearest = null, minDist = 45;
       for (const st of STATIONS_LIST) {
-        const dist = Math.hypot(st.x - mapX, st.y - mapY);
-        if (dist < minDistance) {
-          minDistance = dist;
-          nearestStation = st;
-        }
+        const d = Math.hypot(st.x - mapX, st.y - mapY);
+        if (d < minDist) { minDist = d; nearest = st; }
       }
-
-      if (nearestStation) {
-        selectStation(nearestStation);
-      }
+      if (nearest) selectStation(nearest);
     }
 
     /* ========================================================
-       2. 실내 지도 화면 전환 & 동적 시설물 관리 DB
+       2. Figma 인터페이스 & 카테고리 데이터 시스템
     ======================================================== */
+    const FIGMA_CATEGORIES = ['전체', '물품보관함', '화장실', '충전소', '엘리베이터', '상점', '카페', '쓰레기통'];
+    const CATEGORY_COLORS = {
+      '물품보관함': '#9a8bc4',
+      '화장실': '#66b69d',
+      '충전소': '#7aa7c4',
+      '엘리베이터': '#7e98cb',
+      '상점': '#d4a15f',
+      '카페': '#c38d9e',
+      '쓰레기통': '#9198a7',
+      '기타': '#63b99d'
+    };
+
+    let activeCategory = '전체';
+    let currentIndoorMode = "2D";
+    let activeFloor = "B1";
+
+    const STATION_PINS_DB = {
+      "강남역": [
+        { id: 1, title: "물품보관함 1구역", category: "물품보관함", desc: "개찰구 나가기 전 우측", floor: "B1", x: 180, y: 160 },
+        { id: 2, title: "중앙 화장실", category: "화장실", desc: "1~2번 출구 중간", floor: "B1", x: 140, y: 240 },
+        { id: 3, title: "휴대폰 급속 충전소", category: "충전소", desc: "만남의 광장 기둥", floor: "B1", x: 220, y: 210 }
+      ]
+    };
+
     const mainView = document.getElementById("main-view");
     const indoorView = document.getElementById("indoor-view");
     const floorList = document.getElementById("floor-list");
+    const categoryGrid = document.getElementById("category-filter-grid");
+    const pinCatSelect = document.getElementById("pin-category-select");
 
-    const FLOOR_FACILITIES_DB = {
-      "강남역": {
-        "B1": [
-          { id: "f1", title: "2호선 탑승게이트", shape: "rect", x: 145, y: 60, w: 70, h: 30, rx: 6, fill: "#00a84d", textX: 180, textY: 80, fontSize: 11, type: "gate" },
-          { id: "f2", title: "신분당선 환승통로", shape: "rect", x: 145, y: 430, w: 70, h: 30, rx: 6, fill: "#d4003b", textX: 180, textY: 450, fontSize: 11, type: "transfer" },
-          { id: "f3", title: "1번 출구", shape: "circle", cx: 65, cy: 260, r: 14, fill: "#2ed573", textX: 65, textY: 264, fontSize: 10, label: "1번", type: "exit" },
-          { id: "f4", title: "2번 출구", shape: "circle", cx: 295, cy: 260, r: 14, fill: "#2ed573", textX: 295, textY: 264, fontSize: 10, label: "2번", type: "exit" },
-          { id: "f5", title: "중앙 개찰구", shape: "circle", cx: 180, cy: 260, r: 16, fill: "#0984e3", textX: 180, textY: 264, fontSize: 10, label: "개찰구", type: "turnstile" },
-          { id: "f6", title: "화장실", shape: "circle", cx: 180, cy: 350, r: 14, fill: "#ff7675", textX: 180, textY: 354, fontSize: 10, label: "화장실", type: "toilet" },
-          { id: "my", title: "내 위치", shape: "pin_my", cx: 65, cy: 290, r: 7, fill: "#00e5ff", textX: 65, textY: 312, label: "내 위치", type: "my_loc" }
-        ],
-        "B2": [
-          { id: "f7", title: "2호선 외선순환 승강장", shape: "rect", x: 60, y: 220, w: 100, h: 35, rx: 6, fill: "#00a84d", textX: 110, textY: 242, fontSize: 10, type: "platform" },
-          { id: "f8", title: "2호선 내선순환 승강장", shape: "rect", x: 200, y: 220, w: 100, h: 35, rx: 6, fill: "#00a84d", textX: 250, textY: 242, fontSize: 10, type: "platform" },
-          { id: "f9", title: "B1 이동 계단", shape: "circle", cx: 180, cy: 120, r: 14, fill: "#f39c12", textX: 180, textY: 124, fontSize: 10, label: "계단", type: "stairs" },
-          { id: "f10", title: "신분당선 환승 에스컬레이터", shape: "circle", cx: 180, cy: 380, r: 16, fill: "#d4003b", textX: 180, textY: 384, fontSize: 9, label: "환승", type: "transfer" }
-        ],
-        "B3": [
-          { id: "f11", title: "환승 통로 휴게 벤치", shape: "rect", x: 145, y: 240, w: 70, h: 40, rx: 8, fill: "#4b6584", textX: 180, textY: 265, fontSize: 11, label: "휴게존", type: "facility" }
-        ],
-        "B4": [
-          { id: "f12", title: "신분당선 상행 승강장", shape: "rect", x: 145, y: 100, w: 70, h: 30, rx: 6, fill: "#d4003b", textX: 180, textY: 120, fontSize: 10, type: "platform" },
-          { id: "f13", title: "신분당선 하행 승강장", shape: "rect", x: 145, y: 400, w: 70, h: 30, rx: 6, fill: "#d4003b", textX: 180, textY: 420, fontSize: 10, type: "platform" },
-          { id: "f14", title: "승강장 비상벨", shape: "circle", cx: 180, cy: 260, r: 14, fill: "#e74c3c", textX: 180, textY: 264, fontSize: 10, label: "비상벨", type: "safety" }
-        ]
+    // Figma 카테고리 필터 UI 구성
+    function initCategoryFilters() {
+      categoryGrid.innerHTML = "";
+      pinCatSelect.innerHTML = "";
+
+      FIGMA_CATEGORIES.forEach(cat => {
+        const btn = document.createElement("button");
+        btn.className = `cat-item-btn ${cat === activeCategory ? 'active' : ''}`;
+        btn.innerHTML = `<span>${getCategoryEmoji(cat)}</span><span>${cat}</span>`;
+        btn.onclick = () => {
+          activeCategory = cat;
+          document.querySelectorAll(".cat-item-btn").forEach(b => b.classList.remove("active"));
+          btn.classList.add("active");
+          renderExplorePinsList();
+          syncPinsTo3D();
+        };
+        categoryGrid.appendChild(btn);
+
+        if (cat !== '전체') {
+          const opt = document.createElement("option");
+          opt.value = cat;
+          opt.innerText = `${getCategoryEmoji(cat)} ${cat}`;
+          pinCatSelect.appendChild(opt);
+        }
+      });
+    }
+
+    function getCategoryEmoji(cat) {
+      switch(cat) {
+        case '물품보관함': return '🗄️';
+        case '화장실': return '🚻';
+        case '충전소': return '⚡';
+        case '엘리베이터': return '🛗';
+        case '상점': return '🛍️';
+        case '카페': return '☕';
+        case '쓰레기통': return '🗑️';
+        default: return '📍';
       }
-    };
+    }
 
     function enterIndoorView() {
       if (!currentSelectedStation) return;
 
-      document.getElementById("indoor-title-text").innerText = `${currentSelectedStation.name} 실내 지도`;
       floorList.innerHTML = "";
-
       const floors = currentSelectedStation.name.includes("강남") 
         ? ["B1", "B2", "B3", "B4"] 
-        : ["2F", "1F", "B1", "B2", "B3"];
+        : ["1F", "B1", "B2", "B3"];
       const defaultFloor = "B1";
 
       floors.forEach(floor => {
@@ -1236,21 +1241,17 @@
       });
 
       activeFloor = defaultFloor;
-      currentIndoorMode = "2D"; // 2D 모드로 지정
+      currentIndoorMode = "2D";
 
-      // 1. 화면 및 컨테이너 전환
       mainView.classList.add("hidden");
       indoorView.classList.remove("hidden");
-      canvas2D.style.display = "none";
-      threeContainer.style.display = "block";
 
-      btn2D.classList.add("active");
-      btn3D.classList.remove("active");
+      document.getElementById("btn-2d").classList.add("active");
+      document.getElementById("btn-3d").classList.remove("active");
 
-      renderStationPins();
-      closeIndoorNavigation();
+      initCategoryFilters();
+      renderExplorePinsList();
 
-      // 2. DOM 렌더링 프레임 후 씬 생성 및 모델 로드
       requestAnimationFrame(() => {
         if (!isThreeInitialized) {
           initThreeScene();
@@ -1270,391 +1271,147 @@
       indoorView.classList.add("hidden");
       mainView.classList.remove("hidden");
       closePinModal();
-      closeIndoorNavigation();
+      toggleExplorePanel(false);
+      toggleSubpage(null);
     }
 
-    function renderDynamicFixtures() {
-      const fixturesLayer = document.getElementById("indoor-fixtures");
-      fixturesLayer.innerHTML = "";
+    /* Figma Explore 패널 토글 및 핀 렌더링 */
+    const explorePanel = document.getElementById("explore-panel");
+    const btnToolExplore = document.getElementById("btn-tool-explore");
+
+    function toggleExplorePanel(force) {
+      const show = force !== undefined ? force : (explorePanel.style.display !== "flex");
+      explorePanel.style.display = show ? "flex" : "none";
+      btnToolExplore.classList.toggle("active", show);
+    }
+
+    function renderExplorePinsList(filterQuery = "") {
+      const listEl = document.getElementById("explore-pins-list");
+      listEl.innerHTML = "";
 
       const stName = currentSelectedStation ? currentSelectedStation.name : "강남역";
-      const stationData = FLOOR_FACILITIES_DB[stName] || {};
-      const currentFloorItems = stationData[activeFloor] || [];
+      const allPins = (STATION_PINS_DB[stName] || []).filter(p => p.floor === activeFloor);
 
-      currentFloorItems.forEach(item => {
-        const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
-        g.setAttribute("class", "fixture-item");
-
-        if (item.type !== "my_loc") {
-          g.onclick = (e) => {
-            e.stopPropagation();
-            const coord = {
-              title: item.title,
-              x: item.shape === "circle" ? item.cx : item.x + item.w / 2,
-              y: item.shape === "circle" ? item.cy : item.y + item.h / 2
-            };
-            startRouteToTarget(coord);
-          };
-        }
-
-        if (item.shape === "rect") {
-          const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-          rect.setAttribute("x", item.x);
-          rect.setAttribute("y", item.y);
-          rect.setAttribute("width", item.w);
-          rect.setAttribute("height", item.h);
-          rect.setAttribute("rx", item.rx || 6);
-          rect.setAttribute("fill", item.fill);
-          g.appendChild(rect);
-
-          const txt = document.createElementNS("http://www.w3.org/2000/svg", "text");
-          txt.setAttribute("x", item.textX);
-          txt.setAttribute("y", item.textY);
-          txt.setAttribute("text-anchor", "middle");
-          txt.setAttribute("fill", "#fff");
-          txt.setAttribute("font-size", item.fontSize || 10);
-          txt.setAttribute("font-weight", "700");
-          txt.textContent = item.label || item.title;
-          g.appendChild(txt);
-
-        } else if (item.shape === "circle") {
-          const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-          circle.setAttribute("cx", item.cx);
-          circle.setAttribute("cy", item.cy);
-          circle.setAttribute("r", item.r);
-          circle.setAttribute("fill", item.fill);
-          g.appendChild(circle);
-
-          const txt = document.createElementNS("http://www.w3.org/2000/svg", "text");
-          txt.setAttribute("x", item.textX);
-          txt.setAttribute("y", item.textY);
-          txt.setAttribute("text-anchor", "middle");
-          txt.setAttribute("fill", "#fff");
-          txt.setAttribute("font-size", item.fontSize || 10);
-          txt.setAttribute("font-weight", "800");
-          txt.textContent = item.label || item.title;
-          g.appendChild(txt);
-
-        } else if (item.shape === "pin_my") {
-          const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-          circle.setAttribute("cx", item.cx);
-          circle.setAttribute("cy", item.cy);
-          circle.setAttribute("r", item.r);
-          circle.setAttribute("fill", item.fill);
-          circle.setAttribute("stroke", "#fff");
-          circle.setAttribute("stroke-width", "2");
-          g.appendChild(circle);
-
-          const txt = document.createElementNS("http://www.w3.org/2000/svg", "text");
-          txt.setAttribute("x", item.textX);
-          txt.setAttribute("y", item.textY);
-          txt.setAttribute("text-anchor", "middle");
-          txt.setAttribute("fill", item.fill);
-          txt.setAttribute("font-size", "11");
-          txt.setAttribute("font-weight", "800");
-          txt.textContent = item.label;
-          g.appendChild(txt);
-        }
-
-        fixturesLayer.appendChild(g);
+      const filtered = allPins.filter(p => {
+        const matchCat = (activeCategory === '전체' || p.category === activeCategory);
+        const matchQuery = !filterQuery || p.title.toLowerCase().includes(filterQuery.toLowerCase()) || (p.desc && p.desc.toLowerCase().includes(filterQuery.toLowerCase()));
+        return matchCat && matchQuery;
       });
-    }
 
-    /* ========================================================
-       3. 2D ↔ 3D 좌표 변환 및 빈 핑 시스템
-    ======================================================== */
-    const MAP_2D = { width: 360, height: 520 };
-    const MAP_3D = { width: 60, depth: 86.6 };
+      document.getElementById("explore-pins-count").innerText = `${filtered.length}개`;
 
-    function coord2Dto3D(x2d, y2d) {
-      const x3d = (x2d / MAP_2D.width - 0.5) * MAP_3D.width;
-      const z3d = (y2d / MAP_2D.height - 0.5) * MAP_3D.depth;
-      return { x: x3d, y: 1.0, z: z3d };
-    }
-
-    function coord3Dto2D(x3d, z3d) {
-      const x2d = (x3d / MAP_3D.width + 0.5) * MAP_2D.width;
-      const y2d = (z3d / MAP_3D.depth + 0.5) * MAP_2D.height;
-      return { x: Math.round(x2d), y: Math.round(y2d) };
-    }
-
-    let currentIndoorMode = "2D";
-    let activeFloor = "B1";
-
-    const STATION_PINS_DB = {
-      "강남역": []
-    };
-
-    const indoorSvg = document.getElementById("indoor-svg");
-    const indoorPinsLayer = document.getElementById("indoor-pins-layer");
-    const pinModal = document.getElementById("pin-modal");
-    const pinTitleInput = document.getElementById("pin-title-input");
-    const pinDescInput = document.getElementById("pin-desc-input");
-    const pinPreviewImg = document.getElementById("pin-modal-preview");
-    const btnSavePin = document.getElementById("btn-save-pin");
-    const btnRoutePin = document.getElementById("btn-route-pin");
-    const btnDeletePin = document.getElementById("btn-delete-pin");
-
-    let currentEditingPin = null;
-    let tempClickCoord = null;
-    let tempUploadedImg = "";
-
-    indoorSvg.addEventListener("click", (e) => {
-      if (e.target.closest(".fixture-item") || e.target.closest(".indoor-pin-marker")) return;
-      const rect = indoorSvg.getBoundingClientRect();
-      const clickX = ((e.clientX - rect.left) / rect.width) * 360;
-      const clickY = ((e.clientY - rect.top) / rect.height) * 520;
-      openCreatePinModal(Math.round(clickX), Math.round(clickY));
-    });
-
-    function openCreatePinModal(x, y, y3d = 0) {
-      currentEditingPin = null;
-      tempClickCoord = { x, y, y3d: y3d };
-      tempUploadedImg = "";
-
-      document.getElementById("pin-modal-title").innerText = `📍 [${activeFloor}] 새로운 장소 핑 등록`;
-      pinTitleInput.value = "";
-      pinDescInput.value = "";
-      pinPreviewImg.style.display = "none";
-      pinPreviewImg.src = "";
-      document.getElementById("pin-file-input").value = "";
-
-      btnSavePin.style.display = "block";
-      btnRoutePin.style.display = "none";
-      btnDeletePin.style.display = "none";
-
-      pinModal.style.display = "flex";
-    }
-
-    function openViewPinModal(pinObj) {
-      currentEditingPin = pinObj;
-
-      document.getElementById("pin-modal-title").innerText = `📍 [${pinObj.floor}] ${pinObj.title}`;
-      pinTitleInput.value = pinObj.title;
-      pinDescInput.value = pinObj.desc || "";
-
-      if (pinObj.img) {
-        pinPreviewImg.src = pinObj.img;
-        pinPreviewImg.style.display = "block";
-      } else {
-        pinPreviewImg.style.display = "none";
-      }
-
-      btnSavePin.style.display = "none";
-      btnRoutePin.style.display = "block";
-      btnDeletePin.style.display = "block";
-
-      pinModal.style.display = "flex";
-    }
-
-    function closePinModal() {
-      pinModal.style.display = "none";
-    }
-
-    function handlePinImageUpload(e) {
-      const file = e.target.files[0];
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        tempUploadedImg = event.target.result;
-        pinPreviewImg.src = tempUploadedImg;
-        pinPreviewImg.style.display = "block";
-      };
-      reader.readAsDataURL(file);
-    }
-
-    function saveCurrentPin() {
-      const title = pinTitleInput.value.trim();
-      if (!title) {
-        alert("장소 이름을 입력해주세요.");
+      if (filtered.length === 0) {
+        listEl.innerHTML = `<div style="padding:14px; text-align:center; color:#9ca3af; font-size:11px;">등록된 핀이 없습니다.</div>`;
         return;
       }
 
-      const stName = currentSelectedStation ? currentSelectedStation.name : "강남역";
-      if (!STATION_PINS_DB[stName]) STATION_PINS_DB[stName] = [];
-
-      const newPin = {
-        id: Date.now(),
-        floor: activeFloor,
-        title: title,
-        desc: pinDescInput.value.trim(),
-        img: tempUploadedImg,
-        x: tempClickCoord.x,
-        y: tempClickCoord.y,
-        y3d: tempClickCoord.y3d || 0
-      };
-
-      STATION_PINS_DB[stName].push(newPin);
-      closePinModal();
-      renderStationPins();
-      syncPinsTo3D();
-      alert(`[${activeFloor}]에 '${title}' 핑이 등록되었습니다!`);
-    }
-
-    function deleteCurrentPin() {
-      if (!currentEditingPin) return;
-      const stName = currentSelectedStation ? currentSelectedStation.name : "강남역";
-      STATION_PINS_DB[stName] = STATION_PINS_DB[stName].filter(p => p.id !== currentEditingPin.id);
-      closePinModal();
-      renderStationPins();
-      syncPinsTo3D();
-    }
-
-    function renderStationPins() {
-      indoorPinsLayer.innerHTML = "";
-      const stName = currentSelectedStation ? currentSelectedStation.name : "강남역";
-      const pins = (STATION_PINS_DB[stName] || []).filter(p => p.floor === activeFloor);
-
-      pins.forEach(pin => {
-        const marker = document.createElement("div");
-        marker.className = "indoor-pin-marker";
-        marker.style.left = `${(pin.x / 360) * 100}%`;
-        marker.style.top = `${(pin.y / 520) * 100}%`;
-        marker.innerHTML = `
-          <svg width="34" height="44" viewBox="0 0 384 512">
-            <path fill="#e84118" stroke="#ffffff" stroke-width="16" d="M172.268 501.67C26.97 291.031 0 269.413 0 192 0 85.961 86.039 0 192 0s192 85.961 192 192c0 77.413-26.97 99.031-172.268 309.67-9.535 13.774-29.93 13.773-39.464 0z"/>
-            <circle cx="192" cy="192" r="75" fill="#ffffff"/>
-            <text x="192" y="215" font-size="64" font-weight="900" fill="#e84118" text-anchor="middle">${pin.floor}</text>
-          </svg>
+      filtered.forEach(pin => {
+        const item = document.createElement("div");
+        item.style.cssText = "padding:9px 12px; background:#f8fafc; border:1px solid #edf0f2; border-radius:12px; display:flex; justify-content:space-between; align-items:center; cursor:pointer;";
+        item.innerHTML = `
+          <div>
+            <div style="font-size:12px; font-weight:800; color:#1f2937;">${pin.title}</div>
+            <div style="font-size:10px; color:#808691; margin-top:2px;">#${pin.category} · ${pin.floor}</div>
+          </div>
+          <span style="font-size:12px; color:#367b67; font-weight:800;">›</span>
         `;
-        marker.onclick = (e) => {
-          e.stopPropagation();
+        item.onclick = () => {
+          focusOnPin(pin);
           openViewPinModal(pin);
         };
-        indoorPinsLayer.appendChild(marker);
+        listEl.appendChild(item);
       });
     }
 
-    /* ========================================================
-       4. 실내 검색 & 길안내
-    ======================================================== */
-    const indoorSearchBox = document.getElementById("indoor-search-box");
-    const indoorClearSearch = document.getElementById("indoor-clear-search");
-    const indoorSuggestions = document.getElementById("indoor-suggestions");
-
-    function getAllCurrentFacilities() {
-      const stName = currentSelectedStation ? currentSelectedStation.name : "강남역";
-      const stationFloors = FLOOR_FACILITIES_DB[stName] || {};
-      const facilitiesList = [];
-
-      Object.entries(stationFloors).forEach(([floorKey, items]) => {
-        items.forEach(it => {
-          if (it.type !== "my_loc") {
-            facilitiesList.push({
-              floor: floorKey,
-              title: it.title,
-              x: it.shape === "circle" ? it.cx : it.x + it.w / 2,
-              y: it.shape === "circle" ? it.cy : it.y + it.h / 2,
-              type: it.type
-            });
-          }
-        });
-      });
-      return facilitiesList;
+    function onExploreSearch(val) {
+      renderExplorePinsList(val.trim());
     }
 
-    function onIndoorSearchInput(query) {
-      const q = query.trim().toLowerCase();
-      if (!q) {
-        indoorSuggestions.style.display = "none";
-        indoorClearSearch.style.display = "none";
-        return;
-      }
+    /* 플로팅 도구 팝오버 */
+    const toolsPopover = document.getElementById("tools-popover");
+    function toggleToolsPopover() {
+      toolsPopover.style.display = toolsPopover.style.display === "flex" ? "none" : "flex";
+    }
 
-      indoorClearSearch.style.display = "block";
-      indoorSuggestions.innerHTML = "";
+    function resetMapView() {
+      toolsPopover.style.display = "none";
+      if (currentIndoorMode === "2D") setCameraToTopDownView();
+      else syncCameraToIsometricView();
+    }
 
-      const stName = currentSelectedStation ? currentSelectedStation.name : "강남역";
-      const customPins = STATION_PINS_DB[stName] || [];
-      const dynamicFacilities = getAllCurrentFacilities();
-      const allTargets = [...dynamicFacilities, ...customPins];
+    function zoom3D(delta) {
+      if (!camera) return;
+      camera.zoom = Math.min(Math.max(camera.zoom + delta, 0.4), 3.5);
+      camera.updateProjectionMatrix();
+      if (controls) controls.update();
+    }
 
-      const matched = allTargets.filter(item => item.title.toLowerCase().includes(q) || (item.desc && item.desc.toLowerCase().includes(q)));
+    /* Figma 확장형 AI 캡슐바 */
+    const aiCapsule = document.getElementById("ai-capsule");
+    const aiQueryInput = document.getElementById("ai-query-input");
 
-      if (matched.length === 0) {
-        indoorSuggestions.innerHTML = `<div style="padding:14px; text-align:center; color:#8e95a5; font-size:13px;">일치하는 핑이나 시설이 없습니다.</div>`;
+    function toggleAiCapsule() {
+      const isExpanded = aiCapsule.classList.contains("expanded");
+      if (isExpanded) {
+        aiCapsule.classList.remove("expanded");
       } else {
-        matched.forEach(target => {
-          const item = document.createElement("div");
-          item.className = "suggestion-item";
-          item.innerHTML = `
-            <span>📍 <strong>${target.title}</strong> <span style="font-size:10px; color:#aaa; margin-left:4px;">[${target.floor}]</span></span>
-            <span style="font-size:11px; color:#00e5ff;">길안내 ›</span>
-          `;
-          item.onclick = () => {
-            indoorSuggestions.style.display = "none";
-            if (target.floor && target.floor !== activeFloor) {
-              const targetFloorBtn = Array.from(document.querySelectorAll(".floor-btn")).find(b => b.innerText === target.floor);
-              selectFloor(target.floor, targetFloorBtn);
-            }
-            startRouteToTarget(target);
-          };
-          indoorSuggestions.appendChild(item);
-        });
-      }
-      indoorSuggestions.style.display = "block";
-    }
-
-    function clearIndoorSearch() {
-      indoorSearchBox.value = "";
-      indoorClearSearch.style.display = "none";
-      indoorSuggestions.style.display = "none";
-    }
-
-    const indoorNavCard = document.getElementById("indoor-nav-card");
-    const indoorPathLine = document.getElementById("indoor-path-line");
-    const MY_LOCATION = { x: 65, y: 290, name: "내 위치 (1번 출구 앞)" };
-
-    function openIndoorNavigation() {
-      const stName = currentSelectedStation ? currentSelectedStation.name : "강남역";
-      const facilities = (FLOOR_FACILITIES_DB[stName] && FLOOR_FACILITIES_DB[stName][activeFloor]) || [];
-      const defaultTarget = facilities.find(f => f.type !== "my_loc");
-
-      if (defaultTarget) {
-        startRouteToTarget({
-          title: defaultTarget.title,
-          x: defaultTarget.shape === "circle" ? defaultTarget.cx : defaultTarget.x + defaultTarget.w / 2,
-          y: defaultTarget.shape === "circle" ? defaultTarget.cy : defaultTarget.y + defaultTarget.h / 2
-        });
-      } else {
-        alert("현재 층에 등록된 목적지 시설이 없습니다.");
+        aiCapsule.classList.add("expanded");
+        aiQueryInput.focus();
+        toggleExplorePanel(false);
       }
     }
 
-    function closeIndoorNavigation() {
-      indoorNavCard.style.display = "none";
-      indoorPathLine.style.display = "none";
+    function handleAiSubmit(e) {
+      if (e.key === 'Enter') {
+        const query = aiQueryInput.value.trim();
+        if (!query) return;
+        alert(`[AI 안내 어시스턴트]\n"${query}"에 대한 시설 정보를 실내 모델링에서 탐색합니다.\n(현재 층: ${activeFloor})`);
+        aiQueryInput.value = "";
+        toggleAiCapsule();
+      }
     }
 
-    function startRouteToCurrentPin() {
-      if (!currentEditingPin) return;
-      closePinModal();
-      startRouteToTarget(currentEditingPin);
-    }
+    /* 상단 서브페이지 오버레이 (커뮤니티 / MEMO) */
+    function toggleSubpage(tab) {
+      const commEl = document.getElementById("subpage-community");
+      const memoEl = document.getElementById("subpage-memo");
+      const btnComm = document.getElementById("btn-nav-comm");
+      const btnMemo = document.getElementById("btn-nav-memo");
 
-    function startRouteToTarget(targetObj) {
-      document.getElementById("nav-target-name").innerText = targetObj.title;
+      btnComm.classList.toggle("active", tab === 'community');
+      btnMemo.classList.toggle("active", tab === 'memo');
 
-      const distPx = Math.hypot(targetObj.x - MY_LOCATION.x, targetObj.y - MY_LOCATION.y);
-      const meters = Math.round((distPx / 10) * 3.5);
-      const minutes = Math.max(1, Math.round(meters / 60));
+      commEl.style.display = tab === 'community' ? "flex" : "none";
+      memoEl.style.display = tab === 'memo' ? "flex" : "none";
 
-      document.getElementById("nav-dist-text").innerText = `약 ${meters}m`;
-      document.getElementById("nav-time-text").innerText = `${minutes}분 소요`;
-
-      const cornerX = 180;
-      const pathD = `M ${MY_LOCATION.x} ${MY_LOCATION.y} L ${cornerX} ${MY_LOCATION.y} L ${cornerX} ${targetObj.y} L ${targetObj.x} ${targetObj.y}`;
-      indoorPathLine.setAttribute("d", pathD);
-      indoorPathLine.style.display = "block";
-
-      indoorNavCard.style.display = "flex";
+      if (tab === 'community') {
+        const list = document.getElementById("community-card-list");
+        list.innerHTML = `
+          <div style="background:#fff; border:1px solid #edf0f2; border-radius:16px; padding:14px;">
+            <b style="font-size:13px;">💡 2호선 ➔ 신분당선 환승 팁</b>
+            <p style="font-size:11px; color:#6b7280; margin-top:4px;">출퇴근 시간에는 2호선 앞쪽 계단보다 뒤쪽 통로를 이용하시면 덜 붐빕니다.</p>
+          </div>
+          <div style="background:#fff; border:1px solid #edf0f2; border-radius:16px; padding:14px;">
+            <b style="font-size:13px;">☕ B1 만남의 광장 카페 리뉴얼</b>
+            <p style="font-size:11px; color:#6b7280; margin-top:4px;">키오스크 주문 가능하며 콘센트 좌석이 마련되어 있습니다.</p>
+          </div>
+        `;
+      } else if (tab === 'memo') {
+        const list = document.getElementById("memo-card-list");
+        const stName = currentSelectedStation ? currentSelectedStation.name : "강남역";
+        const pins = STATION_PINS_DB[stName] || [];
+        list.innerHTML = pins.map(p => `
+          <div style="background:#fff; border:1px solid #edf0f2; border-radius:16px; padding:14px;">
+            <b style="font-size:13px;">${p.title} (${p.floor})</b>
+            <p style="font-size:11px; color:#6b7280; margin-top:4px;">${p.desc || '메모 없음'}</p>
+          </div>
+        `).join('') || '<div style="font-size:12px; color:#9ca3af; text-align:center;">저장된 메모가 없습니다.</div>';
+      }
     }
 
     /* ========================================================
-       5. 3D 실내 지도 (Three.js + 층별 동적 교체 + 탑뷰 경계 락)
+       3. Three.js 3D 실내 지도 엔진 (2D 탑뷰 & 3D 활공 트랜지션)
     ======================================================== */
-    const canvas2D = document.getElementById("indoor-2d-canvas");
     const threeContainer = document.getElementById("three-container");
     const btn2D = document.getElementById("btn-2d");
     const btn3D = document.getElementById("btn-3d");
@@ -1664,6 +1421,8 @@
     let isThreeInitialized = false;
     let loadedStationModel = null;
     let pins3DGroup = new THREE.Group();
+    let isCameraTransitioning = false;
+    let isClamping = false;
 
     const FLOOR_MODEL_MAP = {
       "B1": "gangnam_B1.glb",
@@ -1672,24 +1431,92 @@
       "B4": "gangnam_B4.glb"
     };
 
-    let isCameraTransitioning = false;
+    function setIndoorMode(mode) {
+      if (currentIndoorMode === mode && isThreeInitialized) return;
+      currentIndoorMode = mode;
 
-    // 2D ↔ 3D 간 시점 활공 애니메이션 함수
+      if (!isThreeInitialized) {
+        initThreeScene();
+        isThreeInitialized = true;
+      }
+
+      if (renderer) {
+        const rect = threeContainer.getBoundingClientRect();
+        renderer.setSize(rect.width || 412, rect.height || 800);
+      }
+
+      if (mode === "2D") {
+        btn2D.classList.add("active");
+        btn3D.classList.remove("active");
+        transitionCamera("2D", 650);
+      } else {
+        btn3D.classList.add("active");
+        btn2D.classList.remove("active");
+        transitionCamera("3D", 650);
+      }
+      syncPinsTo3D();
+    }
+
+    // 2D 탑뷰 셋업 (화면 가로폭 34 기준 최적 배율)
+    function setCameraToTopDownView() {
+      if (!controls || !camera || !renderer) return;
+
+      let centerX = -15.57, centerY = -10.86, centerZ = 38.40;
+      if (loadedStationModel) {
+        const box = new THREE.Box3().setFromObject(loadedStationModel);
+        const center = box.getCenter(new THREE.Vector3());
+        centerX = center.x; centerY = center.y; centerZ = center.z;
+      }
+
+      const rect = threeContainer.getBoundingClientRect();
+      const aspect = (rect.width || 412) / (rect.height || 800);
+
+      const targetViewWidth = 34;
+      const targetViewHeight = targetViewWidth / aspect;
+
+      camera.left = -targetViewWidth / 2;
+      camera.right = targetViewWidth / 2;
+      camera.top = targetViewHeight / 2;
+      camera.bottom = -targetViewHeight / 2;
+      camera.zoom = 1.0;
+      camera.near = 0.1;
+      camera.far = 1000;
+      camera.updateProjectionMatrix();
+
+      // 살짝 왼쪽/위쪽으로 유도된 중심점
+      const targetX = centerX - 7.5;
+      const targetY = centerY;
+      const targetZ = centerZ - 6.0;
+
+      camera.up.set(0, 1, 0);
+      camera.position.set(targetX, targetY + 200, targetZ + 0.05);
+      controls.target.set(targetX, targetY, targetZ);
+      camera.lookAt(targetX, targetY, targetZ);
+
+      controls.enableRotate = false;
+      controls.enablePan = true;
+      controls.enableZoom = true;
+      controls.screenSpacePanning = true;
+
+      controls.minZoom = 0.4;
+      controls.maxZoom = 2.5;
+
+      controls.mouseButtons = { LEFT: THREE.MOUSE.PAN, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN };
+      controls.touches = { ONE: THREE.TOUCH.PAN, TWO: THREE.TOUCH.DOLLY_PAN };
+
+      controls.update();
+      renderer.render(scene, camera);
+    }
+
+    // 2D ↔ 3D 시점 활공(Transition) 애니메이션
     function transitionCamera(targetMode, duration = 650) {
       if (!camera || !controls || isCameraTransitioning) return;
       isCameraTransitioning = true;
 
-      // 1. 현재 보고 있는 화면 중심점을 그대로 유지
       const currentTarget = controls.target.clone();
-
-      // 2. 시작 카메라 상태
       const startPos = camera.position.clone();
-      const startLeft = camera.left;
-      const startRight = camera.right;
-      const startTop = camera.top;
-      const startBottom = camera.bottom;
+      const startLeft = camera.left, startRight = camera.right, startTop = camera.top, startBottom = camera.bottom;
 
-      // 3. 목표 카메라 상태 계산
       const rect = threeContainer.getBoundingClientRect();
       const aspect = (rect.width || 412) / (rect.height || 800);
 
@@ -1697,46 +1524,32 @@
       let endLeft, endRight, endTop, endBottom;
 
       if (targetMode === "3D") {
-        // 3D 쿼터뷰 목적지: 현재 보고 있는 중심점을 기준으로 사선 뒤쪽/위쪽에 배치
-        const dist = 55; // 3D 시점 거리
+        const dist = 55;
         endPos.set(currentTarget.x + dist * 0.8, currentTarget.y + dist * 1.1, currentTarget.z + dist * 0.9);
-
         const targetHeight = 55;
         const targetWidth = targetHeight * aspect;
-        endLeft = -targetWidth / 2;
-        endRight = targetWidth / 2;
-        endTop = targetHeight / 2;
-        endBottom = -targetHeight / 2;
+        endLeft = -targetWidth / 2; endRight = targetWidth / 2;
+        endTop = targetHeight / 2; endBottom = -targetHeight / 2;
       } else {
-        // 2D 탑뷰 목적지: 현재 보고 있는 중심점의 정수직 상공
         endPos.set(currentTarget.x, currentTarget.y + 200, currentTarget.z + 0.05);
-
-        const targetWidth = 34; // 2D 줌인 배율
+        const targetWidth = 34;
         const targetHeight = targetWidth / aspect;
-        endLeft = -targetWidth / 2;
-        endRight = targetWidth / 2;
-        endTop = targetHeight / 2;
-        endBottom = -targetHeight / 2;
+        endLeft = -targetWidth / 2; endRight = targetWidth / 2;
+        endTop = targetHeight / 2; endBottom = -targetHeight / 2;
       }
 
       const startTime = performance.now();
-
-      // 부드러운 감속 곡선 (Cubic Ease-Out)
-      function easeOutCubic(t) {
-        return 1 - Math.pow(1 - t, 3);
-      }
+      function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
 
       function step(now) {
         const elapsed = now - startTime;
         const progress = Math.min(elapsed / duration, 1.0);
         const ease = easeOutCubic(progress);
 
-        // 카메라 위치 보간
         camera.position.lerpVectors(startPos, endPos, ease);
         controls.target.copy(currentTarget);
         camera.lookAt(currentTarget);
 
-        // 프러스텀(배율) 보간
         camera.left = THREE.MathUtils.lerp(startLeft, endLeft, ease);
         camera.right = THREE.MathUtils.lerp(startRight, endRight, ease);
         camera.top = THREE.MathUtils.lerp(startTop, endTop, ease);
@@ -1749,237 +1562,42 @@
           requestAnimationFrame(step);
         } else {
           isCameraTransitioning = false;
-
-          // 애니메이션 완료 후 모드별 컨트롤 제약 적용
           if (targetMode === "3D") {
-            controls.enableRotate = true; // 3D 자유 회전 복원
-            controls.enablePan = true;
-            controls.enableZoom = true;
-            controls.minZoom = 0.3;
-            controls.maxZoom = 4.0;
-            controls.mouseButtons = {
-              LEFT: THREE.MOUSE.ROTATE,
-              MIDDLE: THREE.MOUSE.DOLLY,
-              RIGHT: THREE.MOUSE.PAN
-            };
-            controls.touches = {
-              ONE: THREE.TOUCH.ROTATE,
-              TWO: THREE.TOUCH.DOLLY_PAN
-            };
+            controls.enableRotate = true;
+            controls.minZoom = 0.3; controls.maxZoom = 4.0;
+            controls.mouseButtons = { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN };
+            controls.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN };
           } else {
-            controls.enableRotate = false; // 2D 회전 잠금
-            controls.enablePan = true;
-            controls.enableZoom = true;
-            controls.minZoom = 0.4;
-            controls.maxZoom = 2.5;
-            controls.mouseButtons = {
-              LEFT: THREE.MOUSE.PAN,
-              MIDDLE: THREE.MOUSE.DOLLY,
-              RIGHT: THREE.MOUSE.PAN
-            };
-            controls.touches = {
-              ONE: THREE.TOUCH.PAN,
-              TWO: THREE.TOUCH.DOLLY_PAN
-            };
+            controls.enableRotate = false;
+            controls.minZoom = 0.4; controls.maxZoom = 2.5;
+            controls.mouseButtons = { LEFT: THREE.MOUSE.PAN, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN };
+            controls.touches = { ONE: THREE.TOUCH.PAN, TWO: THREE.TOUCH.DOLLY_PAN };
           }
           controls.update();
         }
       }
-
       requestAnimationFrame(step);
     }
 
-    function setIndoorMode(mode) {
-      if (currentIndoorMode === mode && isThreeInitialized) return;
-      currentIndoorMode = mode;
-
-      if (!isThreeInitialized) {
-        initThreeScene();
-        isThreeInitialized = true;
-      }
-
-      canvas2D.style.display = "none";
-      threeContainer.style.display = "block";
-
-      if (renderer) {
-        const rect = threeContainer.getBoundingClientRect();
-        renderer.setSize(rect.width || 412, rect.height || 800);
-      }
-
-      if (mode === "2D") {
-        btn2D.classList.add("active");
-        btn3D.classList.remove("active");
-        transitionCamera("2D", 650); // 2D 수직 탑뷰로 부드럽게 세우기
-      } else {
-        btn3D.classList.add("active");
-        btn2D.classList.remove("active");
-        transitionCamera("3D", 650); // 3D 사선 쿼터뷰로 부드럽게 눕히기
-      }
-
-      syncPinsTo3D();
-    }
-
-    function setCameraToTopDownView() {
-      if (!controls || !camera || !renderer) return;
-
-      let centerX = -15.57, centerY = -10.86, centerZ = 38.40;
-      let sizeX = 19.04, sizeZ = 114.10;
-
-      if (loadedStationModel) {
-        const box = new THREE.Box3().setFromObject(loadedStationModel);
-        const center = box.getCenter(new THREE.Vector3());
-        const size = box.getSize(new THREE.Vector3());
-
-        centerX = center.x;
-        centerY = center.y;
-        centerZ = center.z;
-        sizeX = Math.max(size.x, 10);
-        sizeZ = Math.max(size.z, 10);
-      }
-
-      const rect = threeContainer.getBoundingClientRect();
-      const width = rect.width || 412;
-      const height = rect.height || 800;
-      const aspect = width / height;
-
-      // 1. [배율 조정]
-      const targetViewWidth = 70; 
-      const targetViewHeight = targetViewWidth / aspect;
-
-      camera.left = -targetViewWidth / 2;
-      camera.right = targetViewWidth / 2;
-      camera.top = targetViewHeight / 2;
-      camera.bottom = -targetViewHeight / 2;
-      camera.zoom = 1.0;
-      camera.near = 0.1;
-      camera.far = 1000;
-      camera.updateProjectionMatrix();
-
-      // 2. [위치 오프셋] 화면을 왼쪽으로 이동시켜 숨어있던 왼쪽 블록을 중앙으로 유도
-      // X축으로 약 -6.5 ~ -8.0 정도 왼쪽으로 밀어줍니다.
-      const offsetX = -7.5; 
-      // Z축도 필요 시 상단 홀 쪽으로 약간 조정 (예: -8.0)
-      const offsetZ = -6.0;
-
-      const targetX = centerX + offsetX;
-      const targetY = centerY;
-      const targetZ = centerZ + offsetZ;
-
-      camera.up.set(0, 1, 0);
-      camera.position.set(targetX, targetY + 200, targetZ + 0.05);
-      controls.target.set(targetX, targetY, targetZ);
-      camera.lookAt(targetX, targetY, targetZ);
-
-      // 3. 제약 조건 유지
-      controls.enableRotate = false;
-      controls.enablePan = true;
-      controls.enableZoom = true;
-      controls.screenSpacePanning = true;
-
-      controls.minZoom = 0.4;
-      controls.maxZoom = 2.5;
-
-      controls.mouseButtons = {
-        LEFT: THREE.MOUSE.PAN,
-        MIDDLE: THREE.MOUSE.DOLLY,
-        RIGHT: THREE.MOUSE.PAN
-      };
-
-      controls.touches = {
-        ONE: THREE.TOUCH.PAN,
-        TWO: THREE.TOUCH.DOLLY_PAN
-      };
-
-      controls.update();
-      renderer.render(scene, camera);
-    }
-
-    // 3D 쿼터뷰(아이소메트릭) 복귀 함수: 기본 배율 + 자유 회전 복원
-    function syncCameraToIsometricView() {
-      if (!controls || !camera) return;
-
-      let centerX = -15.57, centerY = -10.86, centerZ = 38.40;
-      let maxDim = 114;
-
-      if (loadedStationModel) {
-        const box = new THREE.Box3().setFromObject(loadedStationModel);
-        const center = box.getCenter(new THREE.Vector3());
-        const size = box.getSize(new THREE.Vector3());
-        centerX = center.x;
-        centerY = center.y;
-        centerZ = center.z;
-        maxDim = Math.max(size.x, size.y, size.z);
-      }
-
-      const width = threeContainer.clientWidth || 412;
-      const height = threeContainer.clientHeight || 800;
-      const aspect = width / height;
-
-      const frustumHeight = maxDim * 1.3;
-      const frustumWidth = frustumHeight * aspect;
-
-      camera.left = -frustumWidth / 2;
-      camera.right = frustumWidth / 2;
-      camera.top = frustumHeight / 2;
-      camera.bottom = -frustumHeight / 2;
-      camera.zoom = 1.0;
-      camera.near = 1;
-      camera.far = 1500;
-      camera.updateProjectionMatrix();
-
-      camera.up.set(0, 1, 0); // 3D 월드 상단 벡터 복원
-      camera.position.set(centerX + maxDim * 0.7, centerY + maxDim * 0.8, centerZ + maxDim * 0.7);
-      controls.target.set(centerX, centerY, centerZ);
-      camera.lookAt(centerX, centerY, centerZ);
-
-      controls.enableRotate = true;
-      controls.enablePan = true;
-      controls.enableZoom = true;
-      controls.minZoom = 0.3;
-      controls.maxZoom = 4.0;
-
-      controls.mouseButtons = {
-        LEFT: THREE.MOUSE.ROTATE,
-        MIDDLE: THREE.MOUSE.DOLLY,
-        RIGHT: THREE.MOUSE.PAN
-      };
-
-      controls.touches = {
-        ONE: THREE.TOUCH.ROTATE,
-        TWO: THREE.TOUCH.DOLLY_PAN
-      };
-
-      controls.update();
-    }
-
-    // 2D 탑뷰 모드 시 이동 범위를 3D 모델 바운딩 박스 안으로 제한하는 함수 (경계 락)
-    let isClamping = false;
-
+    // 2D 탑뷰 모드 경계 락
     function clampTopDownPan() {
-      if (currentIndoorMode !== "2D" || !loadedStationModel || !controls || !camera || isClamping) return;
+      if (currentIndoorMode !== "2D" || !loadedStationModel || !controls || !camera || isClamping || isCameraTransitioning) return;
 
       const bbox = new THREE.Box3().setFromObject(loadedStationModel);
-      
-      // 모델 크기 대비 여유 허용 마진
-      const marginX = (bbox.max.x - bbox.min.x) * 0.4;
-      const marginZ = (bbox.max.z - bbox.min.z) * 0.4;
+      const marginX = (bbox.max.x - bbox.min.x) * 0.45;
+      const marginZ = (bbox.max.z - bbox.min.z) * 0.45;
 
-      const minX = bbox.min.x - marginX;
-      const maxX = bbox.max.x + marginX;
-      const minZ = bbox.min.z - marginZ;
-      const maxZ = bbox.max.z + marginZ;
+      const minX = bbox.min.x - marginX, maxX = bbox.max.x + marginX;
+      const minZ = bbox.min.z - marginZ, maxZ = bbox.max.z + marginZ;
 
-      const curX = controls.target.x;
-      const curZ = controls.target.z;
-
+      const curX = controls.target.x, curZ = controls.target.z;
       const clampedX = Math.min(Math.max(curX, minX), maxX);
       const clampedZ = Math.min(Math.max(curZ, minZ), maxZ);
 
-      const deltaX = clampedX - curX;
-      const deltaZ = clampedZ - curZ;
+      const deltaX = clampedX - curX, deltaZ = clampedZ - curZ;
 
       if (Math.abs(deltaX) > 0.001 || Math.abs(deltaZ) > 0.001) {
-        isClamping = true; // 무한 재귀 호출 방지 락
+        isClamping = true;
         controls.target.x = clampedX;
         controls.target.z = clampedZ;
         camera.position.x += deltaX;
@@ -1990,17 +1608,16 @@
     }
 
     function initThreeScene() {
-      const width = threeContainer.clientWidth;
-      const height = threeContainer.clientHeight;
+      const rect = threeContainer.getBoundingClientRect();
+      const width = rect.width || 412, height = rect.height || 800;
 
       scene = new THREE.Scene();
-      scene.background = new THREE.Color(0x181a20);
+      scene.background = new THREE.Color(0xf3f4f6); // Figma 캔버스 배경 일치
 
       const aspect = width / height;
       const d = 48;
-      camera = new THREE.OrthographicCamera(-d * aspect, d * aspect, d, -d, 1, 3000);
-      camera.position.set(80, 80, 80);
-      camera.lookAt(0, 0, 0);
+      camera = new THREE.OrthographicCamera(-d * aspect, d * aspect, d, -d, 0.1, 2000);
+      camera.position.set(0, 150, 0);
 
       renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
       renderer.setSize(width, height);
@@ -2010,17 +1627,16 @@
       controls = new THREE.OrbitControls(camera, renderer.domElement);
       controls.enableDamping = true;
       controls.dampingFactor = 0.05;
-
-      // 컨트롤 이동 시 2D 모드 경계 락 리스너 등록
       controls.addEventListener("change", clampTopDownPan);
-      const ambientLight = new THREE.AmbientLight(0xffffff, 1.2); // 밝기 소폭 상향
+
+      const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
       scene.add(ambientLight);
 
       const dirLight1 = new THREE.DirectionalLight(0xffffff, 0.9);
       dirLight1.position.set(40, 150, 80);
       scene.add(dirLight1);
 
-      const dirLight2 = new THREE.DirectionalLight(0x00e5ff, 0.3);
+      const dirLight2 = new THREE.DirectionalLight(0xc6e8dc, 0.35);
       dirLight2.position.set(-60, 100, -20);
       scene.add(dirLight2);
 
@@ -2045,11 +1661,8 @@
         loadedStationModel.traverse((child) => {
           if (child.isMesh) {
             child.geometry.dispose();
-            if (Array.isArray(child.material)) {
-              child.material.forEach((m) => m.dispose());
-            } else if (child.material) {
-              child.material.dispose();
-            }
+            if (Array.isArray(child.material)) child.material.forEach((m) => m.dispose());
+            else if (child.material) child.material.dispose();
           }
         });
         loadedStationModel = null;
@@ -2071,29 +1684,22 @@
             if (child.isMesh) {
               child.castShadow = true;
               child.receiveShadow = true;
-              if (child.material) {
-                child.material.side = THREE.DoubleSide;
-              }
+              if (child.material) child.material.side = THREE.DoubleSide;
             }
           });
 
           scene.add(model);
           loadedStationModel = model;
 
-          // ⬇️ [중요] 모델 다운로드가 끝난 직후, 현재 모드(2D)에 맞춰 카메라와 렌더러를 즉시 피팅
+          // 모델 다운로드 완료 즉시 2D 탑뷰로 피팅
           if (currentIndoorMode === "2D") {
             setCameraToTopDownView();
           } else {
             syncCameraToIsometricView();
           }
 
-          // 핀 위치 동기화 및 1프레임 즉시 강제 렌더링
           syncPinsTo3D();
-          if (renderer && scene && camera) {
-            renderer.render(scene, camera);
-          }
-
-          console.log(`[${floor}] GLB 모델 로드 완료:`, fileName);
+          if (renderer && scene && camera) renderer.render(scene, camera);
         },
         (xhr) => {
           if (xhr.lengthComputable) {
@@ -2107,93 +1713,29 @@
         }
       );
     }
+
     function selectFloor(floor, btnEl) {
       activeFloor = floor;
       document.querySelectorAll(".floor-btn").forEach(b => b.classList.remove("active"));
       if (btnEl) btnEl.classList.add("active");
 
-      closeIndoorNavigation();
       closePinModal();
-      renderDynamicFixtures();
-      renderStationPins();
+      renderExplorePinsList();
       syncPinsTo3D();
 
-      // 2D 탑뷰/3D 모드 모두 GLB 모델을 사용하므로 항상 로드
-      if (isThreeInitialized) {
-        loadFloorGlbModel(floor);
-      }
+      if (isThreeInitialized) loadFloorGlbModel(floor);
     }
 
-    function setup3DInteraction() {
-      const raycaster = new THREE.Raycaster();
-      const mouse = new THREE.Vector2();
-
-      let isDown = false;
-      let startClientX = 0;
-      let startClientY = 0;
-
-      renderer.domElement.addEventListener("pointerdown", (e) => {
-        isDown = true;
-        startClientX = e.clientX;
-        startClientY = e.clientY;
-      });
-
-      renderer.domElement.addEventListener("pointerup", (e) => {
-        if (!isDown) return;
-        isDown = false;
-
-        const moveDist = Math.hypot(e.clientX - startClientX, e.clientY - startClientY);
-        if (moveDist > 6) return;
-
-        const rect = renderer.domElement.getBoundingClientRect();
-        mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-        mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-
-        raycaster.setFromCamera(mouse, camera);
-
-        const pinHits = raycaster.intersectObjects(pins3DGroup.children, true);
-        if (pinHits.length > 0) {
-          let rootGroup = pinHits[0].object;
-          while (rootGroup.parent && rootGroup.parent !== pins3DGroup) {
-            rootGroup = rootGroup.parent;
-          }
-          if (rootGroup.userData && rootGroup.userData.pinData) {
-            openViewPinModal(rootGroup.userData.pinData);
-            return;
-          }
-        }
-
-        if (loadedStationModel) {
-          const modelHits = raycaster.intersectObject(loadedStationModel, true);
-          if (modelHits.length > 0) {
-            const hitPt = modelHits[0].point;
-            const coord2D = coord3Dto2D(hitPt.x, hitPt.z);
-            openCreatePinModal(coord2D.x, coord2D.y, hitPt.y);
-          }
-        }
-      });
-    }
-
-    // (x, z) 3D 평면 좌표에서 수직 아래로 레이를 쏴 모델 표면 높이(Y)를 구하는 함수
+    /* 3D 핀 생성 및 레이캐스팅 높이 자동 보정 */
     function getSurfaceHeightAt(x3d, z3d) {
       if (!loadedStationModel) return 0;
-
       const bbox = new THREE.Box3().setFromObject(loadedStationModel);
       const startY = bbox.max.y + 50;
-      const rayOrigin = new THREE.Vector3(x3d, startY, z3d);
-      const rayDir = new THREE.Vector3(0, -1, 0);
-
-      const verticalRaycaster = new THREE.Raycaster(rayOrigin, rayDir, 0.1, (bbox.max.y - bbox.min.y) + 100);
-      const hits = verticalRaycaster.intersectObject(loadedStationModel, true);
-
-      if (hits.length > 0) {
-        return hits[0].point.y;
-      }
-
-      return bbox.min.y;
+      const raycaster = new THREE.Raycaster(new THREE.Vector3(x3d, startY, z3d), new THREE.Vector3(0, -1, 0), 0.1, (bbox.max.y - bbox.min.y) + 100);
+      const hits = raycaster.intersectObject(loadedStationModel, true);
+      return hits.length > 0 ? hits[0].point.y : bbox.min.y;
     }
 
-    // 2D 핑 데이터를 3D 입체 핀 오브젝트로 동기화 (높이 자동 보정)
     function syncPinsTo3D() {
       if (!isThreeInitialized || !pins3DGroup) return;
 
@@ -2207,54 +1749,164 @@
       const pins = (STATION_PINS_DB[stName] || []).filter(p => p.floor === activeFloor);
 
       pins.forEach(pin => {
-        const pos3d = coord2Dto3D(pin.x, pin.y);
-        const pinMesh = create3DPinMesh(pin);
+        if (activeCategory !== '전체' && pin.category !== activeCategory) return;
+
+        // 월드 선형 사상: SVG 360x520 -> 3D 60x86.6
+        const x3d = (pin.x / 360 - 0.5) * 60;
+        const z3d = (pin.y / 520 - 0.5) * 86.6;
 
         let surfaceY = pin.y3d;
         if (surfaceY === undefined || surfaceY === null || isNaN(surfaceY)) {
-          surfaceY = getSurfaceHeightAt(pos3d.x, pos3d.z);
+          surfaceY = getSurfaceHeightAt(x3d, z3d);
           pin.y3d = surfaceY;
         }
 
-        pinMesh.position.set(pos3d.x, surfaceY + 0.1, pos3d.z);
+        const pinMesh = createFigma3DPinMesh(pin);
+        pinMesh.position.set(x3d, surfaceY + 0.1, z3d);
         pins3DGroup.add(pinMesh);
       });
     }
 
-    // 3D 핀 메쉬 생성 헬퍼 함수
-    function create3DPinMesh(pinData) {
+    function createFigma3DPinMesh(pinData) {
       const group = new THREE.Group();
+      const colorHex = CATEGORY_COLORS[pinData.category] || CATEGORY_COLORS['기타'];
 
-      const headGeo = new THREE.SphereGeometry(1.6, 16, 16);
-      const headMat = new THREE.MeshStandardMaterial({ 
-        color: 0xe84118, 
-        roughness: 0.3 
-      });
+      const headGeo = new THREE.SphereGeometry(1.5, 16, 16);
+      const headMat = new THREE.MeshStandardMaterial({ color: colorHex, roughness: 0.3 });
       const head = new THREE.Mesh(headGeo, headMat);
-      head.position.y = 4.0;
+      head.position.y = 3.8;
 
-      const tipGeo = new THREE.ConeGeometry(1.2, 4.0, 16);
-      const tipMat = new THREE.MeshStandardMaterial({ 
-        color: 0xe84118 
-      });
+      const tipGeo = new THREE.ConeGeometry(1.1, 3.8, 16);
+      const tipMat = new THREE.MeshStandardMaterial({ color: colorHex });
       const tip = new THREE.Mesh(tipGeo, tipMat);
       tip.rotation.x = Math.PI;
-      tip.position.y = 2.0;
+      tip.position.y = 1.9;
 
       group.add(head);
       group.add(tip);
       group.userData = { pinData: pinData };
       group.renderOrder = 10;
-
       return group;
     }
 
-    function syncCameraTo2DView() {
-      if (!controls) return;
-      const target3D = coord2Dto3D(180, 260);
-      controls.target.set(target3D.x, 0, target3D.z);
-      camera.position.set(target3D.x + 50, 70, target3D.z + 50);
+    function focusOnPin(pin) {
+      const x3d = (pin.x / 360 - 0.5) * 60;
+      const z3d = (pin.y / 520 - 0.5) * 86.6;
+      controls.target.set(x3d, 0, z3d);
+      camera.position.x = x3d;
+      camera.position.z = z3d + (currentIndoorMode === "2D" ? 0.05 : 45);
       controls.update();
+    }
+
+    /* 3D 화면 클릭 및 핑 모달 관리 */
+    let tempClickCoord = null;
+    let currentEditingPin = null;
+
+    const pinModal = document.getElementById("pin-modal");
+    const pinTitleInput = document.getElementById("pin-title-input");
+    const pinDescInput = document.getElementById("pin-desc-input");
+    const btnSavePin = document.getElementById("btn-save-pin");
+    const btnDeletePin = document.getElementById("btn-delete-pin");
+
+    function setup3DInteraction() {
+      const raycaster = new THREE.Raycaster();
+      const mouse = new THREE.Vector2();
+      let isDown = false, startClientX = 0, startClientY = 0;
+
+      renderer.domElement.addEventListener("pointerdown", (e) => {
+        isDown = true;
+        startClientX = e.clientX; startClientY = e.clientY;
+      });
+
+      renderer.domElement.addEventListener("pointerup", (e) => {
+        if (!isDown) return;
+        isDown = false;
+        if (Math.hypot(e.clientX - startClientX, e.clientY - startClientY) > 6) return;
+
+        const rect = renderer.domElement.getBoundingClientRect();
+        mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+        mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+        raycaster.setFromCamera(mouse, camera);
+
+        const pinHits = raycaster.intersectObjects(pins3DGroup.children, true);
+        if (pinHits.length > 0) {
+          let root = pinHits[0].object;
+          while (root.parent && root.parent !== pins3DGroup) root = root.parent;
+          if (root.userData && root.userData.pinData) {
+            openViewPinModal(root.userData.pinData);
+            return;
+          }
+        }
+
+        if (loadedStationModel) {
+          const hits = raycaster.intersectObject(loadedStationModel, true);
+          if (hits.length > 0) {
+            const hitPt = hits[0].point;
+            const x2d = Math.round((hitPt.x / 60 + 0.5) * 360);
+            const y2d = Math.round((hitPt.z / 86.6 + 0.5) * 520);
+            openCreatePinModal(x2d, y2d, hitPt.y);
+          }
+        }
+      });
+    }
+
+    function openCreatePinModal(x, y, y3d = 0) {
+      currentEditingPin = null;
+      tempClickCoord = { x, y, y3d };
+
+      document.getElementById("pin-modal-title").innerText = `📍 [${activeFloor}] 새로운 장소 핑 등록`;
+      pinTitleInput.value = "";
+      pinDescInput.value = "";
+      btnSavePin.style.display = "block";
+      btnDeletePin.style.display = "none";
+      pinModal.style.display = "flex";
+    }
+
+    function openViewPinModal(pin) {
+      currentEditingPin = pin;
+      document.getElementById("pin-modal-title").innerText = `📍 [${pin.floor}] ${pin.title}`;
+      pinTitleInput.value = pin.title;
+      pinDescInput.value = pin.desc || "";
+      pinCatSelect.value = pin.category;
+      btnSavePin.style.display = "none";
+      btnDeletePin.style.display = "block";
+      pinModal.style.display = "flex";
+    }
+
+    function closePinModal() {
+      pinModal.style.display = "none";
+    }
+
+    function saveCurrentPin() {
+      const title = pinTitleInput.value.trim();
+      if (!title) { alert("장소 이름을 입력해주세요."); return; }
+
+      const stName = currentSelectedStation ? currentSelectedStation.name : "강남역";
+      if (!STATION_PINS_DB[stName]) STATION_PINS_DB[stName] = [];
+
+      STATION_PINS_DB[stName].push({
+        id: Date.now(),
+        floor: activeFloor,
+        title: title,
+        category: pinCatSelect.value,
+        desc: pinDescInput.value.trim(),
+        x: tempClickCoord.x,
+        y: tempClickCoord.y,
+        y3d: tempClickCoord.y3d || 0
+      });
+
+      closePinModal();
+      renderExplorePinsList();
+      syncPinsTo3D();
+    }
+
+    function deleteCurrentPin() {
+      if (!currentEditingPin) return;
+      const stName = currentSelectedStation ? currentSelectedStation.name : "강남역";
+      STATION_PINS_DB[stName] = STATION_PINS_DB[stName].filter(p => p.id !== currentEditingPin.id);
+      closePinModal();
+      renderExplorePinsList();
+      syncPinsTo3D();
     }
 
     window.addEventListener("DOMContentLoaded", () => {
