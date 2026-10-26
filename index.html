@@ -158,10 +158,20 @@
       100% { transform: translate(-50%, -100%); opacity: 1; }
     }
 
+    /* 메인 화면 전용 헤더 스타일 */
+    .figma-header.main-header {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 60;
+    }
+
+    /* 노선도 줌 버튼 위치 헤더 아래로 살짝 내리기 */
     .zoom-controls {
       position: absolute;
       right: 18px;
-      top: 80px;
+      top: 104px; /* 기존 80px에서 헤더 높이만큼 조정 */
       display: flex;
       flex-direction: column;
       gap: 8px;
@@ -778,6 +788,20 @@
 
     <!-- 1. 메인 노선도 화면 -->
     <div id="main-view" class="view">
+      <!-- ⬇️ [추가] 첫 화면 상단 Figma 헤더 바 -->
+      <header class="figma-header main-header">
+        <div class="header-logo-group">
+          <div class="brand-title">
+            <span class="brand-icon">🗺️</span> mapping
+          </div>
+        </div>
+        <nav class="header-nav">
+          <button class="nav-btn" id="btn-main-comm" onclick="toggleSubpage('community')">커뮤니티</button>
+          <button class="nav-btn" id="btn-main-memo" onclick="toggleSubpage('memo')">MEMO</button>
+          <div class="nav-user-circle" onclick="alert('마이페이지 기능 준비 중입니다.')">👤</div>
+        </nav>
+      </header>
+
       <div class="metro-canvas-container" id="metro-container">
         <div id="map-wrapper">
           <img src="metroimg.jpg" id="official-metro-img" alt="서울 지하철 노선도" onerror="this.src='metroimg.svg'">
@@ -1391,11 +1415,13 @@
     function toggleSubpage(tab) {
       const commEl = document.getElementById("subpage-community");
       const memoEl = document.getElementById("subpage-memo");
-      const btnComm = document.getElementById("btn-nav-comm");
-      const btnMemo = document.getElementById("btn-nav-memo");
+      
+      // 실내 지도와 메인 화면 헤더 버튼 둘 다 동기화
+      const commBtns = [document.getElementById("btn-nav-comm"), document.getElementById("btn-main-comm")];
+      const memoBtns = [document.getElementById("btn-nav-memo"), document.getElementById("btn-main-memo")];
 
-      btnComm.classList.toggle("active", tab === 'community');
-      btnMemo.classList.toggle("active", tab === 'memo');
+      commBtns.forEach(b => { if (b) b.classList.toggle("active", tab === 'community'); });
+      memoBtns.forEach(b => { if (b) b.classList.toggle("active", tab === 'memo'); });
 
       commEl.style.display = tab === 'community' ? "flex" : "none";
       memoEl.style.display = tab === 'memo' ? "flex" : "none";
