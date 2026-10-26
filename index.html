@@ -3,8 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>서울 지하철 스마트 길찾기 & 실내 네비게이션</title>
-  <!-- Three.js CDN (실내 3D 뷰어용) -->
+  <title>서울 지하철 스마트 실내 네비게이션 & 핑 맵</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
   <style>
@@ -36,7 +35,7 @@
       color: var(--text-main);
       overflow: hidden;
     }
-    
+
     .phone-container {
       width: 100%;
       max-width: 412px;
@@ -51,7 +50,7 @@
       display: flex;
       flex-direction: column;
     }
-    
+
     @media (max-width: 480px) {
       .phone-container {
         max-height: none;
@@ -59,7 +58,7 @@
         box-shadow: none;
       }
     }
-    
+
     .status-bar {
       height: 48px;
       display: flex;
@@ -99,7 +98,7 @@
       visibility: hidden;
     }
 
-    /* 1. 메인 노선도 캔버스 */
+    /* 1. 메인 노선도 뷰 */
     #main-view {
       background: #f8f9fb;
       overflow: hidden;
@@ -113,10 +112,7 @@
       overflow: hidden;
       cursor: grab;
     }
-
-    .metro-canvas-container:active {
-      cursor: grabbing;
-    }
+    .metro-canvas-container:active { cursor: grabbing; }
 
     #map-wrapper {
       position: absolute;
@@ -178,7 +174,7 @@
       box-shadow: 0 6px 16px rgba(0,0,0,0.3);
     }
 
-    /* 역 선택 팝업 카드 */
+    /* 역 선택 팝업 카드 (길안내 버튼 제거, 상세 보기 단독 구성) */
     .station-popup-card {
       position: absolute;
       bottom: calc(88px + env(safe-area-inset-bottom, 0px));
@@ -188,7 +184,7 @@
       backdrop-filter: blur(25px);
       border: 1px solid var(--border-color);
       border-radius: 24px;
-      padding: 16px 20px;
+      padding: 18px 20px;
       z-index: 50;
       display: none;
       box-shadow: 0 16px 36px rgba(0,0,0,0.6);
@@ -204,7 +200,7 @@
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
-      margin-bottom: 6px;
+      margin-bottom: 14px;
     }
 
     .station-title-box {
@@ -276,52 +272,14 @@
       flex-shrink: 0;
     }
 
-    .route-action-group {
-      display: flex;
-      gap: 8px;
-      margin-top: 10px;
-      margin-bottom: 12px;
-    }
-
-    .btn-route-action {
-      flex: 1;
-      padding: 9px 0;
-      border-radius: 12px;
-      border: 1px solid var(--border-color);
-      font-size: 13px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      background: rgba(255, 255, 255, 0.06);
-      color: #d1d5db;
-    }
-
-    .btn-route-action:active { transform: scale(0.96); }
-
-    .btn-start:hover, .btn-start:active {
-      background: rgba(0, 229, 255, 0.2);
-      border-color: #00e5ff;
-      color: #00e5ff;
-    }
-    .btn-via:hover, .btn-via:active {
-      background: rgba(186, 104, 200, 0.2);
-      border-color: #ba68c8;
-      color: #ba68c8;
-    }
-    .btn-dest:hover, .btn-dest:active {
-      background: rgba(46, 213, 115, 0.2);
-      border-color: #2ed573;
-      color: #2ed573;
-    }
-
     .btn-detail {
       width: 100%;
       background: linear-gradient(135deg, #1f78ff, #00d2ff);
       color: white;
       border: none;
-      padding: 12px;
+      padding: 13px;
       border-radius: 14px;
-      font-size: 14px;
+      font-size: 15px;
       font-weight: 700;
       cursor: pointer;
       display: flex;
@@ -331,386 +289,17 @@
       box-shadow: 0 6px 18px rgba(0, 180, 255, 0.35);
     }
 
-    /* 2. 길찾기 스타일 모달 패널 */
-    .route-planning-card {
-      position: absolute;
-      top: 58px;
-      left: 14px;
-      right: 14px;
-      background: #ffffff;
-      color: #1e2430;
-      border-radius: 28px;
-      box-shadow: 0 20px 45px rgba(0, 0, 0, 0.45);
-      z-index: 80;
-      display: none;
-      flex-direction: column;
-      overflow: visible;
-      animation: slideDown 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-
-    @keyframes slideDown {
-      from { transform: translateY(-30px); opacity: 0; }
-      to { transform: translateY(0); opacity: 1; }
-    }
-
-    .route-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 16px 18px 12px 18px;
-    }
-
-    .route-header-left {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .btn-route-back {
-      border: none;
-      background: #f1f3f7;
-      border-radius: 50%;
-      width: 32px;
-      height: 32px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 18px;
-      cursor: pointer;
-      color: #333;
-    }
-
-    .route-title {
-      font-size: 18px;
-      font-weight: 800;
-    }
-
-    .route-header-right {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .btn-add-via {
-      background: #f1f4f9;
-      color: #4b5563;
-      border: 1px solid #e0e5ed;
-      font-size: 12px;
-      font-weight: 700;
-      padding: 6px 10px;
-      border-radius: 16px;
-      cursor: pointer;
-    }
-
-    .route-slots-wrap {
-      display: flex;
-      align-items: flex-start;
-      padding: 0 16px 14px 16px;
-      gap: 10px;
-    }
-
-    .route-slots-list {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      position: relative;
-    }
-
-    .route-slots-list::before {
-      content: "";
-      position: absolute;
-      left: 17px;
-      top: 20px;
-      bottom: 20px;
-      width: 2px;
-      border-left: 2px dashed #c8d0de;
-      z-index: 1;
-    }
-
-    .route-slot-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      position: relative;
-      z-index: 2;
-    }
-
-    .slot-icon-dot {
-      width: 14px;
-      height: 14px;
-      border-radius: 50%;
-      flex-shrink: 0;
-      margin-left: 11px;
-      border: 3px solid #fff;
-      box-shadow: 0 0 0 2px rgba(0,0,0,0.15);
-    }
-    .dot-start { background-color: #00d2d3; }
-    .dot-via { background-color: #a55eea; border-radius: 2px; transform: rotate(45deg); }
-    .dot-dest { background-color: #26de81; }
-
-    .slot-input-box {
-      flex: 1;
-      background: #f4f6fa;
-      border: 1.5px solid #e2e7f0;
-      border-radius: 14px;
-      padding: 6px 12px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      position: relative;
-      transition: border-color 0.2s ease, background 0.2s ease;
-    }
-    .slot-input-box:focus-within {
-      border-color: #00d2d3;
-      background: #ffffff;
-      box-shadow: 0 0 0 3px rgba(0, 210, 211, 0.15);
-    }
-
-    .slot-input-field {
-      flex: 1;
-      border: none;
-      background: transparent;
-      font-size: 14px;
-      font-weight: 700;
-      color: #1e293b;
-      outline: none;
-      user-select: text;
-    }
-    .slot-input-field::placeholder {
-      color: #94a3b8;
-      font-weight: 500;
-    }
-
-    .slot-autocomplete-dropdown {
-      position: absolute;
-      top: calc(100% + 4px);
-      left: 0;
-      right: 0;
-      background: #ffffff;
-      border: 1px solid #e2e8f0;
-      border-radius: 14px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.18);
-      z-index: 120;
-      max-height: 180px;
-      overflow-y: auto;
-      display: none;
-    }
-
-    .slot-auto-item {
-      padding: 10px 14px;
-      font-size: 13px;
-      color: #334155;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      cursor: pointer;
-      border-bottom: 1px solid #f1f5f9;
-    }
-    .slot-auto-item:hover {
-      background: #f8fafc;
-      color: #009cb2;
-    }
-
-    .slot-controls {
-      display: flex;
-      align-items: center;
-      gap: 2px;
-    }
-
-    .btn-slot-move {
-      border: none;
-      background: none;
-      cursor: pointer;
-      font-size: 11px;
-      color: #888;
-      padding: 2px 4px;
-    }
-
-    .btn-slot-del {
-      border: none;
-      background: none;
-      cursor: pointer;
-      font-size: 13px;
-      color: #9aa2b1;
-      padding: 2px 4px;
-    }
-
-    .btn-swap-points {
-      width: 36px;
-      height: 36px;
-      background: #f1f4f9;
-      border: 1px solid #e0e5ed;
-      border-radius: 50%;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 16px;
-      color: #4b5563;
-      flex-shrink: 0;
-      margin-top: 5px;
-      transition: transform 0.25s ease;
-    }
-    .btn-swap-points:active { transform: rotate(180deg); }
-
-    .route-result-section {
-      background: #f8fafc;
-      border-top: 1px solid #edf2f7;
-      padding: 14px 16px 18px 16px;
-      display: none;
-      flex-direction: column;
-      gap: 12px;
-      animation: fadeIn 0.3s ease;
-      border-bottom-left-radius: 28px;
-      border-bottom-right-radius: 28px;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    .transport-tabs-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 8px;
-    }
-
-    .trans-card {
-      background: #ffffff;
-      border: 1px solid #e5e9f0;
-      border-radius: 16px;
-      padding: 10px 8px;
-      text-align: center;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-
-    .trans-card.active {
-      background: #e0f9ff;
-      border-color: #00c6e0;
-      box-shadow: 0 4px 12px rgba(0, 198, 224, 0.2);
-    }
-
-    .trans-header {
-      font-size: 12px;
-      font-weight: 700;
-      color: #555;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 4px;
-      margin-bottom: 2px;
-    }
-
-    .trans-tag {
-      background: #111;
-      color: #fff;
-      font-size: 9px;
-      padding: 1px 4px;
-      border-radius: 4px;
-    }
-
-    .trans-time {
-      font-size: 18px;
-      font-weight: 800;
-      color: #111;
-    }
-
-    .trans-sub {
-      font-size: 10px;
-      color: #8892a0;
-      margin-top: 2px;
-    }
-
-    .route-options-title {
-      font-size: 12px;
-      font-weight: 700;
-      color: #64748b;
-      display: flex;
-      justify-content: space-between;
-      margin-top: 2px;
-    }
-
-    .route-options-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 8px;
-    }
-
-    .option-btn-card {
-      background: #ffffff;
-      border: 1px solid #e2e8f0;
-      border-radius: 16px;
-      padding: 10px 8px;
-      cursor: pointer;
-      position: relative;
-      transition: all 0.2s ease;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      height: 82px;
-    }
-
-    .option-btn-card.selected {
-      background: #e9d5ff;
-      border-color: #a855f7;
-    }
-
-    .opt-icon-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .opt-icon {
-      width: 24px;
-      height: 24px;
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 13px;
-    }
-    .icon-stairs { background: #e0f2fe; color: #0284c7; }
-    .icon-calm { background: #f3e8ff; color: #9333ea; }
-    .icon-fast { background: #dcfce7; color: #16a34a; }
-
-    .opt-check {
-      width: 14px;
-      height: 14px;
-      border-radius: 50%;
-      border: 1.5px solid #cbd5e1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 9px;
-      color: white;
-    }
-    .option-btn-card.selected .opt-check {
-      background: #111;
-      border-color: #111;
-    }
-
-    .opt-title {
-      font-size: 12px;
-      font-weight: 800;
-      color: #1e293b;
-      margin-top: 4px;
-    }
-
-    .opt-desc {
-      font-size: 9.5px;
-      color: #64748b;
-    }
-
-    /* 3. 실내 지도 화면 */
+    /* 2. 실내 지도 화면 UI */
     #indoor-view {
       background: #181a20;
       display: flex;
       flex-direction: column;
       z-index: 150;
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
     }
 
     .indoor-header {
@@ -718,7 +307,7 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      z-index: 40;
+      z-index: 50;
     }
 
     .btn-back {
@@ -739,13 +328,27 @@
     .indoor-title { font-size: 17px; font-weight: 700; }
     .indoor-sub { font-size: 12px; color: var(--text-sub); }
 
+    .btn-indoor-route {
+      background: linear-gradient(135deg, #00d2d3, #00b894);
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 14px;
+      font-size: 12px;
+      font-weight: 800;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
     .indoor-controls {
       position: absolute;
-      top: 120px;
+      top: 110px;
       left: 18px;
       display: flex;
       flex-direction: column;
-      gap: 14px;
+      gap: 12px;
       z-index: 50;
     }
 
@@ -807,6 +410,7 @@
       color: #ffffff;
     }
 
+    /* 실내 2D 캔버스 영역 */
     #indoor-2d-canvas {
       position: absolute;
       top: 0;
@@ -817,6 +421,20 @@
       justify-content: center;
       align-items: center;
       z-index: 10;
+      touch-action: none;
+    }
+
+    #indoor-svg-wrap {
+      width: 360px;
+      height: 520px;
+      position: relative;
+    }
+
+    #indoor-svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+      cursor: crosshair;
     }
 
     #three-container {
@@ -829,7 +447,135 @@
       display: none;
     }
 
-    /* 4. 하단 공통 검색바 */
+    /* 실내 핑(Marker) 아이콘 스타일 */
+    .indoor-pin-marker {
+      position: absolute;
+      transform: translate(-50%, -100%);
+      cursor: pointer;
+      z-index: 30;
+      filter: drop-shadow(0 4px 8px rgba(0,0,0,0.4));
+      transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    .indoor-pin-marker:hover, .indoor-pin-marker:active {
+      transform: translate(-50%, -115%) scale(1.15);
+    }
+
+    /* 핑 등록 및 상세 모달 */
+    .pin-modal {
+      position: absolute;
+      bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+      left: 18px;
+      right: 18px;
+      background: #ffffff;
+      color: #1e2430;
+      border-radius: 24px;
+      padding: 18px;
+      z-index: 80;
+      display: none;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+      flex-direction: column;
+      gap: 10px;
+      animation: slideUp 0.3s ease;
+    }
+
+    .pin-modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .pin-modal-title {
+      font-size: 16px;
+      font-weight: 800;
+    }
+
+    .pin-input {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1px solid #cbd5e1;
+      border-radius: 12px;
+      font-size: 14px;
+      outline: none;
+      user-select: text;
+    }
+
+    .pin-textarea {
+      width: 100%;
+      height: 60px;
+      padding: 9px 12px;
+      border: 1px solid #cbd5e1;
+      border-radius: 12px;
+      font-size: 13px;
+      outline: none;
+      resize: none;
+      user-select: text;
+    }
+
+    .pin-img-preview {
+      width: 100%;
+      max-height: 120px;
+      object-fit: cover;
+      border-radius: 12px;
+      display: none;
+    }
+
+    .pin-btn-group {
+      display: flex;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .btn-pin-action {
+      flex: 1;
+      padding: 10px;
+      border-radius: 12px;
+      border: none;
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .btn-pin-save { background: #00b894; color: white; }
+    .btn-pin-route { background: #0984e3; color: white; }
+    .btn-pin-delete { background: #ff7675; color: white; }
+
+    /* 실내 전용 길찾기 패널 (실내 지도 상단) */
+    .indoor-navigation-card {
+      position: absolute;
+      top: 96px;
+      left: 14px;
+      right: 14px;
+      background: #ffffff;
+      color: #1e2430;
+      border-radius: 24px;
+      box-shadow: 0 16px 36px rgba(0,0,0,0.35);
+      z-index: 70;
+      display: none;
+      flex-direction: column;
+      padding: 16px;
+      gap: 12px;
+      animation: slideDown 0.3s ease;
+    }
+
+    .indoor-nav-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: 800;
+      font-size: 15px;
+    }
+
+    .indoor-route-summary {
+      background: #f1f5f9;
+      padding: 12px;
+      border-radius: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .indoor-route-time { font-size: 22px; font-weight: 900; color: #00b894; }
+    .indoor-route-dist { font-size: 13px; font-weight: 700; color: #64748b; }
+
+    /* 하단 검색바 공통 스타일 */
     .bottom-search-wrapper {
       position: absolute;
       bottom: calc(20px + env(safe-area-inset-bottom, 0px));
@@ -862,7 +608,6 @@
       outline: none;
       user-select: text;
     }
-
     .search-input::placeholder { color: #636b7c; }
 
     .clear-search-btn {
@@ -876,25 +621,9 @@
       margin-right: 4px;
     }
 
-    .ai-btn {
-      border: none;
-      background: linear-gradient(135deg, #00c6ff, #9d50bb, #f72585);
-      border-radius: 50%;
-      width: 44px;
-      height: 44px;
-      color: white;
-      font-weight: 800;
-      font-size: 14px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 0 16px rgba(157, 80, 187, 0.6);
-    }
-
     .search-suggestions {
       position: absolute;
-      bottom: 74px;
+      bottom: 70px;
       left: 0;
       right: 0;
       background: var(--card-bg);
@@ -903,12 +632,13 @@
       border-radius: 20px;
       overflow: hidden;
       display: none;
-      max-height: 240px;
+      max-height: 220px;
       overflow-y: auto;
+      z-index: 110;
     }
 
     .suggestion-item {
-      padding: 13px 18px;
+      padding: 12px 18px;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -916,9 +646,7 @@
       border-bottom: 1px solid rgba(255, 255, 255, 0.05);
       font-size: 14px;
     }
-
     .suggestion-item:hover { background: rgba(255, 255, 255, 0.08); }
-    .suggestion-left { display: flex; align-items: center; gap: 8px; }
     .suggestion-badge { font-size: 10px; padding: 1px 6px; border-radius: 6px; color: white; }
   </style>
 </head>
@@ -943,22 +671,6 @@
             <circle cx="192" cy="192" r="75" fill="#ffffff"/>
             <circle cx="192" cy="192" r="45" fill="#00e5ff"/>
           </svg>
-
-          <!-- 출발 전용 핀 (완전 불투명) -->
-          <svg id="pin-start" class="map-pin" width="42" height="56" viewBox="0 0 384 512" style="z-index: 45; filter: drop-shadow(0 6px 12px rgba(0,0,0,0.55));">
-            <path fill="#00b894" stroke="#ffffff" stroke-width="16" stroke-linejoin="round" d="M172.268 501.67C26.97 291.031 0 269.413 0 192 0 85.961 86.039 0 192 0s192 85.961 192 192c0 77.413-26.97 99.031-172.268 309.67-9.535 13.774-29.93 13.773-39.464 0z"/>
-            <circle cx="192" cy="192" r="85" fill="#ffffff"/>
-            <text x="192" y="222" font-size="88" font-weight="900" fill="#00b894" text-anchor="middle" dominant-baseline="central" font-family="-apple-system, Pretendard, sans-serif">출</text>
-          </svg>
-
-          <!-- 도착 전용 핀 (완전 불투명) -->
-          <svg id="pin-dest" class="map-pin" width="42" height="56" viewBox="0 0 384 512" style="z-index: 46; filter: drop-shadow(0 6px 12px rgba(0,0,0,0.55));">
-            <path fill="#ff4757" stroke="#ffffff" stroke-width="16" stroke-linejoin="round" d="M172.268 501.67C26.97 291.031 0 269.413 0 192 0 85.961 86.039 0 192 0s192 85.961 192 192c0 77.413-26.97 99.031-172.268 309.67-9.535 13.774-29.93 13.773-39.464 0z"/>
-            <circle cx="192" cy="192" r="85" fill="#ffffff"/>
-            <text x="192" y="222" font-size="88" font-weight="900" fill="#ff4757" text-anchor="middle" dominant-baseline="central" font-family="-apple-system, Pretendard, sans-serif">도</text>
-          </svg>
-
-          <div id="via-pins-container"></div>
         </div>
       </div>
 
@@ -968,119 +680,7 @@
         <button class="btn-zoom" onclick="zoomManual(-0.25)">−</button>
       </div>
 
-      <!-- 상단 길찾기 플래너 패널 -->
-      <div class="route-planning-card" id="route-planning-card">
-        <div class="route-header">
-          <div class="route-header-left">
-            <button class="btn-route-back" onclick="event.stopPropagation(); closeRoutePlanning();">‹</button>
-            <div class="route-title">길찾기</div>
-          </div>
-          <div class="route-header-right">
-            <button class="btn-add-via" onclick="addViaSlot()">+ 경유</button>
-          </div>
-        </div>
-
-        <div class="route-slots-wrap">
-          <div class="route-slots-list" id="route-slots-list">
-            <!-- 출발 슬롯 -->
-            <div class="route-slot-row" id="slot-row-start">
-              <div class="slot-icon-dot dot-start"></div>
-              <div class="slot-input-box">
-                <input type="text" class="slot-input-field" id="input-slot-start" placeholder="출발역 검색 또는 입력..." 
-                       onfocus="setActiveSlot('start')" oninput="onSlotSearchInput('start', this.value)">
-                <div class="slot-autocomplete-dropdown" id="dropdown-slot-start"></div>
-                <span style="font-size:11px; color:#888; margin-left:4px;">출발</span>
-              </div>
-            </div>
-
-            <div id="dynamic-via-slots" style="display:contents;"></div>
-
-            <!-- 도착 슬롯 -->
-            <div class="route-slot-row" id="slot-row-dest">
-              <div class="slot-icon-dot dot-dest"></div>
-              <div class="slot-input-box">
-                <input type="text" class="slot-input-field" id="input-slot-dest" placeholder="도착역 검색 또는 입력..." 
-                       onfocus="setActiveSlot('dest')" oninput="onSlotSearchInput('dest', this.value)">
-                <div class="slot-autocomplete-dropdown" id="dropdown-slot-dest"></div>
-                <span style="font-size:11px; color:#888; margin-left:4px;">도착</span>
-              </div>
-            </div>
-          </div>
-
-          <button class="btn-swap-points" onclick="swapStartAndDest()" title="출발·도착 반전">⇅</button>
-        </div>
-
-        <!-- 하단 경로 결과 및 옵션 -->
-        <div class="route-result-section" id="route-result-section">
-          <div class="transport-tabs-row">
-            <div class="trans-card active" id="tab-subway" onclick="setTransportMode('subway')">
-              <div class="trans-header">
-                <span>🚇 지하철</span>
-                <span class="trans-tag">최단</span>
-              </div>
-              <div class="trans-time" id="val-time-subway">--분</div>
-              <div class="trans-sub" id="val-sub-subway">환승 1회</div>
-            </div>
-
-            <div class="trans-card" id="tab-bus" onclick="setTransportMode('bus')">
-              <div class="trans-header">
-                <span>🚌 버스</span>
-              </div>
-              <div class="trans-time" id="val-time-bus">--분</div>
-              <div class="trans-sub" id="val-sub-bus">환승 1회</div>
-            </div>
-
-            <div class="trans-card" id="tab-walk" onclick="setTransportMode('walk')">
-              <div class="trans-header">
-                <span>🚶 도보</span>
-              </div>
-              <div class="trans-time" id="val-time-walk">--분</div>
-              <div class="trans-sub" id="val-sub-walk">--km</div>
-            </div>
-          </div>
-
-          <div class="route-options-title">
-            <span>경로 옵션</span>
-          </div>
-
-          <div class="route-options-grid">
-            <div class="option-btn-card" id="opt-stairs" onclick="toggleRouteOption('stairs')">
-              <div class="opt-icon-row">
-                <div class="opt-icon icon-stairs">🛗</div>
-                <div class="opt-check">✓</div>
-              </div>
-              <div>
-                <div class="opt-title">계단 없는 길</div>
-                <div class="opt-desc">엘리베이터 위주</div>
-              </div>
-            </div>
-
-            <div class="option-btn-card selected" id="opt-calm" onclick="toggleRouteOption('calm')">
-              <div class="opt-icon-row">
-                <div class="opt-icon icon-calm">👥</div>
-                <div class="opt-check">✓</div>
-              </div>
-              <div>
-                <div class="opt-title">한산한 길</div>
-                <div class="opt-desc">혼잡한 역 피하기</div>
-              </div>
-            </div>
-
-            <div class="option-btn-card" id="opt-fast" onclick="toggleRouteOption('fast')">
-              <div class="opt-icon-row">
-                <div class="opt-icon icon-fast">⚡</div>
-                <div class="opt-check">✓</div>
-              </div>
-              <div>
-                <div class="opt-title">최단 시간</div>
-                <div class="opt-desc">가장 빠른 경로</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 역 선택 팝업 카드 -->
+      <!-- 역 선택 정보 팝업 카드 (길안내 버튼 제거, 상세 보기 단독 구성) -->
       <div class="station-popup-card" id="station-card">
         <div class="card-header">
           <div class="station-title-box">
@@ -1090,39 +690,33 @@
           <button class="btn-close-card" onclick="event.stopPropagation(); deselectStation();">✕</button>
         </div>
 
-        <div class="route-action-group">
-          <button class="btn-route-action btn-start" onclick="event.stopPropagation(); assignRouteFromCard('start');">출발</button>
-          <button class="btn-route-action btn-via" onclick="event.stopPropagation(); assignRouteFromCard('via');">경유</button>
-          <button class="btn-route-action btn-dest" onclick="event.stopPropagation(); assignRouteFromCard('dest');">도착</button>
-        </div>
-
         <button class="btn-detail" onclick="enterIndoorView()">
           <span>실내 지도 자세히 보기</span>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
         </button>
       </div>
 
-      <!-- 하단 공통 검색바 -->
-      <div class="bottom-search-wrapper" id="bottom-search-wrapper">
+      <!-- 노선도 하단 역 검색바 -->
+      <div class="bottom-search-wrapper" id="main-search-wrapper">
         <span class="search-icon">🔍</span>
-        <input type="text" id="search-box" class="search-input" placeholder="길찾기를 도와드릴 까요?" oninput="onSearchInput(this.value)">
-        <button class="clear-search-btn" id="clear-search" onclick="event.stopPropagation(); clearSearchInput();">✕</button>
-        <button class="ai-btn" onclick="triggerAI()">AI</button>
-        <div class="search-suggestions" id="suggestions"></div>
+        <input type="text" id="main-search-box" class="search-input" placeholder="어떤 역을 찾으시나요?" oninput="onMainSearchInput(this.value)">
+        <button class="clear-search-btn" id="main-clear-search" onclick="event.stopPropagation(); clearMainSearch();">✕</button>
+        <div class="search-suggestions" id="main-suggestions"></div>
       </div>
-    </div> <!-- #main-view 닫힘 -->
+    </div>
 
-    <!-- 2. 실내 지도 화면 (처음에는 숨김) -->
+    <!-- 2. 실내 지도 화면 -->
     <div id="indoor-view" class="view hidden">
       <div class="indoor-header">
         <button class="btn-back" onclick="exitIndoorView()">‹</button>
         <div class="indoor-title-wrap">
           <div class="indoor-title" id="indoor-title-text">지하철 실내 지도</div>
-          <div class="indoor-sub">(Subway Indoor Map)</div>
+          <div class="indoor-sub">원하는 위치를 클릭하여 핑을 찍어보세요</div>
         </div>
-        <div style="width:38px;"></div>
+        <button class="btn-indoor-route" onclick="openIndoorNavigation()">길안내</button>
       </div>
 
+      <!-- 좌측 2D/3D 토글 및 층수 선택기 -->
       <div class="indoor-controls">
         <div class="toggle-mode">
           <button class="toggle-btn active" id="btn-2d" onclick="setIndoorMode('2D')">2D</button>
@@ -1131,29 +725,103 @@
         <div class="floor-selector" id="floor-list"></div>
       </div>
 
+      <!-- 2D 실내 평면도 및 핑 컨테이너 -->
       <div id="indoor-2d-canvas">
-        <svg width="340" height="420" viewBox="0 0 340 420">
-          <g fill="#434955" stroke="#252a34" stroke-width="3">
-            <rect x="120" y="40" width="100" height="340" rx="8"/>
-            <rect x="40" y="160" width="260" height="100" rx="8"/>
-          </g>
-          <g fill="#2e3440">
-            <rect x="130" y="50" width="80" height="320"/>
-            <rect x="50" y="170" width="240" height="80"/>
-          </g>
-          <g transform="translate(85, 205)"><circle r="12" fill="#ff4757"/><text y="-18" text-anchor="middle" fill="#fff" font-size="11">화장실</text></g>
-          <g transform="translate(170, 210)"><circle r="14" fill="#1e90ff"/><text y="-20" text-anchor="middle" fill="#fff" font-size="11">개찰구</text></g>
-          <g transform="translate(255, 205)"><circle r="12" fill="#2ed573"/><text y="-18" text-anchor="middle" fill="#fff" font-size="11">1번 출구</text></g>
-        </svg>
+        <div id="indoor-svg-wrap">
+          <svg id="indoor-svg" viewBox="0 0 360 520">
+            <!-- 역사 베이스 구조 (대합실 복도) -->
+            <g fill="#2e3440" stroke="#1c202a" stroke-width="3">
+              <rect x="130" y="40" width="100" height="440" rx="12"/>
+              <rect x="40" y="200" width="280" height="120" rx="12"/>
+            </g>
+
+            <!-- 주요 시설물 (게이트/출구/편의시설) -->
+            <g id="indoor-fixtures">
+              <!-- 승강장 게이트 -->
+              <rect x="145" y="60" width="70" height="30" rx="6" fill="#00a84d"/>
+              <text x="180" y="80" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">2호선 탑승게이트</text>
+
+              <rect x="145" y="430" width="70" height="30" rx="6" fill="#d4003b"/>
+              <text x="180" y="450" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">신분당선 게이트</text>
+
+              <!-- 출구 -->
+              <circle cx="65" cy="260" r="14" fill="#2ed573"/>
+              <text x="65" y="264" text-anchor="middle" fill="#fff" font-size="10" font-weight="800">1번</text>
+
+              <circle cx="295" cy="260" r="14" fill="#2ed573"/>
+              <text x="295" y="264" text-anchor="middle" fill="#fff" font-size="10" font-weight="800">2번</text>
+
+              <!-- 개찰구 & 화장실 -->
+              <circle cx="180" cy="260" r="16" fill="#0984e3"/>
+              <text x="180" y="264" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">개찰구</text>
+
+              <circle cx="180" cy="350" r="14" fill="#ff7675"/>
+              <text x="180" y="354" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">화장실</text>
+
+              <!-- 내 위치 표시 점 -->
+              <circle cx="65" cy="290" r="7" fill="#00e5ff" stroke="#fff" stroke-width="2"/>
+              <text x="65" y="312" text-anchor="middle" fill="#00e5ff" font-size="11" font-weight="800">내 위치</text>
+            </g>
+
+            <!-- 실내 길안내 경로선 (SVG Dash Line) -->
+            <path id="indoor-path-line" d="" fill="none" stroke="#00e5ff" stroke-width="4" stroke-dasharray="6,4" stroke-linecap="round" style="display:none;"/>
+          </svg>
+
+          <!-- 유저가 등록한 핑(Marker) DOM 컨테이너 -->
+          <div id="indoor-pins-layer"></div>
+        </div>
       </div>
 
+      <!-- 3D 뷰 캔버스 -->
       <div id="three-container"></div>
-    </div> <!-- #indoor-view 닫힘 -->
-  </div> <!-- .phone-container 닫힘 -->
+
+      <!-- 실내 전용 길안내 상단 패널 -->
+      <div class="indoor-navigation-card" id="indoor-nav-card">
+        <div class="indoor-nav-header">
+          <span>🚶 실내 길안내 경로</span>
+          <button style="border:none; background:none; font-size:16px; cursor:pointer;" onclick="closeIndoorNavigation()">✕</button>
+        </div>
+        <div class="indoor-route-summary">
+          <div>
+            <div style="font-size:11px; color:#64748b; font-weight:700;">내 위치 ➔ <span id="nav-target-name">목적지</span></div>
+            <div class="indoor-route-time" id="nav-time-text">1분 소요</div>
+          </div>
+          <div class="indoor-route-dist" id="nav-dist-text">약 45m</div>
+        </div>
+      </div>
+
+      <!-- 핑 등록 및 상세 보기 모달 -->
+      <div class="pin-modal" id="pin-modal">
+        <div class="pin-modal-header">
+          <span class="pin-modal-title" id="pin-modal-title">새로운 장소 핑 등록</span>
+          <button style="border:none; background:none; font-size:16px; cursor:pointer;" onclick="closePinModal()">✕</button>
+        </div>
+        <input type="text" class="pin-input" id="pin-title-input" placeholder="장소 이름 (예: 물품보관함, 만남의 장소)">
+        <textarea class="pin-textarea" id="pin-desc-input" placeholder="장소 설명이나 메모를 남겨주세요."></textarea>
+        
+        <input type="file" id="pin-file-input" accept="image/*" style="font-size:12px;" onchange="handlePinImageUpload(event)">
+        <img id="pin-modal-preview" class="pin-img-preview" alt="장소 사진">
+
+        <div class="pin-btn-group">
+          <button class="btn-pin-action btn-pin-save" id="btn-save-pin" onclick="saveCurrentPin()">핑 저장하기</button>
+          <button class="btn-pin-action btn-pin-route" id="btn-route-pin" style="display:none;" onclick="startRouteToCurrentPin()">여기로 길안내</button>
+          <button class="btn-pin-action btn-pin-delete" id="btn-delete-pin" style="display:none;" onclick="deleteCurrentPin()">삭제</button>
+        </div>
+      </div>
+
+      <!-- 실내 핑 전용 하단 검색바 -->
+      <div class="bottom-search-wrapper" id="indoor-search-wrapper">
+        <span class="search-icon">📍</span>
+        <input type="text" id="indoor-search-box" class="search-input" placeholder="이 역의 핑 및 시설물 검색..." oninput="onIndoorSearchInput(this.value)">
+        <button class="clear-search-btn" id="indoor-clear-search" onclick="clearIndoorSearch()">✕</button>
+        <div class="search-suggestions" id="indoor-suggestions"></div>
+      </div>
+    </div>
+  </div>
 
   <script>
     /* ========================================================
-       호선 배지 색상 매핑 유틸리티
+       호선 배지 색상 매핑
     ======================================================== */
     function getLineBadgeClass(lineName) {
       if (lineName.includes("01") || lineName.includes("1호")) return "badge-line-1";
@@ -1188,30 +856,19 @@
     }
 
     /* ========================================================
-       데이터 로딩 및 정제
+       1. 노선도 및 역 데이터 엔진
     ======================================================== */
     const MAP_SIZE = 2000;
     let STATIONS_LIST = [];
-
     let currentSelectedStation = null;
-    let currentIndoorMode = "2D";
-    let activeFloor = "B1";
 
     const metroContainer = document.getElementById("metro-container");
     const mapWrapper = document.getElementById("map-wrapper");
     const pinGeneral = document.getElementById("pin-general");
-    const pinStart = document.getElementById("pin-start");
-    const pinDest = document.getElementById("pin-dest");
-    const viaPinsContainer = document.getElementById("via-pins-container");
-
     const stationCard = document.getElementById("station-card");
-    const searchBox = document.getElementById("search-box");
-    const clearSearchBtn = document.getElementById("clear-search");
-    const suggestions = document.getElementById("suggestions");
-    const routePlanningCard = document.getElementById("route-planning-card");
-    const routeResultSection = document.getElementById("route-result-section");
-    const dynamicViaSlots = document.getElementById("dynamic-via-slots");
-    const bottomSearchWrapper = document.getElementById("bottom-search-wrapper");
+    const mainSearchBox = document.getElementById("main-search-box");
+    const mainClearSearch = document.getElementById("main-clear-search");
+    const mainSuggestions = document.getElementById("main-suggestions");
 
     function cleanStationName(rawName) {
       return rawName.replace(/['"{}\[\]*~`.,:;!?^]/g, "").trim();
@@ -1220,37 +877,27 @@
     async function initStations() {
       try {
         const response = await fetch("stations.json?v=" + Date.now());
-        if (!response.ok) throw new Error("stations.json 파일을 찾을 수 없습니다.");
+        if (!response.ok) throw new Error("stations.json 로드 실패");
         const rawStations = await response.json();
 
         STATIONS_LIST = Object.entries(rawStations).map(([key, data]) => {
           const pure = cleanStationName(data.queryTerm || data.name || key).replace(/역$/, "");
-          const fullName = pure + "역";
-
           return {
-            name: fullName,
+            name: pure + "역",
             queryTerm: pure,
             x: data.x,
             y: data.y,
-            lines: data.lines || ["수도권전철"],
-            isSnapped: data.is_circle_snapped || false
+            lines: data.lines || ["수도권전철"]
           };
         });
 
-        console.log(`역 데이터 로드 완료: 총 ${STATIONS_LIST.length}개 역`);
-
         const seoul = STATIONS_LIST.find(s => s.queryTerm === "서울" || s.name === "서울역");
-        if (seoul) {
-          panToStation(seoul.x, seoul.y, 1.0);
-        }
+        if (seoul) panToStation(seoul.x, seoul.y, 1.0);
       } catch (err) {
         console.warn("데이터 로드 실패:", err);
       }
     }
 
-    /* ========================================================
-       역 개별 선택 및 기본 핀 고정
-    ======================================================== */
     function selectStation(stationObj) {
       currentSelectedStation = stationObj;
 
@@ -1264,8 +911,7 @@
       const badgeContainer = document.getElementById("card-station-badges");
       badgeContainer.innerHTML = "";
 
-      const lines = stationObj.lines || [];
-      lines.forEach(line => {
+      (stationObj.lines || []).forEach(line => {
         const span = document.createElement("span");
         span.className = `badge ${getLineBadgeClass(line)}`;
         span.innerText = formatLineName(line);
@@ -1273,292 +919,60 @@
       });
 
       stationCard.style.display = "block";
-      searchBox.value = stationObj.name;
-      clearSearchBtn.style.display = "block";
-      suggestions.style.display = "none";
+      mainSearchBox.value = stationObj.name;
+      mainClearSearch.style.display = "block";
+      mainSuggestions.style.display = "none";
     }
 
     function deselectStation() {
       currentSelectedStation = null;
       pinGeneral.style.display = "none";
       stationCard.style.display = "none";
-      searchBox.value = "";
-      clearSearchBtn.style.display = "none";
-      suggestions.style.display = "none";
+      mainSearchBox.value = "";
+      mainClearSearch.style.display = "none";
+      mainSuggestions.style.display = "none";
     }
 
-    /* ========================================================
-       길찾기 플래너 엔진
-    ======================================================== */
-    let ROUTE_DATA = {
-      start: null,
-      vias: [],
-      dest: null
-    };
-
-    let currentRouteOption = 'calm';
-    let currentTransportMode = 'subway';
-    let activeSlotType = "dest";
-
-    function setActiveSlot(slotType) {
-      activeSlotType = slotType;
-    }
-
-    function onSlotSearchInput(slotType, query) {
-      setActiveSlot(slotType);
+    function onMainSearchInput(query) {
       const q = cleanStationName(query.trim().toLowerCase()).replace(/역$/, "");
-      const dropdownId = typeof slotType === 'number' ? `dropdown-slot-via-${slotType}` : `dropdown-slot-${slotType}`;
-      const dropdown = document.getElementById(dropdownId);
-      if (!dropdown) return;
-
       if (!q) {
-        dropdown.style.display = "none";
+        mainSuggestions.style.display = "none";
+        mainClearSearch.style.display = "none";
         return;
       }
 
-      dropdown.innerHTML = "";
+      mainClearSearch.style.display = "block";
+      mainSuggestions.innerHTML = "";
+
       const matched = STATIONS_LIST.filter(st => st.queryTerm.toLowerCase().includes(q) || st.name.toLowerCase().includes(q));
 
       if (matched.length === 0) {
-        dropdown.innerHTML = `<div style="padding:10px 14px; color:#94a3b8; font-size:12px;">일치하는 역이 없습니다.</div>`;
+        mainSuggestions.innerHTML = `<div style="padding:16px; text-align:center; color:#8e95a5; font-size:13px;">일치하는 역이 없습니다.</div>`;
       } else {
-        matched.slice(0, 6).forEach(st => {
+        matched.slice(0, 8).forEach(st => {
           const item = document.createElement("div");
-          item.className = "slot-auto-item";
-          const line = st.lines[0] || "";
+          item.className = "suggestion-item";
+          const primaryLine = st.lines[0] || "";
           item.innerHTML = `
             <span><strong>${st.name}</strong></span>
-            <span class="suggestion-badge ${getLineBadgeClass(line)}">${formatLineName(line)}</span>
+            <span class="suggestion-badge ${getLineBadgeClass(primaryLine)}">${formatLineName(primaryLine)}</span>
           `;
-          item.onclick = (e) => {
-            e.stopPropagation();
-            assignStationToSlot(slotType, st);
-            dropdown.style.display = "none";
-          };
-          dropdown.appendChild(item);
+          item.onclick = () => selectStation(st);
+          mainSuggestions.appendChild(item);
         });
       }
-      dropdown.style.display = "block";
+      mainSuggestions.style.display = "block";
     }
 
-    function assignStationToSlot(slotType, stationObj) {
-      if (slotType === "start") {
-        ROUTE_DATA.start = { ...stationObj };
-      } else if (slotType === "dest") {
-        ROUTE_DATA.dest = { ...stationObj };
-      } else if (typeof slotType === "number") {
-        ROUTE_DATA.vias[slotType] = { ...stationObj };
-      }
-
-      panToStation(stationObj.x, stationObj.y, 1.25);
-      renderRouteUI();
-    }
-
-    function assignRouteFromCard(type) {
-      if (!currentSelectedStation) return;
-
-      if (type === "start") {
-        ROUTE_DATA.start = { ...currentSelectedStation };
-        activeSlotType = "dest";
-      } else if (type === "dest") {
-        ROUTE_DATA.dest = { ...currentSelectedStation };
-      } else if (type === "via") {
-        const alreadyExists = ROUTE_DATA.vias.some(v => v.name === currentSelectedStation.name);
-        if (!alreadyExists) {
-          ROUTE_DATA.vias.push({ ...currentSelectedStation });
-        }
-      }
-
-      stationCard.style.display = "none";
-      pinGeneral.style.display = "none";
-      openRoutePlanning();
-      renderRouteUI();
-    }
-
-    function openRoutePlanning() {
-      routePlanningCard.style.display = "flex";
-      bottomSearchWrapper.style.display = "none";
-    }
-    
-    function closeRoutePlanning() {
-      routePlanningCard.style.display = "none";
-      bottomSearchWrapper.style.display = "flex";
-
-      pinStart.style.display = "none";
-      pinDest.style.display = "none";
-      pinGeneral.style.display = "none";
-
-      viaPinsContainer.innerHTML = "";
-      dynamicViaSlots.innerHTML = "";
-
-      const startInput = document.getElementById("input-slot-start");
-      const destInput = document.getElementById("input-slot-dest");
-      if (startInput) startInput.value = "";
-      if (destInput) destInput.value = "";
-      routeResultSection.style.display = "none";
-
-      document.querySelectorAll(".slot-autocomplete-dropdown").forEach(el => el.style.display = "none");
-
-      ROUTE_DATA = {
-        start: null,
-        vias: [],
-        dest: null
-      };
-    }
-
-    function renderRouteUI() {
-      const startInput = document.getElementById("input-slot-start");
-      if (ROUTE_DATA.start) {
-        startInput.value = ROUTE_DATA.start.name;
-        pinStart.style.left = `${ROUTE_DATA.start.x}px`;
-        pinStart.style.top = `${ROUTE_DATA.start.y}px`;
-        pinStart.style.display = "block";
-      } else {
-        startInput.value = "";
-        pinStart.style.display = "none";
-      }
-
-      const destInput = document.getElementById("input-slot-dest");
-      if (ROUTE_DATA.dest) {
-        destInput.value = ROUTE_DATA.dest.name;
-        pinDest.style.left = `${ROUTE_DATA.dest.x}px`;
-        pinDest.style.top = `${ROUTE_DATA.dest.y}px`;
-        pinDest.style.display = "block";
-      } else {
-        destInput.value = "";
-        pinDest.style.display = "none";
-      }
-
-      dynamicViaSlots.innerHTML = "";
-      viaPinsContainer.innerHTML = "";
-
-      ROUTE_DATA.vias.forEach((viaObj, idx) => {
-        const slotEl = document.createElement("div");
-        slotEl.className = "route-slot-row";
-        slotEl.innerHTML = `
-          <div class="slot-icon-dot dot-via"></div>
-          <div class="slot-input-box">
-            <input type="text" class="slot-input-field" id="input-slot-via-${idx}" value="${viaObj.name || ''}" 
-                   placeholder="경유역 ${idx+1} 검색 또는 입력..."
-                   onfocus="setActiveSlot(${idx})" oninput="onSlotSearchInput(${idx}, this.value)">
-            <div class="slot-autocomplete-dropdown" id="dropdown-slot-via-${idx}"></div>
-            <div class="slot-controls">
-              ${idx > 0 ? `<button class="btn-slot-move" onclick="moveVia(${idx}, -1)">▲</button>` : ''}
-              ${idx < ROUTE_DATA.vias.length - 1 ? `<button class="btn-slot-move" onclick="moveVia(${idx}, 1)">▼</button>` : ''}
-              <button class="btn-slot-del" onclick="removeVia(${idx})">✕</button>
-            </div>
-          </div>
-        `;
-        dynamicViaSlots.appendChild(slotEl);
-
-        if (viaObj.x && viaObj.y) {
-          const viaPin = document.createElement("div");
-          viaPin.className = "map-pin";
-          viaPin.style.left = `${viaObj.x}px`;
-          viaPin.style.top = `${viaObj.y}px`;
-          viaPin.style.display = "block";
-          viaPin.style.zIndex = "44";
-          viaPin.innerHTML = `
-            <svg width="40" height="54" viewBox="0 0 384 512">
-              <path fill="#8854d0" stroke="#ffffff" stroke-width="16" d="M172.268 501.67C26.97 291.031 0 269.413 0 192 0 85.961 86.039 0 192 0s192 85.961 192 192c0 77.413-26.97 99.031-172.268 309.67-9.535 13.774-29.93 13.773-39.464 0z"/>
-              <circle cx="192" cy="192" r="90" fill="#ffffff"/>
-              <text x="192" y="222" font-size="90" font-weight="900" fill="#8854d0" text-anchor="middle" font-family="Pretendard, sans-serif">${idx + 1}</text>
-            </svg>
-          `;
-          viaPinsContainer.appendChild(viaPin);
-        }
-      });
-
-      if (ROUTE_DATA.start && ROUTE_DATA.dest) {
-        routeResultSection.style.display = "flex";
-        calculateMockRoute();
-      } else {
-        routeResultSection.style.display = "none";
-      }
-    }
-
-    function addViaSlot() {
-      ROUTE_DATA.vias.push({ name: "", x: null, y: null, lines: [] });
-      activeSlotType = ROUTE_DATA.vias.length - 1;
-      renderRouteUI();
-      setTimeout(() => {
-        const newInput = document.getElementById(`input-slot-via-${activeSlotType}`);
-        if (newInput) newInput.focus();
-      }, 50);
-    }
-
-    function moveVia(index, direction) {
-      const targetIdx = index + direction;
-      if (targetIdx < 0 || targetIdx >= ROUTE_DATA.vias.length) return;
-      const temp = ROUTE_DATA.vias[index];
-      ROUTE_DATA.vias[index] = ROUTE_DATA.vias[targetIdx];
-      ROUTE_DATA.vias[targetIdx] = temp;
-      renderRouteUI();
-    }
-
-    function removeVia(index) {
-      ROUTE_DATA.vias.splice(index, 1);
-      renderRouteUI();
-    }
-
-    function swapStartAndDest() {
-      const temp = ROUTE_DATA.start;
-      ROUTE_DATA.start = ROUTE_DATA.dest;
-      ROUTE_DATA.dest = temp;
-      renderRouteUI();
-    }
-
-    function setTransportMode(mode) {
-      currentTransportMode = mode;
-      document.getElementById("tab-subway").classList.toggle("active", mode === 'subway');
-      document.getElementById("tab-bus").classList.toggle("active", mode === 'bus');
-      document.getElementById("tab-walk").classList.toggle("active", mode === 'walk');
-    }
-
-    function calculateMockRoute() {
-      if (!ROUTE_DATA.start || !ROUTE_DATA.dest) return;
-    
-      let totalDistPx = 0;
-      let prevPt = ROUTE_DATA.start;
-    
-      for (const via of ROUTE_DATA.vias) {
-        if (via.x && via.y) {
-          totalDistPx += Math.hypot(via.x - prevPt.x, via.y - prevPt.y);
-          prevPt = via;
-        }
-      }
-      totalDistPx += Math.hypot(ROUTE_DATA.dest.x - prevPt.x, ROUTE_DATA.dest.y - prevPt.y);
-    
-      const km = (totalDistPx / 100 * 1.2).toFixed(1);
-      
-      let subwayBase = Math.round(km * 2.2 + 8);
-      let busBase = Math.round(km * 3.4 + 12);
-      let walkBase = Math.round(km * 14);
-    
-      if (currentRouteOption === 'stairs') {
-        subwayBase += 4;
-      } else if (currentRouteOption === 'calm') {
-        subwayBase += 6;
-      } else if (currentRouteOption === 'fast') {
-        subwayBase -= 2;
-      }
-    
-      document.getElementById("val-time-subway").innerText = `${subwayBase}분`;
-      document.getElementById("val-time-bus").innerText = `${busBase}분`;
-      document.getElementById("val-time-walk").innerText = `${walkBase}분`;
-      document.getElementById("val-sub-walk").innerText = `${km}km`;
-    }
-
-    function toggleRouteOption(type) {
-      currentRouteOption = type;
-      document.getElementById("opt-stairs").classList.toggle("selected", currentRouteOption === 'stairs');
-      document.getElementById("opt-calm").classList.toggle("selected", currentRouteOption === 'calm');
-      document.getElementById("opt-fast").classList.toggle("selected", currentRouteOption === 'fast');
-      calculateMockRoute();
+    function clearMainSearch() {
+      mainSearchBox.value = "";
+      mainClearSearch.style.display = "none";
+      mainSuggestions.style.display = "none";
+      deselectStation();
     }
 
     /* ========================================================
-       스마트 줌 & 패닝 바운더리 락 엔진
+       스마트 줌 & 패닝 바운더리 락
     ======================================================== */
     function getViewportDimensions() {
       return {
@@ -1581,20 +995,13 @@
       const { w, h } = getViewportDimensions();
       const currentMapW = MAP_SIZE * scale;
       const currentMapH = MAP_SIZE * scale;
-      const minX = w - currentMapW;
-      const minY = h - currentMapH;
-    
-      panX = Math.min(Math.max(panX, minX), 0);
-      panY = Math.min(Math.max(panY, minY), 0);
+      panX = Math.min(Math.max(panX, w - currentMapW), 0);
+      panY = Math.min(Math.max(panY, h - currentMapH), 0);
     }
 
     function updateTransform(animate = false) {
       clampPan();
-      if (animate) {
-        mapWrapper.style.transition = "transform 0.45s cubic-bezier(0.19, 1, 0.22, 1)";
-      } else {
-        mapWrapper.style.transition = "none";
-      }
+      mapWrapper.style.transition = animate ? "transform 0.45s cubic-bezier(0.19, 1, 0.22, 1)" : "none";
       mapWrapper.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
     }
     
@@ -1602,10 +1009,8 @@
       const minScale = getMinScale();
       const newScale = Math.min(Math.max(scale + delta, minScale), maxScale);
       const { w, h } = getViewportDimensions();
-      const viewCenterX = w / 2;
-      const viewCenterY = h / 2;
-      panX = viewCenterX - (viewCenterX - panX) * (newScale / scale);
-      panY = viewCenterY - (viewCenterY - panY) * (newScale / scale);
+      panX = (w / 2) - ((w / 2) - panX) * (newScale / scale);
+      panY = (h / 2) - ((h / 2) - panY) * (newScale / scale);
       scale = newScale;
       updateTransform(true);
     }
@@ -1614,39 +1019,18 @@
       const minScale = getMinScale();
       scale = Math.min(Math.max(targetScale, minScale), maxScale);
       const { w, h } = getViewportDimensions();
-      const viewCenterX = w / 2;
-      const viewCenterY = h / 2;
-      panX = viewCenterX - (stationX * scale);
-      panY = viewCenterY - (stationY * scale);
+      panX = (w / 2) - (stationX * scale);
+      panY = (h / 2) - (stationY * scale);
       updateTransform(true);
     }
 
     let isDragging = false;
     let startX = 0, startY = 0;
-    let initialPinchDistance = null;
-    let initialScale = 1.0;
     let isMovedDrag = false;
     let downClientX = 0, downClientY = 0;
 
-    metroContainer.addEventListener("wheel", (e) => {
-      e.preventDefault();
-      const rect = metroContainer.getBoundingClientRect();
-      const mouseX = e.clientX - rect.left;
-      const mouseY = e.clientY - rect.top;
-
-      const zoomFactor = e.deltaY < 0 ? 1.15 : 0.87;
-      let newScale = scale * zoomFactor;
-      newScale = Math.min(Math.max(newScale, getMinScale()), maxScale);
-
-      panX = mouseX - (mouseX - panX) * (newScale / scale);
-      panY = mouseY - (mouseY - panY) * (newScale / scale);
-      scale = newScale;
-
-      updateTransform(false);
-    }, { passive: false });
-
     metroContainer.addEventListener("mousedown", (e) => {
-      if (e.target.closest(".zoom-controls") || e.target.closest(".station-popup-card") || e.target.closest(".bottom-search-wrapper") || e.target.closest(".route-planning-card")) return;
+      if (e.target.closest(".zoom-controls") || e.target.closest(".station-popup-card") || e.target.closest(".bottom-search-wrapper")) return;
       isDragging = true;
       isMovedDrag = false;
       downClientX = e.clientX;
@@ -1657,9 +1041,7 @@
 
     window.addEventListener("mousemove", (e) => {
       if (!isDragging) return;
-      if (Math.hypot(e.clientX - downClientX, e.clientY - downClientY) > 5) {
-        isMovedDrag = true;
-      }
+      if (Math.hypot(e.clientX - downClientX, e.clientY - downClientY) > 5) isMovedDrag = true;
       panX = e.clientX - startX;
       panY = e.clientY - startY;
       updateTransform(false);
@@ -1668,16 +1050,15 @@
     window.addEventListener("mouseup", (e) => {
       if (!isDragging) return;
       isDragging = false;
-      if (!isMovedDrag) {
-        handleMapClick(e.clientX, e.clientY);
-      }
+      if (!isMovedDrag) handleMapClick(e.clientX, e.clientY);
     });
 
     let touchMoved = false;
     let touchDownX = 0, touchDownY = 0;
+    let initialPinchDistance = null;
+    let initialScale = 1.0;
 
     metroContainer.addEventListener("touchstart", (e) => {
-      if (e.target.closest(".route-planning-card") || e.target.closest(".station-popup-card") || e.target.closest(".bottom-search-wrapper")) return;
       if (e.touches.length === 1) {
         isDragging = true;
         touchMoved = false;
@@ -1696,9 +1077,7 @@
     metroContainer.addEventListener("touchmove", (e) => {
       e.preventDefault();
       if (e.touches.length === 1 && isDragging) {
-        if (Math.hypot(e.touches[0].clientX - touchDownX, e.touches[0].clientY - touchDownY) > 6) {
-          touchMoved = true;
-        }
+        if (Math.hypot(e.touches[0].clientX - touchDownX, e.touches[0].clientY - touchDownY) > 6) touchMoved = true;
         panX = e.touches[0].clientX - startX;
         panY = e.touches[0].clientY - startY;
         updateTransform(false);
@@ -1706,13 +1085,11 @@
         touchMoved = true;
         const currentDistance = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
         const newScale = Math.min(Math.max(initialScale * (currentDistance / initialPinchDistance), getMinScale()), maxScale);
-
         const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
         const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
         panX = midX - (midX - panX) * (newScale / scale);
         panY = midY - (midY - panY) * (newScale / scale);
         scale = newScale;
-
         updateTransform(false);
       }
     }, { passive: false });
@@ -1720,27 +1097,20 @@
     metroContainer.addEventListener("touchend", (e) => {
       isDragging = false;
       initialPinchDistance = null;
-      if (!touchMoved && e.changedTouches.length > 0) {
-        handleMapClick(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
-      }
+      if (!touchMoved && e.changedTouches.length > 0) handleMapClick(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
     });
 
     function handleMapClick(clientX, clientY) {
       const targetEl = document.elementFromPoint(clientX, clientY);
-      if (targetEl && (targetEl.closest(".route-planning-card") || targetEl.closest(".station-popup-card") || targetEl.closest(".bottom-search-wrapper") || targetEl.closest(".zoom-controls"))) {
-        return;
-      }
-    
+      if (targetEl && (targetEl.closest(".station-popup-card") || targetEl.closest(".bottom-search-wrapper") || targetEl.closest(".zoom-controls"))) return;
+
       const rect = metroContainer.getBoundingClientRect();
-      const screenX = clientX - rect.left;
-      const screenY = clientY - rect.top;
-    
-      const mapX = (screenX - panX) / scale;
-      const mapY = (screenY - panY) / scale;
-    
+      const mapX = (clientX - rect.left - panX) / scale;
+      const mapY = (clientY - rect.top - panY) / scale;
+
       let nearestStation = null;
       let minDistance = 45;
-    
+
       for (const st of STATIONS_LIST) {
         const dist = Math.hypot(st.x - mapX, st.y - mapY);
         if (dist < minDistance) {
@@ -1748,67 +1118,12 @@
           nearestStation = st;
         }
       }
-    
-      if (nearestStation) {
-        selectStation(nearestStation);
-      }
-    }
 
-    function onSearchInput(query) {
-      const q = cleanStationName(query.trim().toLowerCase()).replace(/역$/, "");
-      if (!q) {
-        suggestions.style.display = "none";
-        clearSearchBtn.style.display = "none";
-        return;
-      }
-
-      clearSearchBtn.style.display = "block";
-      suggestions.innerHTML = "";
-
-      const matched = STATIONS_LIST.filter(st => {
-        return st.queryTerm.toLowerCase().includes(q) || st.name.toLowerCase().includes(q);
-      });
-
-      if (matched.length === 0) {
-        suggestions.innerHTML = `<div style="padding:16px; text-align:center; color:#8e95a5; font-size:13px;">일치하는 역이 없습니다.</div>`;
-      } else {
-        matched.slice(0, 8).forEach(st => {
-          const item = document.createElement("div");
-          item.className = "suggestion-item";
-          
-          const primaryLine = st.lines && st.lines.length > 0 ? st.lines[0] : "";
-          const badgeHtml = primaryLine ? `<span class="suggestion-badge ${getLineBadgeClass(primaryLine)}">${formatLineName(primaryLine)}</span>` : "";
-
-          item.innerHTML = `
-            <div class="suggestion-left">
-              <strong>${st.name}</strong>
-              ${badgeHtml}
-            </div>
-            <span style="color:#00e5ff; font-size:12px;">선택 ›</span>
-          `;
-          item.onclick = () => {
-            selectStation(st);
-          };
-          suggestions.appendChild(item);
-        });
-      }
-
-      suggestions.style.display = "block";
-    }
-
-    function clearSearchInput() {
-      searchBox.value = "";
-      clearSearchBtn.style.display = "none";
-      suggestions.style.display = "none";
-      deselectStation();
-    }
-
-    function triggerAI() {
-      alert("✨ AI 도우미: 계단이 적은 최적 환승 위치를 실내 지도와 함께 안내해 드립니다.");
+      if (nearestStation) selectStation(nearestStation);
     }
 
     /* ========================================================
-       실내 지도 전환 (Three.js 및 층수 선택)
+       2. 실내 지도 화면 전환 및 초기화
     ======================================================== */
     const mainView = document.getElementById("main-view");
     const indoorView = document.getElementById("indoor-view");
@@ -1833,32 +1148,293 @@
         floorList.appendChild(btn);
       });
 
-      activeFloor = defaultFloor;
       mainView.classList.add("hidden");
       indoorView.classList.remove("hidden");
+
+      renderStationPins();
+      closeIndoorNavigation();
     }
 
     function exitIndoorView() {
       indoorView.classList.add("hidden");
       mainView.classList.remove("hidden");
+      closePinModal();
+      closeIndoorNavigation();
     }
 
     function selectFloor(floor, btnEl) {
-      activeFloor = floor;
       document.querySelectorAll(".floor-btn").forEach(b => b.classList.remove("active"));
       btnEl.classList.add("active");
+      renderStationPins();
     }
 
+    /* ========================================================
+       3. 실내 핑(POI) 시스템 (클릭으로 핑 생성 / 사진 / 글)
+    ======================================================== */
+    // 각 역별 등록된 핑 저장소 { "강남역": [ {id, title, desc, img, x, y}, ... ] }
+    const STATION_PINS_DB = {
+      "강남역": [
+        { id: 1, title: "물품보관함 A구역", desc: "개찰구 바로 우측에 위치", img: "", x: 230, y: 260 },
+        { id: 2, title: "약국 및 수유실", desc: "1번 출구 에스컬레이터 옆", img: "", x: 90, y: 230 }
+      ]
+    };
+
+    const indoorSvgWrap = document.getElementById("indoor-svg-wrap");
+    const indoorSvg = document.getElementById("indoor-svg");
+    const indoorPinsLayer = document.getElementById("indoor-pins-layer");
+    const pinModal = document.getElementById("pin-modal");
+    const pinTitleInput = document.getElementById("pin-title-input");
+    const pinDescInput = document.getElementById("pin-desc-input");
+    const pinPreviewImg = document.getElementById("pin-modal-preview");
+    const btnSavePin = document.getElementById("btn-save-pin");
+    const btnRoutePin = document.getElementById("btn-route-pin");
+    const btnDeletePin = document.getElementById("btn-delete-pin");
+
+    let currentEditingPin = null;
+    let tempClickCoord = null;
+    let tempUploadedImg = "";
+
+    // 실내 SVG 클릭 시 핑 생성 모달 열기
+    indoorSvg.addEventListener("click", (e) => {
+      const rect = indoorSvg.getBoundingClientRect();
+      const clickX = ((e.clientX - rect.left) / rect.width) * 360;
+      const clickY = ((e.clientY - rect.top) / rect.height) * 520;
+
+      openCreatePinModal(Math.round(clickX), Math.round(clickY));
+    });
+
+    function openCreatePinModal(x, y) {
+      currentEditingPin = null;
+      tempClickCoord = { x, y };
+      tempUploadedImg = "";
+
+      document.getElementById("pin-modal-title").innerText = "📍 새로운 장소 핑 등록";
+      pinTitleInput.value = "";
+      pinDescInput.value = "";
+      pinPreviewImg.style.display = "none";
+      pinPreviewImg.src = "";
+      document.getElementById("pin-file-input").value = "";
+
+      btnSavePin.style.display = "block";
+      btnRoutePin.style.display = "none";
+      btnDeletePin.style.display = "none";
+
+      pinModal.style.display = "flex";
+    }
+
+    function openViewPinModal(pinObj) {
+      currentEditingPin = pinObj;
+
+      document.getElementById("pin-modal-title").innerText = `📍 ${pinObj.title}`;
+      pinTitleInput.value = pinObj.title;
+      pinDescInput.value = pinObj.desc || "";
+
+      if (pinObj.img) {
+        pinPreviewImg.src = pinObj.img;
+        pinPreviewImg.style.display = "block";
+      } else {
+        pinPreviewImg.style.display = "none";
+      }
+
+      btnSavePin.style.display = "none";
+      btnRoutePin.style.display = "block";
+      btnDeletePin.style.display = "block";
+
+      pinModal.style.display = "flex";
+    }
+
+    function closePinModal() {
+      pinModal.style.display = "none";
+    }
+
+    function handlePinImageUpload(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        tempUploadedImg = event.target.result;
+        pinPreviewImg.src = tempUploadedImg;
+        pinPreviewImg.style.display = "block";
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function saveCurrentPin() {
+      const title = pinTitleInput.value.trim();
+      if (!title) {
+        alert("장소 이름을 입력해주세요.");
+        return;
+      }
+
+      const stName = currentSelectedStation ? currentSelectedStation.name : "강남역";
+      if (!STATION_PINS_DB[stName]) STATION_PINS_DB[stName] = [];
+
+      const newPin = {
+        id: Date.now(),
+        title: title,
+        desc: pinDescInput.value.trim(),
+        img: tempUploadedImg,
+        x: tempClickCoord.x,
+        y: tempClickCoord.y
+      };
+
+      STATION_PINS_DB[stName].push(newPin);
+      closePinModal();
+      renderStationPins();
+      alert(`'${title}' 핑이 등록되었습니다!`);
+    }
+
+    function deleteCurrentPin() {
+      if (!currentEditingPin) return;
+      const stName = currentSelectedStation.name;
+      STATION_PINS_DB[stName] = STATION_PINS_DB[stName].filter(p => p.id !== currentEditingPin.id);
+      closePinModal();
+      renderStationPins();
+    }
+
+    function renderStationPins() {
+      indoorPinsLayer.innerHTML = "";
+      const stName = currentSelectedStation ? currentSelectedStation.name : "강남역";
+      const pins = STATION_PINS_DB[stName] || [];
+
+      pins.forEach(pin => {
+        const marker = document.createElement("div");
+        marker.className = "indoor-pin-marker";
+        // SVG 좌표계를 컨테이너 % 비율로 매핑
+        marker.style.left = `${(pin.x / 360) * 100}%`;
+        marker.style.top = `${(pin.y / 520) * 100}%`;
+        marker.innerHTML = `
+          <svg width="34" height="44" viewBox="0 0 384 512">
+            <path fill="#e84118" stroke="#ffffff" stroke-width="16" d="M172.268 501.67C26.97 291.031 0 269.413 0 192 0 85.961 86.039 0 192 0s192 85.961 192 192c0 77.413-26.97 99.031-172.268 309.67-9.535 13.774-29.93 13.773-39.464 0z"/>
+            <circle cx="192" cy="192" r="75" fill="#ffffff"/>
+            <circle cx="192" cy="192" r="42" fill="#e84118"/>
+          </svg>
+        `;
+        marker.onclick = (e) => {
+          e.stopPropagation();
+          openViewPinModal(pin);
+        };
+        indoorPinsLayer.appendChild(marker);
+      });
+    }
+
+    /* ========================================================
+       4. 실내 핑 검색창 (역 내부 시설물 및 핑 전용)
+    ======================================================== */
+    const indoorSearchBox = document.getElementById("indoor-search-box");
+    const indoorClearSearch = document.getElementById("indoor-clear-search");
+    const indoorSuggestions = document.getElementById("indoor-suggestions");
+
+    // 역 내부 기본 시설물
+    const DEFAULT_STATION_FACILITIES = [
+      { title: "2호선 탑승게이트", x: 180, y: 75, type: "gate" },
+      { title: "신분당선 탑승게이트", x: 180, y: 445, type: "gate" },
+      { title: "1번 출구", x: 65, y: 260, type: "exit" },
+      { title: "2번 출구", x: 295, y: 260, type: "exit" },
+      { title: "중앙 개찰구", x: 180, y: 260, type: "turnstile" },
+      { title: "화장실", x: 180, y: 350, type: "toilet" }
+    ];
+
+    function onIndoorSearchInput(query) {
+      const q = query.trim().toLowerCase();
+      if (!q) {
+        indoorSuggestions.style.display = "none";
+        indoorClearSearch.style.display = "none";
+        return;
+      }
+
+      indoorClearSearch.style.display = "block";
+      indoorSuggestions.innerHTML = "";
+
+      const stName = currentSelectedStation ? currentSelectedStation.name : "강남역";
+      const customPins = (STATION_PINS_DB[stName] || []).map(p => ({ ...p, isCustom: true }));
+      const allTargets = [...DEFAULT_STATION_FACILITIES, ...customPins];
+
+      const matched = allTargets.filter(item => item.title.toLowerCase().includes(q) || (item.desc && item.desc.toLowerCase().includes(q)));
+
+      if (matched.length === 0) {
+        indoorSuggestions.innerHTML = `<div style="padding:14px; text-align:center; color:#8e95a5; font-size:13px;">일치하는 핑이나 시설이 없습니다.</div>`;
+      } else {
+        matched.forEach(target => {
+          const item = document.createElement("div");
+          item.className = "suggestion-item";
+          item.innerHTML = `
+            <span>📍 <strong>${target.title}</strong></span>
+            <span style="font-size:11px; color:#00e5ff;">길안내 ›</span>
+          `;
+          item.onclick = () => {
+            indoorSuggestions.style.display = "none";
+            startRouteToTarget(target);
+          };
+          indoorSuggestions.appendChild(item);
+        });
+      }
+      indoorSuggestions.style.display = "block";
+    }
+
+    function clearIndoorSearch() {
+      indoorSearchBox.value = "";
+      indoorClearSearch.style.display = "none";
+      indoorSuggestions.style.display = "none";
+    }
+
+    /* ========================================================
+       5. 실내 전용 길안내 엔진 (내 위치 ➔ 핑 / 탑승게이트)
+    ======================================================== */
+    const indoorNavCard = document.getElementById("indoor-nav-card");
+    const indoorPathLine = document.getElementById("indoor-path-line");
+    // 기본 내 위치 (1번 출구 인근)
+    const MY_LOCATION = { x: 65, y: 290, name: "내 위치 (1번 출구 앞)" };
+
+    function openIndoorNavigation() {
+      // 기본적으로 가장 많이 찾는 승강장 게이트로 길안내 연결
+      startRouteToTarget({ title: "2호선 탑승게이트", x: 180, y: 75 });
+    }
+
+    function closeIndoorNavigation() {
+      indoorNavCard.style.display = "none";
+      indoorPathLine.style.display = "none";
+    }
+
+    function startRouteToCurrentPin() {
+      if (!currentEditingPin) return;
+      closePinModal();
+      startRouteToTarget(currentEditingPin);
+    }
+
+    function startRouteToTarget(targetObj) {
+      document.getElementById("nav-target-name").innerText = targetObj.title;
+
+      // 거리 계산 (SVG 픽셀 10px ≈ 3.5m)
+      const distPx = Math.hypot(targetObj.x - MY_LOCATION.x, targetObj.y - MY_LOCATION.y);
+      const meters = Math.round((distPx / 10) * 3.5);
+      const minutes = Math.max(1, Math.round(meters / 60));
+
+      document.getElementById("nav-dist-text").innerText = `약 ${meters}m`;
+      document.getElementById("nav-time-text").innerText = `${minutes}분 소요`;
+
+      // 직각 복도 형태의 보행 경로선(SVG Path) 생성
+      // 꺾임점: (내 위치 X, 내 위치 Y) -> (중앙 복도 180, 내 위치 Y) -> (180, 타겟 Y) -> (타겟 X, 타겟 Y)
+      const cornerX = 180;
+      const pathD = `M ${MY_LOCATION.x} ${MY_LOCATION.y} L ${cornerX} ${MY_LOCATION.y} L ${cornerX} ${targetObj.y} L ${targetObj.x} ${targetObj.y}`;
+      indoorPathLine.setAttribute("d", pathD);
+      indoorPathLine.style.display = "block";
+
+      indoorNavCard.style.display = "flex";
+    }
+
+    /* ========================================================
+       6. 3D 실내 지도 (Three.js)
+    ======================================================== */
     const canvas2D = document.getElementById("indoor-2d-canvas");
     const threeContainer = document.getElementById("three-container");
     const btn2D = document.getElementById("btn-2d");
     const btn3D = document.getElementById("btn-3d");
-
     let scene, camera, renderer, controls;
     let isThreeInitialized = false;
 
     function setIndoorMode(mode) {
-      currentIndoorMode = mode;
       if (mode === "2D") {
         btn2D.classList.add("active");
         btn3D.classList.remove("active");
