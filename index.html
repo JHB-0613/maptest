@@ -1539,7 +1539,7 @@
       animate();
     }
 
-    // 강남역_b1 b3.obj 파일 비동기 로더
+    // 강남역_b1 b3.obj 파일 비동기 로더 (NaN 버텍스 및 오류 필터링 적용)
     function loadGangnamObjModel() {
       const modelFileName = encodeURI("강남역_b1 b3.obj");
       const objLoader = new THREE.OBJLoader();
@@ -1551,9 +1551,7 @@
         modelFileName,
         (obj) => {
           loadingIndicator.style.display = "none";
-          loadedStationModel = obj;
 
-          // 공통 머티리얼 적용
           const stationMat = new THREE.MeshStandardMaterial({
             color: 0x94a3b8,
             roughness: 0.45,
@@ -1561,31 +1559,75 @@
             side: THREE.DoubleSide
           });
 
+          const validMeshes = [];
+
+          // 1. 모델 내 모든 메쉬의 비정상 버텍스(NaN) 정제
           obj.traverse((child) => {
-            if (child.isMesh) {
-              child.material = stationMat;
-              child.castShadow = true;
-              child.receiveShadow = true;
+            if (child.isMesh && child.geometry) {
+              const geom = child.geometry;
+              const pos = geom.attributes.position;
+
+              if (pos && pos.count > 0) {
+                let hasNaN = false;
+                const arr = pos.array;
+
+                for (let i = 0; i < arr.length; i++) {
+                  if (isNaN(arr[i]) || !isFinite(arr[i])) {
+                    arr[i] = 0; // 비정상 좌표를 0으로 강제 보정
+                    hasNaN = true;
+                  }
+                }
+
+                if (hasNaN) {
+                  pos.needsUpdate = true;
+                }
+
+                // 바운딩 볼륨 수동 재계산
+                geom.computeVertexNormals();
+                geom.computeBoundingBox();
+                geom.computeBoundingSphere();
+
+                child.material = stationMat;
+                child.castShadow = true;
+                child.receiveShadow = true;
+                validMeshes.push(child);
+              }
             }
           });
 
-          // 바운딩 박스를 계산하여 원점(0,0,0) 이동 및 스케일 자동 보정
-          const box = new THREE.Box3().setFromObject(obj);
+          // 유효한 메쉬만 담는 래퍼 그룹 구성
+          const cleanGroup = new THREE.Group();
+          validMeshes.forEach(m => cleanGroup.add(m));
+          loadedStationModel = cleanGroup;
+
+          // 2. 안전한 바운딩 박스 계산 및 크기/원점 자동 정렬
+          const box = new THREE.Box3();
+          validMeshes.forEach(m => {
+            if (m.geometry.boundingBox) {
+              box.expandByObject(m);
+            }
+          });
+
           const center = box.getCenter(new THREE.Vector3());
           const size = box.getSize(new THREE.Vector3());
 
-          obj.position.x -= center.x;
-          obj.position.y -= center.y;
-          obj.position.z -= center.z;
+          // 중심 및 크기 유효성 검증
+          if (!isNaN(center.x) && !isNaN(center.y) && !isNaN(center.z)) {
+            cleanGroup.position.x -= center.x;
+            cleanGroup.position.y -= center.y;
+            cleanGroup.position.z -= center.z;
 
-          const maxDim = Math.max(size.x, size.y, size.z);
-          if (maxDim > 0) {
-            const scaleFactor = 75 / maxDim;
-            obj.scale.set(scaleFactor, scaleFactor, scaleFactor);
+            const maxDim = Math.max(size.x, size.y, size.z);
+            if (maxDim > 0 && isFinite(maxDim)) {
+              const scaleFactor = 75 / maxDim;
+              cleanGroup.scale.set(scaleFactor, scaleFactor, scaleFactor);
+            }
+          } else {
+            console.warn("모델 좌표 계산 불가로 기본 스케일(1.0) 적용");
           }
 
-          scene.add(obj);
-          console.log("강남역 3D OBJ 로드 및 배치 성공:", size);
+          scene.add(cleanGroup);
+          console.log("강남역 3D OBJ 정제 로드 완료");
         },
         (xhr) => {
           if (xhr.lengthComputable) {
