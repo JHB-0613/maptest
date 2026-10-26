@@ -650,33 +650,41 @@
       z-index: 55;
     }
 
-    /* 우측 하단 확장형 AI 캡슐바 */
+    /* 우측 하단 확장형 AI 캡슐바 정렬 개선 */
     .floating-ai-capsule {
       position: absolute;
       bottom: calc(20px + env(safe-area-inset-bottom, 0px));
       right: 14px;
-      height: 46px;
+      height: 48px;
       background: var(--primary-mint);
-      border-radius: 23px;
+      border-radius: 24px;
       display: flex;
       align-items: center;
+      justify-content: center;
       box-shadow: 0 8px 20px rgba(108, 162, 139, 0.25);
       z-index: 50;
       overflow: hidden;
-      transition: width 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.2);
-      width: 46px;
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.2);
+      width: 48px; /* 원형 크기 고정 */
     }
+    
     .floating-ai-capsule.expanded {
       width: calc(100% - 28px);
       left: 14px;
+      justify-content: space-between;
     }
 
+    /* 접혀있을 때는 input 영역 숨김 */
     .ai-input-wrap {
+      display: none;
       flex: 1;
-      display: flex;
-      align-items: center;
       padding-left: 16px;
     }
+
+    .floating-ai-capsule.expanded .ai-input-wrap {
+      display: flex;
+    }
+
     .ai-input {
       width: 100%;
       border: none;
@@ -688,15 +696,19 @@
     }
     .ai-input::placeholder { color: #598775; }
 
+    /* AI 토글 버튼 글자 중앙 정렬 */
     .btn-ai-toggle {
-      width: 46px;
-      height: 46px;
+      width: 48px;
+      height: 48px;
       border-radius: 50%;
       border: none;
       background: transparent;
       color: #326851;
-      font-size: 14px;
+      font-size: 15px;
       font-weight: 900;
+      line-height: 1;
+      padding: 0;
+      margin: 0;
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -1315,7 +1327,10 @@
           </div>
           <span style="font-size:12px; color:#367b67; font-weight:800;">›</span>
         `;
+        
+        // ⬇️ 핀 클릭 시: 탐색창을 닫고, 지도를 포커싱한 후 핀 모달 오픈
         item.onclick = () => {
+          toggleExplorePanel(false); // ⬅️ 탐색 서랍창 닫기
           focusOnPin(pin);
           openViewPinModal(pin);
         };
