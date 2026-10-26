@@ -7,9 +7,7 @@
   <!-- Three.js CDN -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-  <!-- OBJLoader CDN 추가 -->
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
-  <!-- GLTFLoader CDN 추가 -->
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 
   <style>
@@ -108,7 +106,7 @@
     #main-view {
       background: #f8f9fb;
       overflow: hidden;
-      touch-action: none; /* 브라우저 자체 제스처 차단 */
+      touch-action: none;
     }
     
     .metro-canvas-container {
@@ -116,7 +114,7 @@
       height: 100%;
       position: relative;
       overflow: hidden;
-      touch-action: none; /* 필수 */
+      touch-action: none;
       cursor: grab;
     }
     .metro-canvas-container:active { cursor: grabbing; }
@@ -443,6 +441,15 @@
       cursor: crosshair;
     }
 
+    .fixture-item {
+      cursor: pointer;
+      transition: transform 0.15s ease, opacity 0.15s ease;
+    }
+    .fixture-item:hover {
+      opacity: 0.85;
+      filter: brightness(1.2);
+    }
+
     /* 3D WebGL 캔버스 컨테이너 */
     #three-container {
       position: absolute;
@@ -454,7 +461,6 @@
       display: none;
     }
 
-    /* 로딩 알림 스피너 */
     #loading-indicator {
       position: absolute;
       top: 50%;
@@ -745,44 +751,26 @@
         <div class="floor-selector" id="floor-list"></div>
       </div>
 
-      <!-- 로딩 인디케이터 -->
       <div id="loading-indicator">3D 모델 로딩 중...</div>
 
       <!-- 2D 캔버스 -->
       <div id="indoor-2d-canvas">
         <div id="indoor-svg-wrap">
           <svg id="indoor-svg" viewBox="0 0 360 520">
+            <!-- 층별 공통 통로 베이스 프레임 -->
             <g fill="#2e3440" stroke="#1c202a" stroke-width="3">
               <rect x="130" y="40" width="100" height="440" rx="12"/>
               <rect x="40" y="200" width="280" height="120" rx="12"/>
             </g>
 
-            <g id="indoor-fixtures">
-              <rect x="145" y="60" width="70" height="30" rx="6" fill="#00a84d"/>
-              <text x="180" y="80" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">2호선 탑승게이트</text>
+            <!-- 동적으로 주입되는 층별 시설물 레이어 -->
+            <g id="indoor-fixtures"></g>
 
-              <rect x="145" y="430" width="70" height="30" rx="6" fill="#d4003b"/>
-              <text x="180" y="450" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">신분당선 게이트</text>
-
-              <circle cx="65" cy="260" r="14" fill="#2ed573"/>
-              <text x="65" y="264" text-anchor="middle" fill="#fff" font-size="10" font-weight="800">1번</text>
-
-              <circle cx="295" cy="260" r="14" fill="#2ed573"/>
-              <text x="295" y="264" text-anchor="middle" fill="#fff" font-size="10" font-weight="800">2번</text>
-
-              <circle cx="180" cy="260" r="16" fill="#0984e3"/>
-              <text x="180" y="264" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">개찰구</text>
-
-              <circle cx="180" cy="350" r="14" fill="#ff7675"/>
-              <text x="180" y="354" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">화장실</text>
-
-              <circle cx="65" cy="290" r="7" fill="#00e5ff" stroke="#fff" stroke-width="2"/>
-              <text x="65" y="312" text-anchor="middle" fill="#00e5ff" font-size="11" font-weight="800">내 위치</text>
-            </g>
-
+            <!-- 실내 최단 경로선 -->
             <path id="indoor-path-line" d="" fill="none" stroke="#00e5ff" stroke-width="4" stroke-dasharray="6,4" stroke-linecap="round" style="display:none;"/>
           </svg>
 
+          <!-- 2D 핑 마커 레이어 -->
           <div id="indoor-pins-layer"></div>
         </div>
       </div>
@@ -824,7 +812,7 @@
         </div>
       </div>
 
-      <!-- 실내 핑 검색바 -->
+      <!-- 실내 핑 & 시설물 검색바 -->
       <div class="bottom-search-wrapper" id="indoor-search-wrapper">
         <span class="search-icon">📍</span>
         <input type="text" id="indoor-search-box" class="search-input" placeholder="이 역의 핑 및 시설물 검색..." oninput="onIndoorSearchInput(this.value)">
@@ -987,7 +975,7 @@
     }
 
     /* ========================================================
-       스마트 줌 & 패닝 엔진 (마우스 휠 + 터치 핀치 줌 완벽 지원)
+       스마트 줌 & 패닝 엔진
     ======================================================== */
     function getViewportDimensions() {
       const rect = metroContainer.getBoundingClientRect();
@@ -1000,15 +988,14 @@
     let scale = 1.0;
     let panX = 0;
     let panY = 0;
-    const minScale = 0.45; // 최소 배율을 유연하게 확보하여 휠/핀치 축소가 즉시 잠기지 않도록 수정
-    const maxScale = 3.5;  // 넉넉한 최대 확대 배율
+    const minScale = 0.45;
+    const maxScale = 3.5;
 
     function clampPan() {
       const { w, h } = getViewportDimensions();
       const currentMapW = MAP_SIZE * scale;
       const currentMapH = MAP_SIZE * scale;
 
-      // 맵이 화면보다 클 때와 작을 때 모두 자연스럽게 중앙/한계 배치
       if (currentMapW > w) {
         panX = Math.min(Math.max(panX, w - currentMapW), 0);
       } else {
@@ -1028,18 +1015,15 @@
       mapWrapper.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
     }
 
-    // 1. 마우스 휠 줌 (커서 위치 중심 확대/축소)
     metroContainer.addEventListener("wheel", (e) => {
       e.preventDefault();
       const rect = metroContainer.getBoundingClientRect();
       const mouseX = e.clientX - rect.left;
       const mouseY = e.clientY - rect.top;
 
-      // 부드러운 줌 팩터
       const zoomFactor = e.deltaY < 0 ? 1.12 : 0.89;
       const newScale = Math.min(Math.max(scale * zoomFactor, minScale), maxScale);
 
-      // 마우스 커서 위치를 축으로 이동
       panX = mouseX - (mouseX - panX) * (newScale / scale);
       panY = mouseY - (mouseY - panY) * (newScale / scale);
       scale = newScale;
@@ -1047,7 +1031,6 @@
       updateTransform(false);
     }, { passive: false });
 
-    // 수동 줌 버튼 (+ / −)
     function zoomManual(delta) {
       const newScale = Math.min(Math.max(scale + delta, minScale), maxScale);
       const { w, h } = getViewportDimensions();
@@ -1065,7 +1048,6 @@
       updateTransform(true);
     }
 
-    // 2. PC 마우스 드래그 & 클릭 판별
     let isDragging = false;
     let startX = 0, startY = 0;
     let isMovedDrag = false;
@@ -1095,7 +1077,6 @@
       if (!isMovedDrag) handleMapClick(e.clientX, e.clientY);
     });
 
-    // 3. 모바일 터치 패닝(한 손가락) & 핀치 줌(두 손가락)
     let touchMoved = false;
     let touchDownX = 0, touchDownY = 0;
     let initialPinchDist = 0;
@@ -1108,7 +1089,6 @@
       const rect = metroContainer.getBoundingClientRect();
 
       if (e.touches.length === 1) {
-        // 단일 터치: 패닝 시작
         isDragging = true;
         touchMoved = false;
         touchDownX = e.touches[0].clientX;
@@ -1116,7 +1096,6 @@
         startX = e.touches[0].clientX - panX;
         startY = e.touches[0].clientY - panY;
       } else if (e.touches.length === 2) {
-        // 듀얼 터치: 핀치 줌 시작
         isDragging = false;
         touchMoved = true;
         const dx = e.touches[0].clientX - e.touches[1].clientX;
@@ -1124,7 +1103,6 @@
         initialPinchDist = Math.hypot(dx, dy);
         initialScale = scale;
 
-        // 두 손가락의 중심점(컨테이너 기준)
         pinchMidX = ((e.touches[0].clientX + e.touches[1].clientX) / 2) - rect.left;
         pinchMidY = ((e.touches[0].clientY + e.touches[1].clientY) / 2) - rect.top;
       }
@@ -1132,12 +1110,11 @@
 
     metroContainer.addEventListener("touchmove", (e) => {
       if (e.target.closest(".zoom-controls") || e.target.closest(".station-popup-card") || e.target.closest(".bottom-search-wrapper")) return;
-      e.preventDefault(); // 브라우저 전체 스크롤 및 기본 줌 방지
+      e.preventDefault();
 
       const rect = metroContainer.getBoundingClientRect();
 
       if (e.touches.length === 1 && isDragging) {
-        // 한 손가락 드래그 이동
         if (Math.hypot(e.touches[0].clientX - touchDownX, e.touches[0].clientY - touchDownY) > 6) {
           touchMoved = true;
         }
@@ -1145,7 +1122,6 @@
         panY = e.touches[0].clientY - startY;
         updateTransform(false);
       } else if (e.touches.length === 2 && initialPinchDist > 0) {
-        // 두 손가락 핀치 줌 계산
         touchMoved = true;
         const dx = e.touches[0].clientX - e.touches[1].clientX;
         const dy = e.touches[0].clientY - e.touches[1].clientY;
@@ -1157,7 +1133,6 @@
         const factor = currentDist / initialPinchDist;
         const newScale = Math.min(Math.max(initialScale * factor, minScale), maxScale);
 
-        // 중심점을 축으로 줌 & 손가락 이동에 맞춘 이동
         panX = currentMidX - (pinchMidX - panX) * (newScale / scale);
         panY = currentMidY - (pinchMidY - panY) * (newScale / scale);
         scale = newScale;
@@ -1177,15 +1152,14 @@
           handleMapClick(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
         }
       } else if (e.touches.length === 1) {
-        // 두 손가락 중 하나를 뗐을 때 튀지 않도록 다시 단일 패닝 모드로 리셋
         isDragging = true;
         initialPinchDist = 0;
         startX = e.touches[0].clientX - panX;
         startY = e.touches[0].clientY - panY;
       }
     });
+
     function handleMapClick(clientX, clientY) {
-      // 팝업 카드, 검색바, 줌 버튼 클릭 시 지도 클릭 무시
       const targetEl = document.elementFromPoint(clientX, clientY);
       if (targetEl && (targetEl.closest(".station-popup-card") || targetEl.closest(".bottom-search-wrapper") || targetEl.closest(".zoom-controls"))) {
         return;
@@ -1196,7 +1170,7 @@
       const mapY = (clientY - rect.top - panY) / scale;
 
       let nearestStation = null;
-      let minDistance = 45; // 클릭 유효 반경(px)
+      let minDistance = 45;
 
       for (const st of STATIONS_LIST) {
         const dist = Math.hypot(st.x - mapX, st.y - mapY);
@@ -1210,12 +1184,42 @@
         selectStation(nearestStation);
       }
     }
+
     /* ========================================================
-       2. 실내 지도 화면 전환
+       2. 실내 지도 화면 전환 & 동적 시설물 관리 DB
     ======================================================== */
     const mainView = document.getElementById("main-view");
     const indoorView = document.getElementById("indoor-view");
     const floorList = document.getElementById("floor-list");
+
+    // 층별 동적 시설물 데이터 (원하는 대로 추가/수정 가능)
+    const FLOOR_FACILITIES_DB = {
+      "강남역": {
+        "B1": [
+          { id: "f1", title: "2호선 탑승게이트", shape: "rect", x: 145, y: 60, w: 70, h: 30, rx: 6, fill: "#00a84d", textX: 180, textY: 80, fontSize: 11, type: "gate" },
+          { id: "f2", title: "신분당선 환승통로", shape: "rect", x: 145, y: 430, w: 70, h: 30, rx: 6, fill: "#d4003b", textX: 180, textY: 450, fontSize: 11, type: "transfer" },
+          { id: "f3", title: "1번 출구", shape: "circle", cx: 65, cy: 260, r: 14, fill: "#2ed573", textX: 65, textY: 264, fontSize: 10, label: "1번", type: "exit" },
+          { id: "f4", title: "2번 출구", shape: "circle", cx: 295, cy: 260, r: 14, fill: "#2ed573", textX: 295, textY: 264, fontSize: 10, label: "2번", type: "exit" },
+          { id: "f5", title: "중앙 개찰구", shape: "circle", cx: 180, cy: 260, r: 16, fill: "#0984e3", textX: 180, textY: 264, fontSize: 10, label: "개찰구", type: "turnstile" },
+          { id: "f6", title: "화장실", shape: "circle", cx: 180, cy: 350, r: 14, fill: "#ff7675", textX: 180, textY: 354, fontSize: 10, label: "화장실", type: "toilet" },
+          { id: "my", title: "내 위치", shape: "pin_my", cx: 65, cy: 290, r: 7, fill: "#00e5ff", textX: 65, textY: 312, label: "내 위치", type: "my_loc" }
+        ],
+        "B2": [
+          { id: "f7", title: "2호선 외선순환 승강장", shape: "rect", x: 60, y: 220, w: 100, h: 35, rx: 6, fill: "#00a84d", textX: 110, textY: 242, fontSize: 10, type: "platform" },
+          { id: "f8", title: "2호선 내선순환 승강장", shape: "rect", x: 200, y: 220, w: 100, h: 35, rx: 6, fill: "#00a84d", textX: 250, textY: 242, fontSize: 10, type: "platform" },
+          { id: "f9", title: "B1 이동 계단", shape: "circle", cx: 180, cy: 120, r: 14, fill: "#f39c12", textX: 180, textY: 124, fontSize: 10, label: "계단", type: "stairs" },
+          { id: "f10", title: "신분당선 환승 에스컬레이터", shape: "circle", cx: 180, cy: 380, r: 16, fill: "#d4003b", textX: 180, textY: 384, fontSize: 9, label: "환승", type: "transfer" }
+        ],
+        "B3": [
+          { id: "f11", title: "환승 통로 휴게 벤치", shape: "rect", x: 145, y: 240, w: 70, h: 40, rx: 8, fill: "#4b6584", textX: 180, textY: 265, fontSize: 11, label: "휴게존", type: "facility" }
+        ],
+        "B4": [
+          { id: "f12", title: "신분당선 상행 승강장", shape: "rect", x: 145, y: 100, w: 70, h: 30, rx: 6, fill: "#d4003b", textX: 180, textY: 120, fontSize: 10, type: "platform" },
+          { id: "f13", title: "신분당선 하행 승강장", shape: "rect", x: 145, y: 400, w: 70, h: 30, rx: 6, fill: "#d4003b", textX: 180, textY: 420, fontSize: 10, type: "platform" },
+          { id: "f14", title: "승강장 비상벨", shape: "circle", cx: 180, cy: 260, r: 14, fill: "#e74c3c", textX: 180, textY: 264, fontSize: 10, label: "비상벨", type: "safety" }
+        ]
+      }
+    };
 
     function enterIndoorView() {
       if (!currentSelectedStation) return;
@@ -1223,7 +1227,6 @@
       document.getElementById("indoor-title-text").innerText = `${currentSelectedStation.name} 실내 지도`;
       floorList.innerHTML = "";
 
-      // ⬇️ 강남역 층 배열에 "B4" 추가
       const floors = currentSelectedStation.name.includes("강남") 
         ? ["B1", "B2", "B3", "B4"] 
         : ["2F", "1F", "B1", "B2", "B3"];
@@ -1241,6 +1244,7 @@
       mainView.classList.add("hidden");
       indoorView.classList.remove("hidden");
 
+      renderDynamicFixtures();
       renderStationPins();
       closeIndoorNavigation();
     }
@@ -1252,9 +1256,96 @@
       closeIndoorNavigation();
     }
 
+    // SVG 층별 시설물 동적 렌더링 함수
+    function renderDynamicFixtures() {
+      const fixturesLayer = document.getElementById("indoor-fixtures");
+      fixturesLayer.innerHTML = "";
+
+      const stName = currentSelectedStation ? currentSelectedStation.name : "강남역";
+      const stationData = FLOOR_FACILITIES_DB[stName] || {};
+      const currentFloorItems = stationData[activeFloor] || [];
+
+      currentFloorItems.forEach(item => {
+        const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        g.setAttribute("class", "fixture-item");
+
+        if (item.type !== "my_loc") {
+          g.onclick = (e) => {
+            e.stopPropagation();
+            const coord = {
+              title: item.title,
+              x: item.shape === "circle" ? item.cx : item.x + item.w / 2,
+              y: item.shape === "circle" ? item.cy : item.y + item.h / 2
+            };
+            startRouteToTarget(coord);
+          };
+        }
+
+        if (item.shape === "rect") {
+          const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+          rect.setAttribute("x", item.x);
+          rect.setAttribute("y", item.y);
+          rect.setAttribute("width", item.w);
+          rect.setAttribute("height", item.h);
+          rect.setAttribute("rx", item.rx || 6);
+          rect.setAttribute("fill", item.fill);
+          g.appendChild(rect);
+
+          const txt = document.createElementNS("http://www.w3.org/2000/svg", "text");
+          txt.setAttribute("x", item.textX);
+          txt.setAttribute("y", item.textY);
+          txt.setAttribute("text-anchor", "middle");
+          txt.setAttribute("fill", "#fff");
+          txt.setAttribute("font-size", item.fontSize || 10);
+          txt.setAttribute("font-weight", "700");
+          txt.textContent = item.label || item.title;
+          g.appendChild(txt);
+
+        } else if (item.shape === "circle") {
+          const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+          circle.setAttribute("cx", item.cx);
+          circle.setAttribute("cy", item.cy);
+          circle.setAttribute("r", item.r);
+          circle.setAttribute("fill", item.fill);
+          g.appendChild(circle);
+
+          const txt = document.createElementNS("http://www.w3.org/2000/svg", "text");
+          txt.setAttribute("x", item.textX);
+          txt.setAttribute("y", item.textY);
+          txt.setAttribute("text-anchor", "middle");
+          txt.setAttribute("fill", "#fff");
+          txt.setAttribute("font-size", item.fontSize || 10);
+          txt.setAttribute("font-weight", "800");
+          txt.textContent = item.label || item.title;
+          g.appendChild(txt);
+
+        } else if (item.shape === "pin_my") {
+          const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+          circle.setAttribute("cx", item.cx);
+          circle.setAttribute("cy", item.cy);
+          circle.setAttribute("r", item.r);
+          circle.setAttribute("fill", item.fill);
+          circle.setAttribute("stroke", "#fff");
+          circle.setAttribute("stroke-width", "2");
+          g.appendChild(circle);
+
+          const txt = document.createElementNS("http://www.w3.org/2000/svg", "text");
+          txt.setAttribute("x", item.textX);
+          txt.setAttribute("y", item.textY);
+          txt.setAttribute("text-anchor", "middle");
+          txt.setAttribute("fill", item.fill);
+          txt.setAttribute("font-size", "11");
+          txt.setAttribute("font-weight", "800");
+          txt.textContent = item.label;
+          g.appendChild(txt);
+        }
+
+        fixturesLayer.appendChild(g);
+      });
+    }
 
     /* ========================================================
-       3. 2D ↔ 3D 좌표 변환 및 핑 시스템
+       3. 2D ↔ 3D 좌표 변환 및 빈 핑 시스템
     ======================================================== */
     const MAP_2D = { width: 360, height: 520 };
     const MAP_3D = { width: 60, depth: 86.6 };
@@ -1270,16 +1361,13 @@
       const y2d = (z3d / MAP_3D.depth + 0.5) * MAP_2D.height;
       return { x: Math.round(x2d), y: Math.round(y2d) };
     }
-    let currentIndoorMode = "2D"; // 현재 모드 ('2D' 또는 '3D')
+
+    let currentIndoorMode = "2D";
     let activeFloor = "B1";
 
+    // 기본 핑 완전 제거 (빈 배열로 시작)
     const STATION_PINS_DB = {
-      "강남역": [
-        { id: 1, floor: "B1", title: "물품보관함 A구역", desc: "개찰구 바로 우측에 위치", img: "", x: 230, y: 260 },
-        { id: 2, floor: "B1", title: "약국 및 수유실", desc: "1번 출구 에스컬레이터 옆", img: "", x: 90, y: 230 },
-        { id: 3, floor: "B2", title: "2호선 환승통로 자판기", desc: "계단 내려오자마자 보임", img: "", x: 180, y: 160 },
-        { id: 4, floor: "B4", title: "신분당선 승강장 비상벨", desc: "승강장 중앙 기둥", img: "", x: 180, y: 300 } // ⬅️ B4 샘플 핑
-      ]
+      "강남역": []
     };
 
     const indoorSvg = document.getElementById("indoor-svg");
@@ -1297,6 +1385,8 @@
     let tempUploadedImg = "";
 
     indoorSvg.addEventListener("click", (e) => {
+      // 시설물 요소나 기존 핑 클릭 시 빈 바닥 클릭 무시
+      if (e.target.closest(".fixture-item") || e.target.closest(".indoor-pin-marker")) return;
       const rect = indoorSvg.getBoundingClientRect();
       const clickX = ((e.clientX - rect.left) / rect.width) * 360;
       const clickY = ((e.clientY - rect.top) / rect.height) * 520;
@@ -1428,15 +1518,26 @@
     const indoorClearSearch = document.getElementById("indoor-clear-search");
     const indoorSuggestions = document.getElementById("indoor-suggestions");
 
-    const DEFAULT_STATION_FACILITIES = [
-      { floor: "B1", title: "2호선 탑승게이트", x: 180, y: 75, type: "gate" },
-      { floor: "B2", title: "신분당선 탑승게이트", x: 180, y: 445, type: "gate" },
-      { floor: "B4", title: "신분당선 하행 승강장", x: 180, y: 260, type: "platform" }, // ⬅️ B4 시설물
-      { floor: "B1", title: "1번 출구", x: 65, y: 260, type: "exit" },
-      { floor: "B1", title: "2번 출구", x: 295, y: 260, type: "exit" },
-      { floor: "B1", title: "중앙 개찰구", x: 180, y: 260, type: "turnstile" },
-      { floor: "B1", title: "화장실", x: 180, y: 350, type: "toilet" }
-    ];
+    function getAllCurrentFacilities() {
+      const stName = currentSelectedStation ? currentSelectedStation.name : "강남역";
+      const stationFloors = FLOOR_FACILITIES_DB[stName] || {};
+      const facilitiesList = [];
+
+      Object.entries(stationFloors).forEach(([floorKey, items]) => {
+        items.forEach(it => {
+          if (it.type !== "my_loc") {
+            facilitiesList.push({
+              floor: floorKey,
+              title: it.title,
+              x: it.shape === "circle" ? it.cx : it.x + it.w / 2,
+              y: it.shape === "circle" ? it.cy : it.y + it.h / 2,
+              type: it.type
+            });
+          }
+        });
+      });
+      return facilitiesList;
+    }
 
     function onIndoorSearchInput(query) {
       const q = query.trim().toLowerCase();
@@ -1451,7 +1552,8 @@
 
       const stName = currentSelectedStation ? currentSelectedStation.name : "강남역";
       const customPins = STATION_PINS_DB[stName] || [];
-      const allTargets = [...DEFAULT_STATION_FACILITIES, ...customPins];
+      const dynamicFacilities = getAllCurrentFacilities();
+      const allTargets = [...dynamicFacilities, ...customPins];
 
       const matched = allTargets.filter(item => item.title.toLowerCase().includes(q) || (item.desc && item.desc.toLowerCase().includes(q)));
 
@@ -1490,7 +1592,19 @@
     const MY_LOCATION = { x: 65, y: 290, name: "내 위치 (1번 출구 앞)" };
 
     function openIndoorNavigation() {
-      startRouteToTarget({ title: "2호선 탑승게이트", x: 180, y: 75 });
+      const stName = currentSelectedStation ? currentSelectedStation.name : "강남역";
+      const facilities = (FLOOR_FACILITIES_DB[stName] && FLOOR_FACILITIES_DB[stName][activeFloor]) || [];
+      const defaultTarget = facilities.find(f => f.type !== "my_loc");
+
+      if (defaultTarget) {
+        startRouteToTarget({
+          title: defaultTarget.title,
+          x: defaultTarget.shape === "circle" ? defaultTarget.cx : defaultTarget.x + defaultTarget.w / 2,
+          y: defaultTarget.shape === "circle" ? defaultTarget.cy : defaultTarget.y + defaultTarget.h / 2
+        });
+      } else {
+        alert("현재 층에 등록된 목적지 시설이 없습니다.");
+      }
     }
 
     function closeIndoorNavigation() {
@@ -1522,8 +1636,8 @@
       indoorNavCard.style.display = "flex";
     }
 
-/* ========================================================
-       5. 3D 실내 지도 (Three.js + 층별 GLB 분리 로드 + 드래그/클릭 분리)
+    /* ========================================================
+       5. 3D 실내 지도 (Three.js + 층별 동적 교체)
     ======================================================== */
     const canvas2D = document.getElementById("indoor-2d-canvas");
     const threeContainer = document.getElementById("three-container");
@@ -1536,7 +1650,6 @@
     let loadedStationModel = null;
     let pins3DGroup = new THREE.Group();
 
-    // 층별 GLB 모델 파일명 매핑
     const FLOOR_MODEL_MAP = {
       "B1": "gangnam_B1.glb",
       "B2": "gangnam_B2.glb",
@@ -1545,7 +1658,7 @@
     };
 
     function setIndoorMode(mode) {
-      currentIndoorMode = mode; // ⬅️ 현재 모드('2D' 또는 '3D') 동기화 추가
+      currentIndoorMode = mode;
 
       if (mode === "2D") {
         btn2D.classList.add("active");
@@ -1605,10 +1718,7 @@
 
       scene.add(pins3DGroup);
 
-      // 현재 활성화된 층(activeFloor) 모델 로드
       loadFloorGlbModel(activeFloor);
-
-      // 드래그(회전)와 클릭을 완전히 분리한 레이캐스팅 바인딩
       setup3DInteraction();
 
       function animate() {
@@ -1619,11 +1729,9 @@
       animate();
     }
 
-    // 층별 GLB 파일 로드 및 교체 함수
     function loadFloorGlbModel(floor) {
       if (!scene) return;
 
-      // 1. 기존 모델이 씬에 있다면 먼저 메모리 및 씬에서 안전하게 제거
       if (loadedStationModel) {
         scene.remove(loadedStationModel);
         loadedStationModel.traverse((child) => {
@@ -1664,7 +1772,6 @@
           scene.add(model);
           loadedStationModel = model;
 
-          // 바운딩 박스를 계산하여 중앙 정렬 및 카메라 시야 자동 피팅
           const box = new THREE.Box3().setFromObject(model);
           const center = box.getCenter(new THREE.Vector3());
           const size = box.getSize(new THREE.Vector3());
@@ -1702,13 +1809,11 @@
         },
         (err) => {
           loadingIndicator.style.display = "none";
-          console.warn(`[${floor}] 모델 로드 실패 (${fileName}), 기본 구조체를 로드합니다:`, err);
-          loadFallbackBoxModel();
+          console.warn(`[${floor}] 모델 로드 실패 (${fileName}):`, err);
         }
       );
     }
 
-    // 층 버튼(B1, B2, B3)을 누를 때 3D 모드라면 모델도 함께 교체하도록 selectFloor 함수 업데이트
     function selectFloor(floor, btnEl) {
       activeFloor = floor;
       document.querySelectorAll(".floor-btn").forEach(b => b.classList.remove("active"));
@@ -1716,16 +1821,15 @@
 
       closeIndoorNavigation();
       closePinModal();
+      renderDynamicFixtures(); // 층에 맞게 시설물 다시 렌더링
       renderStationPins();
       syncPinsTo3D();
 
-      // 3D 모드인 경우 해당 층의 GLB 모델로 교체
       if (currentIndoorMode === "3D" && isThreeInitialized) {
         loadFloorGlbModel(floor);
       }
     }
 
-// 화면 회전(드래그)과 클릭(핑 생성)을 완벽히 분리하는 인터랙션 핸들러
     function setup3DInteraction() {
       const raycaster = new THREE.Raycaster();
       const mouse = new THREE.Vector2();
@@ -1734,32 +1838,25 @@
       let startClientX = 0;
       let startClientY = 0;
 
-      // 마우스/터치가 눌렸을 때 좌표 기록
       renderer.domElement.addEventListener("pointerdown", (e) => {
         isDown = true;
         startClientX = e.clientX;
         startClientY = e.clientY;
       });
 
-      // 손을 떼었을 때 드래그 이동 거리가 6px 이내인 순수 '클릭'일 때만 레이캐스팅 실행
       renderer.domElement.addEventListener("pointerup", (e) => {
         if (!isDown) return;
         isDown = false;
 
         const moveDist = Math.hypot(e.clientX - startClientX, e.clientY - startClientY);
-        if (moveDist > 6) {
-          // 6픽셀 초과 이동은 카메라 회전/패닝으로 판별하여 핑 생성 스킵
-          return;
-        }
+        if (moveDist > 6) return;
 
-        // --- 순수 클릭(Click) 처리 ---
         const rect = renderer.domElement.getBoundingClientRect();
         mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
         mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
 
         raycaster.setFromCamera(mouse, camera);
 
-        // 1. 기존 3D 핀 클릭 검사
         const pinHits = raycaster.intersectObjects(pins3DGroup.children, true);
         if (pinHits.length > 0) {
           let rootGroup = pinHits[0].object;
@@ -1772,7 +1869,6 @@
           }
         }
 
-        // 2. 3D 메쉬 표면 클릭 시 새로운 핑 생성
         if (loadedStationModel) {
           const modelHits = raycaster.intersectObject(loadedStationModel, true);
           if (modelHits.length > 0) {
@@ -1782,16 +1878,11 @@
           }
         }
       });
-    } // setup3DInteraction 닫힘
+    }
 
-    /* ========================================================
-       3D 동기화 함수들 (이벤트 리스너 밖, 최상위 스크립트로 분리)
-    ======================================================== */
-    // 2D 핑 데이터를 3D 입체 핀 오브젝트로 동기화
     function syncPinsTo3D() {
       if (!isThreeInitialized || !pins3DGroup) return;
 
-      // 기존 3D 핀 메쉬 제거
       while (pins3DGroup.children.length > 0) {
         const obj = pins3DGroup.children[0];
         pins3DGroup.remove(obj);
@@ -1799,7 +1890,6 @@
       }
 
       const stName = currentSelectedStation ? currentSelectedStation.name : "강남역";
-      // 현재 선택된 층(activeFloor)에 등록된 핑만 3D로 변환
       const pins = (STATION_PINS_DB[stName] || []).filter(p => p.floor === activeFloor);
 
       pins.forEach(pin => {
@@ -1810,7 +1900,6 @@
       });
     }
 
-    // 3D 핀 메쉬 생성 헬퍼 함수
     function create3DPinMesh(pinData) {
       const group = new THREE.Group();
 
@@ -1831,7 +1920,6 @@
       return group;
     }
 
-    // 2D 뷰 중심 시점을 3D 카메라 중심점으로 맞추는 함수
     function syncCameraTo2DView() {
       if (!controls) return;
       const target3D = coord2Dto3D(180, 260);
