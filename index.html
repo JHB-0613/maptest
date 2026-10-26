@@ -1486,7 +1486,7 @@
       const rect = threeContainer.getBoundingClientRect();
       const aspect = (rect.width || 412) / (rect.height || 800);
 
-      const targetViewWidth = 34;
+      const targetViewWidth = 54;
       const targetViewHeight = targetViewWidth / aspect;
 
       camera.left = -targetViewWidth / 2;
@@ -1539,7 +1539,7 @@
       const rect = threeContainer.getBoundingClientRect();
       const aspect = (rect.width || 412) / (rect.height || 800);
 
-      const targetHeight = 55;
+      const targetHeight = 80;
       const targetWidth = targetHeight * aspect;
 
       camera.left = -targetWidth / 2;
@@ -1593,9 +1593,11 @@
       let endLeft, endRight, endTop, endBottom;
 
       if (targetMode === "3D") {
-        const dist = 55;
+        const dist = 65;
         endPos.set(currentTarget.x + dist * 0.8, currentTarget.y + dist * 1.1, currentTarget.z + dist * 0.9);
-        const targetHeight = 55;
+        
+        // ⬇️ 3D 목표 높이 80
+        const targetHeight = 80;
         const targetWidth = targetHeight * aspect;
         endLeft = -targetWidth / 2;
         endRight = targetWidth / 2;
@@ -1603,7 +1605,9 @@
         endBottom = -targetHeight / 2;
       } else {
         endPos.set(currentTarget.x, currentTarget.y + 220, currentTarget.z + 0.1);
-        const targetWidth = 34;
+
+        // ⬇️ 2D 목표 너비 54
+        const targetWidth = 54;
         const targetHeight = targetWidth / aspect;
         endLeft = -targetWidth / 2;
         endRight = targetWidth / 2;
