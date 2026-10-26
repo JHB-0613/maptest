@@ -108,7 +108,7 @@
     }
 
     /* ========================================================
-       1. 메인 노선도 화면 (Figma 테마 반영)
+       1. 메인 노선도 화면
     ======================================================== */
     #main-view {
       background: #f8fafc;
@@ -297,7 +297,6 @@
       box-shadow: 0 4px 14px rgba(102, 182, 157, 0.25);
     }
 
-    /* 하단 노선도 검색창 */
     .bottom-search-wrapper {
       position: absolute;
       bottom: calc(18px + env(safe-area-inset-bottom, 0px));
@@ -354,7 +353,7 @@
     .suggestion-item:hover { background: #f8fafc; }
 
     /* ========================================================
-       2. 실내 지도 화면 (Figma UI & 기능 완전 이식)
+       2. 실내 지도 화면
     ======================================================== */
     #indoor-view {
       background: #f7f8fa;
@@ -368,7 +367,6 @@
       height: 100%;
     }
 
-    /* Figma 상단 헤더 */
     .figma-header {
       padding: 44px 16px 10px 16px;
       background: #ffffff;
@@ -450,7 +448,6 @@
       cursor: pointer;
     }
 
-    /* 우측 상단 모드 & 층 선택기 */
     .indoor-top-controls {
       position: absolute;
       top: 100px;
@@ -515,7 +512,6 @@
       color: var(--primary-dark);
     }
 
-    /* 3D WebGL 캔버스 컨테이너 */
     #three-container {
       position: absolute;
       top: 0;
@@ -543,7 +539,6 @@
       border: 1px solid var(--border-color);
     }
 
-    /* 좌측 EXPLORE 드로어 패널 */
     #explore-panel {
       position: absolute;
       top: 96px;
@@ -604,7 +599,6 @@
       color: var(--primary-dark);
     }
 
-    /* 좌측 하단 플로팅 메뉴 도구 */
     .floating-tools-left {
       position: absolute;
       bottom: calc(20px + env(safe-area-inset-bottom, 0px));
@@ -633,7 +627,6 @@
       color: var(--primary-dark);
     }
 
-    /* 도구 팝오버 메뉴 */
     .tools-popover {
       position: absolute;
       bottom: 56px;
@@ -665,7 +658,7 @@
       z-index: 50;
       overflow: hidden;
       transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.2);
-      width: 48px; /* 원형 크기 고정 */
+      width: 48px;
     }
     
     .floating-ai-capsule.expanded {
@@ -674,7 +667,6 @@
       justify-content: space-between;
     }
 
-    /* 접혀있을 때는 input 영역 숨김 */
     .ai-input-wrap {
       display: none;
       flex: 1;
@@ -696,7 +688,6 @@
     }
     .ai-input::placeholder { color: #598775; }
 
-    /* AI 토글 버튼 글자 중앙 정렬 */
     .btn-ai-toggle {
       width: 48px;
       height: 48px;
@@ -716,7 +707,6 @@
       flex-shrink: 0;
     }
 
-    /* 핑 등록 및 상세 모달 (Figma 스타일) */
     .pin-modal {
       position: absolute;
       bottom: calc(84px + env(safe-area-inset-bottom, 0px));
@@ -760,10 +750,8 @@
       cursor: pointer;
     }
     .btn-pin-save { background: var(--primary-mint); color: var(--primary-dark); }
-    .btn-pin-route { background: #3b82f6; color: white; }
     .btn-pin-delete { background: #fee2e2; color: #dc2626; }
 
-    /* 서브 탭(커뮤니티 / MEMO) 오버레이 */
     .subpage-overlay {
       position: absolute;
       top: 96px;
@@ -830,9 +818,8 @@
       </div>
     </div>
 
-    <!-- 2. 실내 지도 화면 (Figma 인터페이스 및 기능 통합) -->
+    <!-- 2. 실내 지도 화면 -->
     <div id="indoor-view" class="view hidden">
-      <!-- Figma 헤더 바 -->
       <header class="figma-header">
         <div class="header-logo-group">
           <button class="btn-header-back" onclick="exitIndoorView()">‹</button>
@@ -847,7 +834,6 @@
         </nav>
       </header>
 
-      <!-- 우측 상단 모드/층 선택기 -->
       <div class="indoor-top-controls">
         <div class="toggle-mode">
           <button class="toggle-btn active" id="btn-2d" onclick="setIndoorMode('2D')">2D</button>
@@ -856,13 +842,10 @@
         <div class="floor-selector" id="floor-list"></div>
       </div>
 
-      <!-- 로딩 인디케이터 -->
       <div id="loading-indicator">3D 모델 로딩 중...</div>
-
-      <!-- 3D WebGL 캔버스 -->
       <div id="three-container"></div>
 
-      <!-- 좌측 EXPLORE 서랍 패널 (Figma) -->
+      <!-- 좌측 EXPLORE 서랍 패널 -->
       <aside id="explore-panel">
         <div class="explore-header">
           <div style="font-size:10px; font-weight:800; letter-spacing:1px; color:#9ca3af;">EXPLORE UNDERGROUND</div>
@@ -875,7 +858,6 @@
         <div style="margin-top:14px; font-size:11px; font-weight:800; color:#4b5563;">편의 시설 필터</div>
         <div class="category-grid" id="category-filter-grid"></div>
 
-        <!-- 핑 목록 -->
         <div style="margin-top:12px; font-size:12px; font-weight:800; display:flex; justify-content:space-between;">
           <span>등록된 핀 목록</span>
           <span style="color:var(--primary-dark);" id="explore-pins-count">0</span>
@@ -898,7 +880,7 @@
         </div>
       </div>
 
-      <!-- 우측 하단 확장형 AI 캡슐바 (Figma) -->
+      <!-- 우측 하단 확장형 AI 캡슐바 -->
       <div class="floating-ai-capsule" id="ai-capsule">
         <div class="ai-input-wrap">
           <input type="text" id="ai-query-input" class="ai-input" placeholder="AI에게 역 내 길안내나 편의시설을 물어보세요..." onkeydown="handleAiSubmit(event)">
@@ -922,7 +904,7 @@
         </div>
       </div>
 
-      <!-- 커뮤니티 & MEMO 서브페이지 오버레이 -->
+      <!-- 서브페이지 오버레이 -->
       <div class="subpage-overlay" id="subpage-community">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
           <h2 style="font-size:20px; font-weight:800;">역사 커뮤니티</h2>
@@ -1163,7 +1145,7 @@
     }
 
     /* ========================================================
-       2. Figma 인터페이스 & 카테고리 데이터 시스템
+       2. Figma 인터페이스 및 정밀 좌표 사상 시스템
     ======================================================== */
     const FIGMA_CATEGORIES = ['전체', '물품보관함', '화장실', '충전소', '엘리베이터', '상점', '카페', '쓰레기통'];
     const CATEGORY_COLORS = {
@@ -1181,11 +1163,36 @@
     let currentIndoorMode = "2D";
     let activeFloor = "B1";
 
+    // 강남역 실측 모델 Bounding Box 기반 정밀 좌표 사상 상수
+    const MODEL_BBOX = {
+      centerX: -15.57,
+      centerZ: 38.40,
+      width: 19.04,
+      depth: 114.10
+    };
+
+    function coord2Dto3D(x2d, y2d) {
+      const normX = (x2d / 360 - 0.5);
+      const normZ = (y2d / 520 - 0.5);
+      const x3d = MODEL_BBOX.centerX + normX * MODEL_BBOX.width;
+      const z3d = MODEL_BBOX.centerZ + normZ * MODEL_BBOX.depth;
+      return { x: x3d, z: z3d };
+    }
+
+    function coord3Dto2D(x3d, z3d) {
+      const normX = (x3d - MODEL_BBOX.centerX) / MODEL_BBOX.width;
+      const normZ = (z3d - MODEL_BBOX.centerZ) / MODEL_BBOX.depth;
+      const x2d = Math.round((normX + 0.5) * 360);
+      const y2d = Math.round((normZ + 0.5) * 520);
+      return { x: x2d, y: y2d };
+    }
+
+    // 모델링 복도 영역 내부 실좌표를 지닌 초기 핀 데이터
     const STATION_PINS_DB = {
       "강남역": [
-        { id: 1, title: "물품보관함 1구역", category: "물품보관함", desc: "개찰구 나가기 전 우측", floor: "B1", x: 180, y: 160 },
-        { id: 2, title: "중앙 화장실", category: "화장실", desc: "1~2번 출구 중간", floor: "B1", x: 140, y: 240 },
-        { id: 3, title: "휴대폰 급속 충전소", category: "충전소", desc: "만남의 광장 기둥", floor: "B1", x: 220, y: 210 }
+        { id: 1, title: "물품보관함 1구역", category: "물품보관함", desc: "중앙 홀 북측 통로", floor: "B1", realX3d: -15.5, realZ3d: 30.0, x: 180, y: 160 },
+        { id: 2, title: "중앙 화장실", category: "화장실", desc: "중앙 환승 게이트 인근", floor: "B1", realX3d: -14.0, realZ3d: 40.0, x: 140, y: 240 },
+        { id: 3, title: "휴대폰 급속 충전소", category: "충전소", desc: "메인 복도 기둥", floor: "B1", realX3d: -16.0, realZ3d: 55.0, x: 220, y: 210 }
       ]
     };
 
@@ -1195,7 +1202,6 @@
     const categoryGrid = document.getElementById("category-filter-grid");
     const pinCatSelect = document.getElementById("pin-category-select");
 
-    // Figma 카테고리 필터 UI 구성
     function initCategoryFilters() {
       categoryGrid.innerHTML = "";
       pinCatSelect.innerHTML = "";
@@ -1288,7 +1294,6 @@
       toggleSubpage(null);
     }
 
-    /* Figma Explore 패널 토글 및 핀 렌더링 */
     const explorePanel = document.getElementById("explore-panel");
     const btnToolExplore = document.getElementById("btn-tool-explore");
 
@@ -1328,10 +1333,8 @@
           </div>
           <span style="font-size:12px; color:#367b67; font-weight:800;">›</span>
         `;
-        
-        // ⬇️ 핀 클릭 시: 탐색창을 닫고, 지도를 포커싱한 후 핀 모달 오픈
         item.onclick = () => {
-          toggleExplorePanel(false); // ⬅️ 탐색 서랍창 닫기
+          toggleExplorePanel(false); // 핀 클릭 시 탐색창 닫기
           focusOnPin(pin);
           openViewPinModal(pin);
         };
@@ -1343,7 +1346,6 @@
       renderExplorePinsList(val.trim());
     }
 
-    /* 플로팅 도구 팝오버 */
     const toolsPopover = document.getElementById("tools-popover");
     function toggleToolsPopover() {
       toolsPopover.style.display = toolsPopover.style.display === "flex" ? "none" : "flex";
@@ -1362,7 +1364,6 @@
       if (controls) controls.update();
     }
 
-    /* Figma 확장형 AI 캡슐바 */
     const aiCapsule = document.getElementById("ai-capsule");
     const aiQueryInput = document.getElementById("ai-query-input");
 
@@ -1387,7 +1388,6 @@
       }
     }
 
-    /* 상단 서브페이지 오버레이 (커뮤니티 / MEMO) */
     function toggleSubpage(tab) {
       const commEl = document.getElementById("subpage-community");
       const memoEl = document.getElementById("subpage-memo");
@@ -1426,7 +1426,7 @@
     }
 
     /* ========================================================
-       3. Three.js 3D 실내 지도 엔진 (2D 탑뷰 & 3D 활공 트랜지션)
+       3. Three.js 엔진 (정밀 2D/3D 전환 및 컨트롤 바인딩)
     ======================================================== */
     const threeContainer = document.getElementById("three-container");
     const btn2D = document.getElementById("btn-2d");
@@ -1473,11 +1473,10 @@
       syncPinsTo3D();
     }
 
-    // 1. 2D 탑뷰 설정 함수 보완
     function setCameraToTopDownView() {
       if (!controls || !camera || !renderer) return;
 
-      let centerX = -15.57, centerY = -10.86, centerZ = 38.40;
+      let centerX = MODEL_BBOX.centerX, centerY = -10.86, centerZ = MODEL_BBOX.centerZ;
       if (loadedStationModel) {
         const box = new THREE.Box3().setFromObject(loadedStationModel);
         const center = box.getCenter(new THREE.Vector3());
@@ -1503,7 +1502,6 @@
       const targetY = centerY;
       const targetZ = centerZ - 6.0;
 
-      // Gimbal Lock 방지: Z축으로 +0.1 미세 오프셋 유지
       camera.up.set(0, 1, 0);
       camera.position.set(targetX, targetY + 220, targetZ + 0.1);
       controls.target.set(targetX, targetY, targetZ);
@@ -1524,15 +1522,18 @@
       renderer.render(scene, camera);
     }
 
-    // 2. 3D 쿼터뷰 설정 함수 보완
     function syncCameraToIsometricView() {
       if (!controls || !camera || !renderer) return;
 
-      let centerX = -15.57, centerY = -10.86, centerZ = 38.40;
+      let centerX = MODEL_BBOX.centerX, centerY = -10.86, centerZ = MODEL_BBOX.centerZ;
+      let maxDim = 114;
+
       if (loadedStationModel) {
         const box = new THREE.Box3().setFromObject(loadedStationModel);
         const center = box.getCenter(new THREE.Vector3());
+        const size = box.getSize(new THREE.Vector3());
         centerX = center.x; centerY = center.y; centerZ = center.z;
+        maxDim = Math.max(size.x, size.z);
       }
 
       const rect = threeContainer.getBoundingClientRect();
@@ -1562,6 +1563,7 @@
       controls.minZoom = 0.3;
       controls.maxZoom = 4.0;
 
+      // 3D 모드: 좌클릭 이동, 우클릭 회전
       controls.mouseButtons = {
         LEFT: THREE.MOUSE.PAN,
         MIDDLE: THREE.MOUSE.DOLLY,
@@ -1576,12 +1578,10 @@
       renderer.render(scene, camera);
     }
 
-    // 3. 2D ↔ 3D 시점 전환 애니메이션 (안전성 보강)
     function transitionCamera(targetMode, duration = 650) {
       if (!camera || !controls || !renderer || isCameraTransitioning) return;
       isCameraTransitioning = true;
 
-      // 현재 보고 있던 타깃 지점 유지
       const currentTarget = controls.target.clone();
       const startPos = camera.position.clone();
       const startLeft = camera.left, startRight = camera.right, startTop = camera.top, startBottom = camera.bottom;
@@ -1594,9 +1594,7 @@
 
       if (targetMode === "3D") {
         const dist = 55;
-        // 타깃 기준 사선 방향 배치
         endPos.set(currentTarget.x + dist * 0.8, currentTarget.y + dist * 1.1, currentTarget.z + dist * 0.9);
-
         const targetHeight = 55;
         const targetWidth = targetHeight * aspect;
         endLeft = -targetWidth / 2;
@@ -1604,9 +1602,7 @@
         endTop = targetHeight / 2;
         endBottom = -targetHeight / 2;
       } else {
-        // 탑뷰 배치 시 Z축 0.1 오프셋으로 Gimbal Lock 방지
         endPos.set(currentTarget.x, currentTarget.y + 220, currentTarget.z + 0.1);
-
         const targetWidth = 34;
         const targetHeight = targetWidth / aspect;
         endLeft = -targetWidth / 2;
@@ -1623,7 +1619,6 @@
         const progress = Math.min(elapsed / duration, 1.0);
         const ease = easeOutCubic(progress);
 
-        // 카메라 위치 및 프러스텀 보간
         camera.position.lerpVectors(startPos, endPos, ease);
         camera.left = THREE.MathUtils.lerp(startLeft, endLeft, ease);
         camera.right = THREE.MathUtils.lerp(startRight, endRight, ease);
@@ -1641,7 +1636,6 @@
           requestAnimationFrame(step);
         } else {
           isCameraTransitioning = false;
-
           if (targetMode === "3D") {
             controls.enableRotate = true;
             controls.minZoom = 0.3; controls.maxZoom = 4.0;
@@ -1674,7 +1668,6 @@
       requestAnimationFrame(step);
     }
 
-    // 2D 탑뷰 모드 경계 락
     function clampTopDownPan() {
       if (currentIndoorMode !== "2D" || !loadedStationModel || !controls || !camera || isClamping || isCameraTransitioning) return;
 
@@ -1707,7 +1700,7 @@
       const width = rect.width || 412, height = rect.height || 800;
 
       scene = new THREE.Scene();
-      scene.background = new THREE.Color(0xf3f4f6); // Figma 캔버스 배경 일치
+      scene.background = new THREE.Color(0xf3f4f6);
 
       const aspect = width / height;
       const d = 48;
@@ -1719,7 +1712,6 @@
       renderer.setPixelRatio(window.devicePixelRatio);
       threeContainer.appendChild(renderer.domElement);
 
-      // ⬇️ [추가] 캔버스 위에서 우클릭 메뉴창 팝업 차단
       renderer.domElement.addEventListener("contextmenu", (e) => e.preventDefault());
 
       controls = new THREE.OrbitControls(camera, renderer.domElement);
@@ -1789,7 +1781,6 @@
           scene.add(model);
           loadedStationModel = model;
 
-          // ⬇️ 모델 다운로드가 끝난 직후 현재 모드에 맞게 카메라 세팅 및 강제 렌더링
           if (currentIndoorMode === "2D") {
             setCameraToTopDownView();
           } else {
@@ -1797,9 +1788,7 @@
           }
 
           syncPinsTo3D();
-          if (renderer && scene && camera) {
-            renderer.render(scene, camera);
-          }
+          if (renderer && scene && camera) renderer.render(scene, camera);
         },
         (xhr) => {
           if (xhr.lengthComputable) {
@@ -1826,7 +1815,6 @@
       if (isThreeInitialized) loadFloorGlbModel(floor);
     }
 
-    /* 3D 핀 생성 및 레이캐스팅 높이 자동 보정 */
     function getSurfaceHeightAt(x3d, z3d) {
       if (!loadedStationModel) return 0;
       const bbox = new THREE.Box3().setFromObject(loadedStationModel);
@@ -1851,9 +1839,15 @@
       pins.forEach(pin => {
         if (activeCategory !== '전체' && pin.category !== activeCategory) return;
 
-        // 월드 선형 사상: SVG 360x520 -> 3D 60x86.6
-        const x3d = (pin.x / 360 - 0.5) * 60;
-        const z3d = (pin.y / 520 - 0.5) * 86.6;
+        let x3d, z3d;
+        if (pin.realX3d !== undefined && pin.realZ3d !== undefined) {
+          x3d = pin.realX3d;
+          z3d = pin.realZ3d;
+        } else {
+          const pos = coord2Dto3D(pin.x, pin.y);
+          x3d = pos.x;
+          z3d = pos.z;
+        }
 
         let surfaceY = pin.y3d;
         if (surfaceY === undefined || surfaceY === null || isNaN(surfaceY)) {
@@ -1890,15 +1884,21 @@
     }
 
     function focusOnPin(pin) {
-      const x3d = (pin.x / 360 - 0.5) * 60;
-      const z3d = (pin.y / 520 - 0.5) * 86.6;
+      let x3d, z3d;
+      if (pin.realX3d !== undefined && pin.realZ3d !== undefined) {
+        x3d = pin.realX3d;
+        z3d = pin.realZ3d;
+      } else {
+        const pos = coord2Dto3D(pin.x, pin.y);
+        x3d = pos.x;
+        z3d = pos.z;
+      }
       controls.target.set(x3d, 0, z3d);
       camera.position.x = x3d;
-      camera.position.z = z3d + (currentIndoorMode === "2D" ? 0.05 : 45);
+      camera.position.z = z3d + (currentIndoorMode === "2D" ? 0.1 : 45);
       controls.update();
     }
 
-    /* 3D 화면 클릭 및 핑 모달 관리 */
     let tempClickCoord = null;
     let currentEditingPin = null;
 
@@ -1942,17 +1942,16 @@
           const hits = raycaster.intersectObject(loadedStationModel, true);
           if (hits.length > 0) {
             const hitPt = hits[0].point;
-            const x2d = Math.round((hitPt.x / 60 + 0.5) * 360);
-            const y2d = Math.round((hitPt.z / 86.6 + 0.5) * 520);
-            openCreatePinModal(x2d, y2d, hitPt.y);
+            const coord2D = coord3Dto2D(hitPt.x, hitPt.z);
+            openCreatePinModal(coord2D.x, coord2D.y, hitPt.y, hitPt.x, hitPt.z);
           }
         }
       });
     }
 
-    function openCreatePinModal(x, y, y3d = 0) {
+    function openCreatePinModal(x, y, y3d = 0, realX3d = null, realZ3d = null) {
       currentEditingPin = null;
-      tempClickCoord = { x, y, y3d };
+      tempClickCoord = { x, y, y3d, realX3d, realZ3d };
 
       document.getElementById("pin-modal-title").innerText = `📍 [${activeFloor}] 새로운 장소 핑 등록`;
       pinTitleInput.value = "";
@@ -1992,7 +1991,9 @@
         desc: pinDescInput.value.trim(),
         x: tempClickCoord.x,
         y: tempClickCoord.y,
-        y3d: tempClickCoord.y3d || 0
+        y3d: tempClickCoord.y3d || 0,
+        realX3d: tempClickCoord.realX3d,
+        realZ3d: tempClickCoord.realZ3d
       });
 
       closePinModal();
