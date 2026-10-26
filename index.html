@@ -3,9 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>서울 지하철 스마트 실내 네비게이션 & 핑 맵</title>
+  <title>서울 지하철 스마트 실내 네비게이션 & 강남역 3D</title>
+  <!-- Three.js CDN -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <!-- OBJLoader CDN 추가 -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
+
   <style>
     :root {
       --bg-dark: #121418;
@@ -98,7 +102,7 @@
       visibility: hidden;
     }
 
-    /* 1. 메인 노선도 뷰 */
+    /* 1. 메인 노선도 화면 */
     #main-view {
       background: #f8f9fb;
       overflow: hidden;
@@ -174,7 +178,6 @@
       box-shadow: 0 6px 16px rgba(0,0,0,0.3);
     }
 
-    /* 역 선택 팝업 카드 (길안내 버튼 제거, 상세 보기 단독 구성) */
     .station-popup-card {
       position: absolute;
       bottom: calc(88px + env(safe-area-inset-bottom, 0px));
@@ -289,7 +292,7 @@
       box-shadow: 0 6px 18px rgba(0, 180, 255, 0.35);
     }
 
-    /* 2. 실내 지도 화면 UI */
+    /* 2. 실내 지도 화면 */
     #indoor-view {
       background: #181a20;
       display: flex;
@@ -410,7 +413,7 @@
       color: #ffffff;
     }
 
-    /* 실내 2D 캔버스 영역 */
+    /* 2D 캔버스 뷰 */
     #indoor-2d-canvas {
       position: absolute;
       top: 0;
@@ -437,6 +440,7 @@
       cursor: crosshair;
     }
 
+    /* 3D WebGL 캔버스 컨테이너 */
     #three-container {
       position: absolute;
       top: 0;
@@ -447,7 +451,25 @@
       display: none;
     }
 
-    /* 실내 핑(Marker) 아이콘 스타일 */
+    /* 로딩 알림 스피너 */
+    #loading-indicator {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0, 0, 0, 0.75);
+      color: #00e5ff;
+      padding: 12px 20px;
+      border-radius: 16px;
+      font-size: 13px;
+      font-weight: 700;
+      display: none;
+      z-index: 60;
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--border-color);
+    }
+
+    /* 실내 핑 마커 */
     .indoor-pin-marker {
       position: absolute;
       transform: translate(-50%, -100%);
@@ -538,7 +560,7 @@
     .btn-pin-route { background: #0984e3; color: white; }
     .btn-pin-delete { background: #ff7675; color: white; }
 
-    /* 실내 전용 길찾기 패널 (실내 지도 상단) */
+    /* 실내 길안내 상단 카드 */
     .indoor-navigation-card {
       position: absolute;
       top: 96px;
@@ -575,7 +597,7 @@
     .indoor-route-time { font-size: 22px; font-weight: 900; color: #00b894; }
     .indoor-route-dist { font-size: 13px; font-weight: 700; color: #64748b; }
 
-    /* 하단 검색바 공통 스타일 */
+    /* 하단 검색바 */
     .bottom-search-wrapper {
       position: absolute;
       bottom: calc(20px + env(safe-area-inset-bottom, 0px));
@@ -665,8 +687,7 @@
         <div id="map-wrapper">
           <img src="metroimg.jpg" id="official-metro-img" alt="서울 지하철 노선도" onerror="this.src='metroimg.svg'">
 
-          <!-- 일반 선택 핀 -->
-          <svg id="pin-general" class="map-pin" width="38" height="52" viewBox="0 0 384 512" style="z-index: 40; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.5));">
+          <svg id="pin-general" class="map-pin" width="38" height="52" viewBox="0 0 384 512">
             <path fill="#00e5ff" stroke="#ffffff" stroke-width="14" d="M172.268 501.67C26.97 291.031 0 269.413 0 192 0 85.961 86.039 0 192 0s192 85.961 192 192c0 77.413-26.97 99.031-172.268 309.67-9.535 13.774-29.93 13.773-39.464 0z"/>
             <circle cx="192" cy="192" r="75" fill="#ffffff"/>
             <circle cx="192" cy="192" r="45" fill="#00e5ff"/>
@@ -674,13 +695,11 @@
         </div>
       </div>
 
-      <!-- 우측 수동 줌 버튼 -->
       <div class="zoom-controls">
         <button class="btn-zoom" onclick="zoomManual(0.25)">+</button>
         <button class="btn-zoom" onclick="zoomManual(-0.25)">−</button>
       </div>
 
-      <!-- 역 선택 정보 팝업 카드 (길안내 버튼 제거, 상세 보기 단독 구성) -->
       <div class="station-popup-card" id="station-card">
         <div class="card-header">
           <div class="station-title-box">
@@ -696,7 +715,6 @@
         </button>
       </div>
 
-      <!-- 노선도 하단 역 검색바 -->
       <div class="bottom-search-wrapper" id="main-search-wrapper">
         <span class="search-icon">🔍</span>
         <input type="text" id="main-search-box" class="search-input" placeholder="어떤 역을 찾으시나요?" oninput="onMainSearchInput(this.value)">
@@ -716,7 +734,6 @@
         <button class="btn-indoor-route" onclick="openIndoorNavigation()">길안내</button>
       </div>
 
-      <!-- 좌측 2D/3D 토글 및 층수 선택기 -->
       <div class="indoor-controls">
         <div class="toggle-mode">
           <button class="toggle-btn active" id="btn-2d" onclick="setIndoorMode('2D')">2D</button>
@@ -725,57 +742,52 @@
         <div class="floor-selector" id="floor-list"></div>
       </div>
 
-      <!-- 2D 실내 평면도 및 핑 컨테이너 -->
+      <!-- 로딩 인디케이터 -->
+      <div id="loading-indicator">3D 모델 로딩 중...</div>
+
+      <!-- 2D 캔버스 -->
       <div id="indoor-2d-canvas">
         <div id="indoor-svg-wrap">
           <svg id="indoor-svg" viewBox="0 0 360 520">
-            <!-- 역사 베이스 구조 (대합실 복도) -->
             <g fill="#2e3440" stroke="#1c202a" stroke-width="3">
               <rect x="130" y="40" width="100" height="440" rx="12"/>
               <rect x="40" y="200" width="280" height="120" rx="12"/>
             </g>
 
-            <!-- 주요 시설물 (게이트/출구/편의시설) -->
             <g id="indoor-fixtures">
-              <!-- 승강장 게이트 -->
               <rect x="145" y="60" width="70" height="30" rx="6" fill="#00a84d"/>
               <text x="180" y="80" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">2호선 탑승게이트</text>
 
               <rect x="145" y="430" width="70" height="30" rx="6" fill="#d4003b"/>
               <text x="180" y="450" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">신분당선 게이트</text>
 
-              <!-- 출구 -->
               <circle cx="65" cy="260" r="14" fill="#2ed573"/>
               <text x="65" y="264" text-anchor="middle" fill="#fff" font-size="10" font-weight="800">1번</text>
 
               <circle cx="295" cy="260" r="14" fill="#2ed573"/>
               <text x="295" y="264" text-anchor="middle" fill="#fff" font-size="10" font-weight="800">2번</text>
 
-              <!-- 개찰구 & 화장실 -->
               <circle cx="180" cy="260" r="16" fill="#0984e3"/>
               <text x="180" y="264" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">개찰구</text>
 
               <circle cx="180" cy="350" r="14" fill="#ff7675"/>
               <text x="180" y="354" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">화장실</text>
 
-              <!-- 내 위치 표시 점 -->
               <circle cx="65" cy="290" r="7" fill="#00e5ff" stroke="#fff" stroke-width="2"/>
               <text x="65" y="312" text-anchor="middle" fill="#00e5ff" font-size="11" font-weight="800">내 위치</text>
             </g>
 
-            <!-- 실내 길안내 경로선 (SVG Dash Line) -->
             <path id="indoor-path-line" d="" fill="none" stroke="#00e5ff" stroke-width="4" stroke-dasharray="6,4" stroke-linecap="round" style="display:none;"/>
           </svg>
 
-          <!-- 유저가 등록한 핑(Marker) DOM 컨테이너 -->
           <div id="indoor-pins-layer"></div>
         </div>
       </div>
 
-      <!-- 3D 뷰 캔버스 -->
+      <!-- 3D WebGL 캔버스 -->
       <div id="three-container"></div>
 
-      <!-- 실내 전용 길안내 상단 패널 -->
+      <!-- 실내 길안내 패널 -->
       <div class="indoor-navigation-card" id="indoor-nav-card">
         <div class="indoor-nav-header">
           <span>🚶 실내 길안내 경로</span>
@@ -790,7 +802,7 @@
         </div>
       </div>
 
-      <!-- 핑 등록 및 상세 보기 모달 -->
+      <!-- 핑 등록/조회 모달 -->
       <div class="pin-modal" id="pin-modal">
         <div class="pin-modal-header">
           <span class="pin-modal-title" id="pin-modal-title">새로운 장소 핑 등록</span>
@@ -809,7 +821,7 @@
         </div>
       </div>
 
-      <!-- 실내 핑 전용 하단 검색바 -->
+      <!-- 실내 핑 검색바 -->
       <div class="bottom-search-wrapper" id="indoor-search-wrapper">
         <span class="search-icon">📍</span>
         <input type="text" id="indoor-search-box" class="search-input" placeholder="이 역의 핑 및 시설물 검색..." oninput="onIndoorSearchInput(this.value)">
@@ -1123,7 +1135,7 @@
     }
 
     /* ========================================================
-       2. 실내 지도 화면 전환 및 초기화
+       2. 실내 지도 화면 전환
     ======================================================== */
     const mainView = document.getElementById("main-view");
     const indoorView = document.getElementById("indoor-view");
@@ -1136,7 +1148,7 @@
       floorList.innerHTML = "";
 
       const floors = currentSelectedStation.name.includes("강남") 
-        ? ["B1", "B2", "B3", "B4"] 
+        ? ["B1", "B2", "B3"] 
         : ["2F", "1F", "B1", "B2", "B3"];
       const defaultFloor = "B1";
 
@@ -1148,6 +1160,7 @@
         floorList.appendChild(btn);
       });
 
+      activeFloor = defaultFloor;
       mainView.classList.add("hidden");
       indoorView.classList.remove("hidden");
 
@@ -1163,17 +1176,36 @@
     }
 
     function selectFloor(floor, btnEl) {
+      activeFloor = floor;
       document.querySelectorAll(".floor-btn").forEach(b => b.classList.remove("active"));
-      btnEl.classList.add("active");
+      if (btnEl) btnEl.classList.add("active");
+      
+      closeIndoorNavigation();
+      closePinModal();
       renderStationPins();
+      syncPinsTo3D();
     }
 
     /* ========================================================
-       3. 층별 실내 핑(POI) 시스템 (각 층마다 독립 저장/표시)
+       3. 2D ↔ 3D 좌표 변환 및 핑 시스템
     ======================================================== */
-    let activeFloor = "B1"; // 현재 선택된 층
+    const MAP_2D = { width: 360, height: 520 };
+    const MAP_3D = { width: 60, depth: 86.6 };
 
-    // 역 및 층별 초기 핑 데이터
+    function coord2Dto3D(x2d, y2d) {
+      const x3d = (x2d / MAP_2D.width - 0.5) * MAP_3D.width;
+      const z3d = (y2d / MAP_2D.height - 0.5) * MAP_3D.depth;
+      return { x: x3d, y: 1.0, z: z3d };
+    }
+
+    function coord3Dto2D(x3d, z3d) {
+      const x2d = (x3d / MAP_3D.width + 0.5) * MAP_2D.width;
+      const y2d = (z3d / MAP_3D.depth + 0.5) * MAP_2D.height;
+      return { x: Math.round(x2d), y: Math.round(y2d) };
+    }
+
+    let activeFloor = "B1";
+
     const STATION_PINS_DB = {
       "강남역": [
         { id: 1, floor: "B1", title: "물품보관함 A구역", desc: "개찰구 바로 우측에 위치", img: "", x: 230, y: 260 },
@@ -1182,7 +1214,6 @@
       ]
     };
 
-    const indoorSvgWrap = document.getElementById("indoor-svg-wrap");
     const indoorSvg = document.getElementById("indoor-svg");
     const indoorPinsLayer = document.getElementById("indoor-pins-layer");
     const pinModal = document.getElementById("pin-modal");
@@ -1197,12 +1228,10 @@
     let tempClickCoord = null;
     let tempUploadedImg = "";
 
-    // 실내 캔버스 클릭 시 현재 층에 핑 생성 모달 열기
     indoorSvg.addEventListener("click", (e) => {
       const rect = indoorSvg.getBoundingClientRect();
       const clickX = ((e.clientX - rect.left) / rect.width) * 360;
       const clickY = ((e.clientY - rect.top) / rect.height) * 520;
-
       openCreatePinModal(Math.round(clickX), Math.round(clickY));
     });
 
@@ -1263,7 +1292,6 @@
       reader.readAsDataURL(file);
     }
 
-    // 핑 저장 시 현재 선택된 층(activeFloor) 정보 포함
     function saveCurrentPin() {
       const title = pinTitleInput.value.trim();
       if (!title) {
@@ -1276,7 +1304,7 @@
 
       const newPin = {
         id: Date.now(),
-        floor: activeFloor, // 현재 선택된 층 정보 자동 저장
+        floor: activeFloor,
         title: title,
         desc: pinDescInput.value.trim(),
         img: tempUploadedImg,
@@ -1287,6 +1315,7 @@
       STATION_PINS_DB[stName].push(newPin);
       closePinModal();
       renderStationPins();
+      syncPinsTo3D();
       alert(`[${activeFloor}]에 '${title}' 핑이 등록되었습니다!`);
     }
 
@@ -1296,9 +1325,9 @@
       STATION_PINS_DB[stName] = STATION_PINS_DB[stName].filter(p => p.id !== currentEditingPin.id);
       closePinModal();
       renderStationPins();
+      syncPinsTo3D();
     }
 
-    // 현재 선택된 층(activeFloor)에 해당하는 핑만 화면에 렌더링
     function renderStationPins() {
       indoorPinsLayer.innerHTML = "";
       const stName = currentSelectedStation ? currentSelectedStation.name : "강남역";
@@ -1324,20 +1353,13 @@
       });
     }
 
-    // 층수 버튼 클릭 시 층 변경 핸들러
-    function selectFloor(floor, btnEl) {
-      activeFloor = floor;
-      document.querySelectorAll(".floor-btn").forEach(b => b.classList.remove("active"));
-      if (btnEl) btnEl.classList.add("active");
-      
-      closeIndoorNavigation(); // 층이 바뀌면 기존 경로선 닫기
-      closePinModal();
-      renderStationPins(); // 변경된 층의 핑만 다시 렌더링
-    }
-
     /* ========================================================
-       4. 실내 검색 (다른 층의 핑 검색 시 층 자동 전환)
+       4. 실내 검색 & 길안내
     ======================================================== */
+    const indoorSearchBox = document.getElementById("indoor-search-box");
+    const indoorClearSearch = document.getElementById("indoor-clear-search");
+    const indoorSuggestions = document.getElementById("indoor-suggestions");
+
     const DEFAULT_STATION_FACILITIES = [
       { floor: "B1", title: "2호선 탑승게이트", x: 180, y: 75, type: "gate" },
       { floor: "B2", title: "신분당선 탑승게이트", x: 180, y: 445, type: "gate" },
@@ -1362,10 +1384,7 @@
       const customPins = STATION_PINS_DB[stName] || [];
       const allTargets = [...DEFAULT_STATION_FACILITIES, ...customPins];
 
-      const matched = allTargets.filter(item => 
-        item.title.toLowerCase().includes(q) || 
-        (item.desc && item.desc.toLowerCase().includes(q))
-      );
+      const matched = allTargets.filter(item => item.title.toLowerCase().includes(q) || (item.desc && item.desc.toLowerCase().includes(q)));
 
       if (matched.length === 0) {
         indoorSuggestions.innerHTML = `<div style="padding:14px; text-align:center; color:#8e95a5; font-size:13px;">일치하는 핑이나 시설이 없습니다.</div>`;
@@ -1379,13 +1398,10 @@
           `;
           item.onclick = () => {
             indoorSuggestions.style.display = "none";
-
-            // 검색한 목적지가 다른 층에 있다면 해당 층으로 자동 전환
             if (target.floor && target.floor !== activeFloor) {
               const targetFloorBtn = Array.from(document.querySelectorAll(".floor-btn")).find(b => b.innerText === target.floor);
               selectFloor(target.floor, targetFloorBtn);
             }
-
             startRouteToTarget(target);
           };
           indoorSuggestions.appendChild(item);
@@ -1393,16 +1409,18 @@
       }
       indoorSuggestions.style.display = "block";
     }
-    /* ========================================================
-       5. 실내 전용 길안내 엔진 (내 위치 ➔ 핑 / 탑승게이트)
-    ======================================================== */
+
+    function clearIndoorSearch() {
+      indoorSearchBox.value = "";
+      indoorClearSearch.style.display = "none";
+      indoorSuggestions.style.display = "none";
+    }
+
     const indoorNavCard = document.getElementById("indoor-nav-card");
     const indoorPathLine = document.getElementById("indoor-path-line");
-    // 기본 내 위치 (1번 출구 인근)
     const MY_LOCATION = { x: 65, y: 290, name: "내 위치 (1번 출구 앞)" };
 
     function openIndoorNavigation() {
-      // 기본적으로 가장 많이 찾는 승강장 게이트로 길안내 연결
       startRouteToTarget({ title: "2호선 탑승게이트", x: 180, y: 75 });
     }
 
@@ -1420,7 +1438,6 @@
     function startRouteToTarget(targetObj) {
       document.getElementById("nav-target-name").innerText = targetObj.title;
 
-      // 거리 계산 (SVG 픽셀 10px ≈ 3.5m)
       const distPx = Math.hypot(targetObj.x - MY_LOCATION.x, targetObj.y - MY_LOCATION.y);
       const meters = Math.round((distPx / 10) * 3.5);
       const minutes = Math.max(1, Math.round(meters / 60));
@@ -1428,8 +1445,6 @@
       document.getElementById("nav-dist-text").innerText = `약 ${meters}m`;
       document.getElementById("nav-time-text").innerText = `${minutes}분 소요`;
 
-      // 직각 복도 형태의 보행 경로선(SVG Path) 생성
-      // 꺾임점: (내 위치 X, 내 위치 Y) -> (중앙 복도 180, 내 위치 Y) -> (180, 타겟 Y) -> (타겟 X, 타겟 Y)
       const cornerX = 180;
       const pathD = `M ${MY_LOCATION.x} ${MY_LOCATION.y} L ${cornerX} ${MY_LOCATION.y} L ${cornerX} ${targetObj.y} L ${targetObj.x} ${targetObj.y}`;
       indoorPathLine.setAttribute("d", pathD);
@@ -1439,14 +1454,18 @@
     }
 
     /* ========================================================
-       6. 3D 실내 지도 (Three.js)
+       5. 3D 실내 지도 (Three.js + 강남역_b1 b3.obj 로딩 연동)
     ======================================================== */
     const canvas2D = document.getElementById("indoor-2d-canvas");
     const threeContainer = document.getElementById("three-container");
     const btn2D = document.getElementById("btn-2d");
     const btn3D = document.getElementById("btn-3d");
+    const loadingIndicator = document.getElementById("loading-indicator");
+
     let scene, camera, renderer, controls;
     let isThreeInitialized = false;
+    let loadedStationModel = null;
+    let pins3DGroup = new THREE.Group();
 
     function setIndoorMode(mode) {
       if (mode === "2D") {
@@ -1464,6 +1483,9 @@
           initThreeScene();
           isThreeInitialized = true;
         }
+
+        syncPinsTo3D();
+        syncCameraTo2DView();
       }
     }
 
@@ -1476,8 +1498,8 @@
 
       const aspect = width / height;
       const d = 48;
-      camera = new THREE.OrthographicCamera(-d * aspect, d * aspect, d, -d, 1, 1000);
-      camera.position.set(60, 60, 60);
+      camera = new THREE.OrthographicCamera(-d * aspect, d * aspect, d, -d, 1, 3000);
+      camera.position.set(80, 80, 80);
       camera.lookAt(0, 0, 0);
 
       renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -1487,19 +1509,27 @@
 
       controls = new THREE.OrbitControls(camera, renderer.domElement);
       controls.enableDamping = true;
+      controls.dampingFactor = 0.05;
 
-      const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+      // 조명 설정
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.75);
       scene.add(ambientLight);
 
-      const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
-      dirLight.position.set(40, 80, 50);
-      scene.add(dirLight);
+      const dirLight1 = new THREE.DirectionalLight(0xffffff, 0.8);
+      dirLight1.position.set(60, 120, 80);
+      scene.add(dirLight1);
 
-      const floorMat = new THREE.MeshLambertMaterial({ color: 0x2e3440 });
-      const f1 = new THREE.Mesh(new THREE.BoxGeometry(22, 2, 70), floorMat);
-      const f2 = new THREE.Mesh(new THREE.BoxGeometry(60, 2, 22), floorMat);
-      scene.add(f1);
-      scene.add(f2);
+      const dirLight2 = new THREE.DirectionalLight(0x00e5ff, 0.3);
+      dirLight2.position.set(-60, 50, -60);
+      scene.add(dirLight2);
+
+      scene.add(pins3DGroup);
+
+      // 강남역 OBJ 파일 로드
+      loadGangnamObjModel();
+
+      // 3D 뷰포트 클릭 이벤트 (레이캐스팅 연동)
+      setup3DRaycasting();
 
       function animate() {
         requestAnimationFrame(animate);
@@ -1507,6 +1537,164 @@
         renderer.render(scene, camera);
       }
       animate();
+    }
+
+    // 강남역_b1 b3.obj 파일 비동기 로더
+    function loadGangnamObjModel() {
+      const modelFileName = encodeURI("강남역_b1 b3.obj");
+      const objLoader = new THREE.OBJLoader();
+
+      loadingIndicator.style.display = "block";
+      loadingIndicator.innerText = "강남역 3D 모델 불러오는 중...";
+
+      objLoader.load(
+        modelFileName,
+        (obj) => {
+          loadingIndicator.style.display = "none";
+          loadedStationModel = obj;
+
+          // 공통 머티리얼 적용
+          const stationMat = new THREE.MeshStandardMaterial({
+            color: 0x94a3b8,
+            roughness: 0.45,
+            metalness: 0.1,
+            side: THREE.DoubleSide
+          });
+
+          obj.traverse((child) => {
+            if (child.isMesh) {
+              child.material = stationMat;
+              child.castShadow = true;
+              child.receiveShadow = true;
+            }
+          });
+
+          // 바운딩 박스를 계산하여 원점(0,0,0) 이동 및 스케일 자동 보정
+          const box = new THREE.Box3().setFromObject(obj);
+          const center = box.getCenter(new THREE.Vector3());
+          const size = box.getSize(new THREE.Vector3());
+
+          obj.position.x -= center.x;
+          obj.position.y -= center.y;
+          obj.position.z -= center.z;
+
+          const maxDim = Math.max(size.x, size.y, size.z);
+          if (maxDim > 0) {
+            const scaleFactor = 75 / maxDim;
+            obj.scale.set(scaleFactor, scaleFactor, scaleFactor);
+          }
+
+          scene.add(obj);
+          console.log("강남역 3D OBJ 로드 및 배치 성공:", size);
+        },
+        (xhr) => {
+          if (xhr.lengthComputable) {
+            const percent = Math.round((xhr.loaded / xhr.total) * 100);
+            loadingIndicator.innerText = `3D 모델 로딩 중... ${percent}%`;
+          }
+        },
+        (err) => {
+          loadingIndicator.style.display = "none";
+          console.warn("강남역 OBJ 로드 실패, 대체 기본 맵을 로드합니다:", err);
+          loadFallbackBoxModel();
+        }
+      );
+    }
+
+    // 파일 로드 실패 시 대체 기본 메쉬
+    function loadFallbackBoxModel() {
+      const floorMat = new THREE.MeshStandardMaterial({ color: 0x2e3440, roughness: 0.6 });
+      const f1 = new THREE.Mesh(new THREE.BoxGeometry(22, 2, 70), floorMat);
+      const f2 = new THREE.Mesh(new THREE.BoxGeometry(60, 2, 22), floorMat);
+      const fallbackGroup = new THREE.Group();
+      fallbackGroup.add(f1);
+      fallbackGroup.add(f2);
+      loadedStationModel = fallbackGroup;
+      scene.add(fallbackGroup);
+    }
+
+    // 2D 핑 데이터를 3D 입체 핀 오브젝트로 동기화
+    function syncPinsTo3D() {
+      if (!isThreeInitialized) return;
+
+      while (pins3DGroup.children.length > 0) {
+        pins3DGroup.remove(pins3DGroup.children[0]);
+      }
+
+      const stName = currentSelectedStation ? currentSelectedStation.name : "강남역";
+      const pins = (STATION_PINS_DB[stName] || []).filter(p => p.floor === activeFloor);
+
+      pins.forEach(pin => {
+        const pos3d = coord2Dto3D(pin.x, pin.y);
+        const pinMesh = create3DPinMesh(pin);
+        pinMesh.position.set(pos3d.x, 3.0, pos3d.z);
+        pins3DGroup.add(pinMesh);
+      });
+    }
+
+    function create3DPinMesh(pinData) {
+      const group = new THREE.Group();
+
+      const headGeo = new THREE.SphereGeometry(1.6, 16, 16);
+      const headMat = new THREE.MeshStandardMaterial({ color: 0xe84118, roughness: 0.3 });
+      const head = new THREE.Mesh(headGeo, headMat);
+      head.position.y = 4.0;
+
+      const tipGeo = new THREE.ConeGeometry(1.2, 4.0, 16);
+      const tipMat = new THREE.MeshStandardMaterial({ color: 0xe84118 });
+      const tip = new THREE.Mesh(tipGeo, tipMat);
+      tip.rotation.x = Math.PI;
+      tip.position.y = 2.0;
+
+      group.add(head);
+      group.add(tip);
+      group.userData = { pinData: pinData };
+      return group;
+    }
+
+    function syncCameraTo2DView() {
+      if (!controls) return;
+      const target3D = coord2Dto3D(180, 260);
+      controls.target.set(target3D.x, 0, target3D.z);
+      camera.position.set(target3D.x + 50, 70, target3D.z + 50);
+      controls.update();
+    }
+
+    // 3D 화면 클릭 시 레이캐스터로 핑 선택 및 바닥 클릭 감지
+    function setup3DRaycasting() {
+      const raycaster = new THREE.Raycaster();
+      const mouse = new THREE.Vector2();
+
+      threeContainer.addEventListener("click", (e) => {
+        const rect = renderer.domElement.getBoundingClientRect();
+        mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+        mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+        raycaster.setFromCamera(mouse, camera);
+
+        // 1. 기존 3D 핀 클릭 검사
+        const pinHits = raycaster.intersectObjects(pins3DGroup.children, true);
+        if (pinHits.length > 0) {
+          let rootGroup = pinHits[0].object;
+          while (rootGroup.parent && rootGroup.parent !== pins3DGroup) {
+            rootGroup = rootGroup.parent;
+          }
+          if (rootGroup.userData && rootGroup.userData.pinData) {
+            openViewPinModal(rootGroup.userData.pinData);
+            return;
+          }
+        }
+
+        // 2. 3D 메쉬 표면 클릭 시 새로운 핑 생성
+        if (loadedStationModel) {
+          const modelHits = raycaster.intersectObject(loadedStationModel, true);
+          if (modelHits.length > 0) {
+            const hitPt = modelHits[0].point;
+            const coord2D = coord3Dto2D(hitPt.x, hitPt.z);
+            openCreatePinModal(coord2D.x, coord2D.y);
+          }
+        }
+      });
     }
 
     window.addEventListener("DOMContentLoaded", () => {
