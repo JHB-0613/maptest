@@ -1507,6 +1507,64 @@
       controls.update();
       renderer.render(scene, camera);
     }
+    
+    // 3D 쿼터뷰 복원 함수
+    function syncCameraToIsometricView() {
+      if (!controls || !camera || !renderer) return;
+
+      let centerX = -15.57, centerY = -10.86, centerZ = 38.40;
+      let maxDim = 114;
+
+      if (loadedStationModel) {
+        const box = new THREE.Box3().setFromObject(loadedStationModel);
+        const center = box.getCenter(new THREE.Vector3());
+        const size = box.getSize(new THREE.Vector3());
+        centerX = center.x;
+        centerY = center.y;
+        centerZ = center.z;
+        maxDim = Math.max(size.x, size.z);
+      }
+
+      const rect = threeContainer.getBoundingClientRect();
+      const aspect = (rect.width || 412) / (rect.height || 800);
+
+      const targetHeight = 55;
+      const targetWidth = targetHeight * aspect;
+
+      camera.left = -targetWidth / 2;
+      camera.right = targetWidth / 2;
+      camera.top = targetHeight / 2;
+      camera.bottom = -targetHeight / 2;
+      camera.zoom = 1.0;
+      camera.near = 0.1;
+      camera.far = 1000;
+      camera.updateProjectionMatrix();
+
+      const dist = 55;
+      camera.up.set(0, 1, 0);
+      camera.position.set(centerX + dist * 0.8, centerY + dist * 1.1, centerZ + dist * 0.9);
+      controls.target.set(centerX, centerY, centerZ);
+      camera.lookAt(centerX, centerY, centerZ);
+
+      controls.enableRotate = true;
+      controls.enablePan = true;
+      controls.enableZoom = true;
+      controls.minZoom = 0.3;
+      controls.maxZoom = 4.0;
+
+      controls.mouseButtons = {
+        LEFT: THREE.MOUSE.ROTATE,
+        MIDDLE: THREE.MOUSE.DOLLY,
+        RIGHT: THREE.MOUSE.PAN
+      };
+      controls.touches = {
+        ONE: THREE.TOUCH.ROTATE,
+        TWO: THREE.TOUCH.DOLLY_PAN
+      };
+
+      controls.update();
+      renderer.render(scene, camera);
+    }
 
     // 2D ↔ 3D 시점 활공(Transition) 애니메이션
     function transitionCamera(targetMode, duration = 650) {
@@ -1691,7 +1749,7 @@
           scene.add(model);
           loadedStationModel = model;
 
-          // 모델 다운로드 완료 즉시 2D 탑뷰로 피팅
+          // 모델 다운로드 완료 즉시 현재 모드에 맞게 뷰 세팅
           if (currentIndoorMode === "2D") {
             setCameraToTopDownView();
           } else {
