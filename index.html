@@ -1567,14 +1567,16 @@
       controls.minZoom = 0.3;
       controls.maxZoom = 4.0;
 
+      // ⬇️ [수정] 좌클릭은 화면 이동(PAN), 우클릭은 회전(ROTATE)으로 변경
       controls.mouseButtons = {
-        LEFT: THREE.MOUSE.ROTATE,
-        MIDDLE: THREE.MOUSE.DOLLY,
-        RIGHT: THREE.MOUSE.PAN
+        LEFT: THREE.MOUSE.PAN,      // 좌클릭: 이동
+        MIDDLE: THREE.MOUSE.DOLLY,  // 휠클릭: 줌
+        RIGHT: THREE.MOUSE.ROTATE   // 우클릭: 회전
       };
+
       controls.touches = {
-        ONE: THREE.TOUCH.ROTATE,
-        TWO: THREE.TOUCH.DOLLY_PAN
+        ONE: THREE.TOUCH.PAN,
+        TWO: THREE.TOUCH.DOLLY_ROTATE
       };
 
       controls.update();
@@ -1596,19 +1598,26 @@
       let endPos = new THREE.Vector3();
       let endLeft, endRight, endTop, endBottom;
 
+      // 애니메이션 완료 후 모드별 컨트롤 제약 적용
       if (targetMode === "3D") {
-        const dist = 55;
-        endPos.set(currentTarget.x + dist * 0.8, currentTarget.y + dist * 1.1, currentTarget.z + dist * 0.9);
-        const targetHeight = 55;
-        const targetWidth = targetHeight * aspect;
-        endLeft = -targetWidth / 2; endRight = targetWidth / 2;
-        endTop = targetHeight / 2; endBottom = -targetHeight / 2;
-      } else {
-        endPos.set(currentTarget.x, currentTarget.y + 200, currentTarget.z + 0.05);
-        const targetWidth = 34;
-        const targetHeight = targetWidth / aspect;
-        endLeft = -targetWidth / 2; endRight = targetWidth / 2;
-        endTop = targetHeight / 2; endBottom = -targetHeight / 2;
+        controls.enableRotate = true; // 회전 허용
+        controls.enablePan = true;    // 이동 허용
+        controls.enableZoom = true;
+        controls.minZoom = 0.3;
+        controls.maxZoom = 4.0;
+
+        // ⬇️ [수정] 좌클릭은 화면 이동(PAN), 우클릭은 회전(ROTATE)으로 변경
+        controls.mouseButtons = {
+          LEFT: THREE.MOUSE.PAN,      // 좌클릭: 이동
+          MIDDLE: THREE.MOUSE.DOLLY,  // 휠클릭: 줌
+          RIGHT: THREE.MOUSE.ROTATE   // 우클릭: 회전
+        };
+
+        // 모바일 터치: 한 손가락 이동, 두 손가락 줌/회전 유지
+        controls.touches = {
+          ONE: THREE.TOUCH.PAN,
+          TWO: THREE.TOUCH.DOLLY_ROTATE
+        };
       }
 
       const startTime = performance.now();
@@ -1696,6 +1705,9 @@
       renderer.setSize(width, height);
       renderer.setPixelRatio(window.devicePixelRatio);
       threeContainer.appendChild(renderer.domElement);
+
+      // ⬇️ [추가] 캔버스 위에서 우클릭 메뉴창 팝업 차단
+      renderer.domElement.addEventListener("contextmenu", (e) => e.preventDefault());
 
       controls = new THREE.OrbitControls(camera, renderer.domElement);
       controls.enableDamping = true;
