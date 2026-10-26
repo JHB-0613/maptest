@@ -1223,8 +1223,9 @@
       document.getElementById("indoor-title-text").innerText = `${currentSelectedStation.name} 실내 지도`;
       floorList.innerHTML = "";
 
+      // ⬇️ 강남역 층 배열에 "B4" 추가
       const floors = currentSelectedStation.name.includes("강남") 
-        ? ["B1", "B2", "B3"] 
+        ? ["B1", "B2", "B3", "B4"] 
         : ["2F", "1F", "B1", "B2", "B3"];
       const defaultFloor = "B1";
 
@@ -1269,14 +1270,15 @@
       const y2d = (z3d / MAP_3D.depth + 0.5) * MAP_2D.height;
       return { x: Math.round(x2d), y: Math.round(y2d) };
     }
-
+    let currentIndoorMode = "2D"; // 현재 모드 ('2D' 또는 '3D')
     let activeFloor = "B1";
 
     const STATION_PINS_DB = {
       "강남역": [
         { id: 1, floor: "B1", title: "물품보관함 A구역", desc: "개찰구 바로 우측에 위치", img: "", x: 230, y: 260 },
         { id: 2, floor: "B1", title: "약국 및 수유실", desc: "1번 출구 에스컬레이터 옆", img: "", x: 90, y: 230 },
-        { id: 3, floor: "B2", title: "2호선 환승통로 자판기", desc: "계단 내려오자마자 보임", img: "", x: 180, y: 160 }
+        { id: 3, floor: "B2", title: "2호선 환승통로 자판기", desc: "계단 내려오자마자 보임", img: "", x: 180, y: 160 },
+        { id: 4, floor: "B4", title: "신분당선 승강장 비상벨", desc: "승강장 중앙 기둥", img: "", x: 180, y: 300 } // ⬅️ B4 샘플 핑
       ]
     };
 
@@ -1429,6 +1431,7 @@
     const DEFAULT_STATION_FACILITIES = [
       { floor: "B1", title: "2호선 탑승게이트", x: 180, y: 75, type: "gate" },
       { floor: "B2", title: "신분당선 탑승게이트", x: 180, y: 445, type: "gate" },
+      { floor: "B4", title: "신분당선 하행 승강장", x: 180, y: 260, type: "platform" }, // ⬅️ B4 시설물
       { floor: "B1", title: "1번 출구", x: 65, y: 260, type: "exit" },
       { floor: "B1", title: "2번 출구", x: 295, y: 260, type: "exit" },
       { floor: "B1", title: "중앙 개찰구", x: 180, y: 260, type: "turnstile" },
@@ -1537,10 +1540,13 @@
     const FLOOR_MODEL_MAP = {
       "B1": "gangnam_B1.glb",
       "B2": "gangnam_B2.glb",
-      "B3": "gangnam_B3.glb"
+      "B3": "gangnam_B3.glb",
+      "B4": "gangnam_B4.glb"
     };
 
     function setIndoorMode(mode) {
+      currentIndoorMode = mode; // ⬅️ 현재 모드('2D' 또는 '3D') 동기화 추가
+
       if (mode === "2D") {
         btn2D.classList.add("active");
         btn3D.classList.remove("active");
@@ -1556,7 +1562,6 @@
           initThreeScene();
           isThreeInitialized = true;
         } else {
-          // 이미 초기화되어 있다면 현재 선택된 층 모델 확인 및 로드
           loadFloorGlbModel(activeFloor);
         }
 
