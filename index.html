@@ -1276,6 +1276,7 @@
           const rect = threeContainer.getBoundingClientRect();
           renderer.setSize(rect.width || 412, rect.height || 800);
         }
+        setCameraToTopDownView();
       });
     }
 
@@ -1776,7 +1777,7 @@
           scene.add(model);
           loadedStationModel = model;
 
-          // 모델 다운로드 완료 즉시 현재 모드에 맞게 뷰 세팅
+          // ⬇️ 모델 다운로드가 끝난 직후 현재 모드에 맞게 카메라 세팅 및 강제 렌더링
           if (currentIndoorMode === "2D") {
             setCameraToTopDownView();
           } else {
@@ -1784,7 +1785,9 @@
           }
 
           syncPinsTo3D();
-          if (renderer && scene && camera) renderer.render(scene, camera);
+          if (renderer && scene && camera) {
+            renderer.render(scene, camera);
+          }
         },
         (xhr) => {
           if (xhr.lengthComputable) {
