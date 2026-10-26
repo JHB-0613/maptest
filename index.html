@@ -1393,9 +1393,11 @@
       openCreatePinModal(Math.round(clickX), Math.round(clickY));
     });
 
-    function openCreatePinModal(x, y) {
+    // openCreatePinModal 함수 수정: y3d 매개변수 추가 (기본값 0)
+    function openCreatePinModal(x, y, y3d = 0) {
       currentEditingPin = null;
-      tempClickCoord = { x, y };
+      // 3D 지면 높이 정보도 함께 임시 저장
+      tempClickCoord = { x, y, y3d: y3d };
       tempUploadedImg = "";
 
       document.getElementById("pin-modal-title").innerText = `📍 [${activeFloor}] 새로운 장소 핑 등록`;
@@ -1450,6 +1452,7 @@
       reader.readAsDataURL(file);
     }
 
+    // saveCurrentPin 함수 수정: newPin에 y3d 속성 포함
     function saveCurrentPin() {
       const title = pinTitleInput.value.trim();
       if (!title) {
@@ -1467,7 +1470,8 @@
         desc: pinDescInput.value.trim(),
         img: tempUploadedImg,
         x: tempClickCoord.x,
-        y: tempClickCoord.y
+        y: tempClickCoord.y,
+        y3d: tempClickCoord.y3d || 0 // ⬅️ 3D 표면 높이 저장
       };
 
       STATION_PINS_DB[stName].push(newPin);
@@ -1772,6 +1776,7 @@
           scene.add(model);
           loadedStationModel = model;
 
+          // 바운딩 박스를 계산하여 중앙 정렬 및 카메라 시야 자동 피팅
           const box = new THREE.Box3().setFromObject(model);
           const center = box.getCenter(new THREE.Vector3());
           const size = box.getSize(new THREE.Vector3());
@@ -1798,6 +1803,9 @@
             );
             controls.update();
           }
+
+          // ⬇️ 모델이 씬에 배치된 후, 모델 형상/표면 높이에 맞춰 핀들의 Y 좌표를 즉시 보정
+          syncPinsTo3D();
 
           console.log(`[${floor}] GLB 모델 로드 완료:`, fileName);
         },
@@ -1874,15 +1882,40 @@
           if (modelHits.length > 0) {
             const hitPt = modelHits[0].point;
             const coord2D = coord3Dto2D(hitPt.x, hitPt.z);
-            openCreatePinModal(coord2D.x, coord2D.y);
+            // 지면 높이(hitPt.y)를 모달 열기 함수에 함께 전달
+            openCreatePinModal(coord2D.x, coord2D.y, hitPt.y);
           }
         }
       });
     }
 
+    // (x, z) 3D 평면 좌표에서 수직 아래로 레이를 쏴 모델 표면 높이(Y)를 구하는 함수
+    function getSurfaceHeightAt(x3d, z3d) {
+      if (!loadedStationModel) return 0;
+
+      // 모델의 전체 높이 범위 계산
+      const bbox = new THREE.Box3().setFromObject(loadedStationModel);
+      const startY = bbox.max.y + 50; // 모델 최고점 위에서 시작
+      const rayOrigin = new THREE.Vector3(x3d, startY, z3d);
+      const rayDir = new THREE.Vector3(0, -1, 0); // 수직 아래 방향
+
+      const verticalRaycaster = new THREE.Raycaster(rayOrigin, rayDir, 0.1, (bbox.max.y - bbox.min.y) + 100);
+      const hits = verticalRaycaster.intersectObject(loadedStationModel, true);
+
+      if (hits.length > 0) {
+        // 가장 먼저 맞닿는 표면 높이 반환
+        return hits[0].point.y;
+      }
+
+      // 모델과 충돌하지 않는 외곽 지점일 경우 모델 바닥 높이 반환
+      return bbox.min.y;
+    }
+
+    // 2D 핑 데이터를 3D 입체 핀 오브젝트로 동기화 (높이 자동 보정)
     function syncPinsTo3D() {
       if (!isThreeInitialized || !pins3DGroup) return;
 
+      // 기존 3D 핀 메쉬 제거
       while (pins3DGroup.children.length > 0) {
         const obj = pins3DGroup.children[0];
         pins3DGroup.remove(obj);
@@ -1895,21 +1928,37 @@
       pins.forEach(pin => {
         const pos3d = coord2Dto3D(pin.x, pin.y);
         const pinMesh = create3DPinMesh(pin);
-        pinMesh.position.set(pos3d.x, 3.0, pos3d.z);
+
+        // 1. 3D에서 직접 찍어서 y3d가 이미 있는 경우 우선 사용
+        // 2. 2D에서 생성되어 y3d가 없거나 0인 경우, 모델 표면 높이를 수직 레이캐스팅으로 자동 산출
+        let surfaceY = pin.y3d;
+        if (surfaceY === undefined || surfaceY === null || isNaN(surfaceY)) {
+          surfaceY = getSurfaceHeightAt(pos3d.x, pos3d.z);
+          pin.y3d = surfaceY; // 캐싱하여 다음번에도 일관되게 사용
+        }
+
+        // 핀의 뾰족한 끝이 표면에 정확히 맞닿도록 오프셋 적용 (+0.1)
+        pinMesh.position.set(pos3d.x, surfaceY + 0.1, pos3d.z);
         pins3DGroup.add(pinMesh);
       });
     }
 
+    // create3DPinMesh 함수 피벗(Pivot) 개선: 핀 뾰족한 끝이 원점(0,0,0)에 오도록 수정
     function create3DPinMesh(pinData) {
       const group = new THREE.Group();
 
       const headGeo = new THREE.SphereGeometry(1.6, 16, 16);
-      const headMat = new THREE.MeshStandardMaterial({ color: 0xe84118, roughness: 0.3 });
+      const headMat = new THREE.MeshStandardMaterial({ 
+        color: 0xe84118, 
+        roughness: 0.3 
+      });
       const head = new THREE.Mesh(headGeo, headMat);
       head.position.y = 4.0;
 
       const tipGeo = new THREE.ConeGeometry(1.2, 4.0, 16);
-      const tipMat = new THREE.MeshStandardMaterial({ color: 0xe84118 });
+      const tipMat = new THREE.MeshStandardMaterial({ 
+        color: 0xe84118 
+      });
       const tip = new THREE.Mesh(tipGeo, tipMat);
       tip.rotation.x = Math.PI;
       tip.position.y = 2.0;
@@ -1917,6 +1966,10 @@
       group.add(head);
       group.add(tip);
       group.userData = { pinData: pinData };
+
+      // 다른 구조물보다 시각적으로 뚜렷하게 보이도록 렌더 오더 설정
+      group.renderOrder = 10;
+
       return group;
     }
 
