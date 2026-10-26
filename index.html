@@ -414,14 +414,14 @@
       color: #ffffff;
     }
 
-    /* 2D 캔버스 뷰 */
+    /* 2D 캔버스 뷰 (필요시 백업용으로 유지) */
     #indoor-2d-canvas {
       position: absolute;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
-      display: flex;
+      display: none;
       justify-content: center;
       align-items: center;
       z-index: 10;
@@ -753,24 +753,20 @@
 
       <div id="loading-indicator">3D 모델 로딩 중...</div>
 
-      <!-- 2D 캔버스 -->
+      <!-- 2D 캔버스 (SVG 시설물 및 백업 레이어) -->
       <div id="indoor-2d-canvas">
         <div id="indoor-svg-wrap">
           <svg id="indoor-svg" viewBox="0 0 360 520">
-            <!-- 층별 공통 통로 베이스 프레임 -->
             <g fill="#2e3440" stroke="#1c202a" stroke-width="3">
               <rect x="130" y="40" width="100" height="440" rx="12"/>
               <rect x="40" y="200" width="280" height="120" rx="12"/>
             </g>
 
-            <!-- 동적으로 주입되는 층별 시설물 레이어 -->
             <g id="indoor-fixtures"></g>
 
-            <!-- 실내 최단 경로선 -->
             <path id="indoor-path-line" d="" fill="none" stroke="#00e5ff" stroke-width="4" stroke-dasharray="6,4" stroke-linecap="round" style="display:none;"/>
           </svg>
 
-          <!-- 2D 핑 마커 레이어 -->
           <div id="indoor-pins-layer"></div>
         </div>
       </div>
@@ -1192,7 +1188,6 @@
     const indoorView = document.getElementById("indoor-view");
     const floorList = document.getElementById("floor-list");
 
-    // 층별 동적 시설물 데이터 (원하는 대로 추가/수정 가능)
     const FLOOR_FACILITIES_DB = {
       "강남역": {
         "B1": [
@@ -1244,9 +1239,11 @@
       mainView.classList.add("hidden");
       indoorView.classList.remove("hidden");
 
-      renderDynamicFixtures();
       renderStationPins();
       closeIndoorNavigation();
+
+      // 진입 시 2D 탑뷰 모드로 시작
+      setIndoorMode("2D");
     }
 
     function exitIndoorView() {
@@ -1256,7 +1253,6 @@
       closeIndoorNavigation();
     }
 
-    // SVG 층별 시설물 동적 렌더링 함수
     function renderDynamicFixtures() {
       const fixturesLayer = document.getElementById("indoor-fixtures");
       fixturesLayer.innerHTML = "";
@@ -1365,7 +1361,6 @@
     let currentIndoorMode = "2D";
     let activeFloor = "B1";
 
-    // 기본 핑 완전 제거 (빈 배열로 시작)
     const STATION_PINS_DB = {
       "강남역": []
     };
@@ -1385,7 +1380,6 @@
     let tempUploadedImg = "";
 
     indoorSvg.addEventListener("click", (e) => {
-      // 시설물 요소나 기존 핑 클릭 시 빈 바닥 클릭 무시
       if (e.target.closest(".fixture-item") || e.target.closest(".indoor-pin-marker")) return;
       const rect = indoorSvg.getBoundingClientRect();
       const clickX = ((e.clientX - rect.left) / rect.width) * 360;
@@ -1393,10 +1387,8 @@
       openCreatePinModal(Math.round(clickX), Math.round(clickY));
     });
 
-    // openCreatePinModal 함수 수정: y3d 매개변수 추가 (기본값 0)
     function openCreatePinModal(x, y, y3d = 0) {
       currentEditingPin = null;
-      // 3D 지면 높이 정보도 함께 임시 저장
       tempClickCoord = { x, y, y3d: y3d };
       tempUploadedImg = "";
 
@@ -1452,7 +1444,6 @@
       reader.readAsDataURL(file);
     }
 
-    // saveCurrentPin 함수 수정: newPin에 y3d 속성 포함
     function saveCurrentPin() {
       const title = pinTitleInput.value.trim();
       if (!title) {
@@ -1471,7 +1462,7 @@
         img: tempUploadedImg,
         x: tempClickCoord.x,
         y: tempClickCoord.y,
-        y3d: tempClickCoord.y3d || 0 // ⬅️ 3D 표면 높이 저장
+        y3d: tempClickCoord.y3d || 0
       };
 
       STATION_PINS_DB[stName].push(newPin);
@@ -1641,7 +1632,7 @@
     }
 
     /* ========================================================
-       5. 3D 실내 지도 (Three.js + 층별 동적 교체)
+       5. 3D 실내 지도 (Three.js + 층별 동적 교체 + 탑뷰 경계 락)
     ======================================================== */
     const canvas2D = document.getElementById("indoor-2d-canvas");
     const threeContainer = document.getElementById("three-container");
@@ -1664,26 +1655,179 @@
     function setIndoorMode(mode) {
       currentIndoorMode = mode;
 
+      if (!isThreeInitialized) {
+        initThreeScene();
+        isThreeInitialized = true;
+      }
+
+      canvas2D.style.display = "none";
+      threeContainer.style.display = "block";
+
       if (mode === "2D") {
         btn2D.classList.add("active");
         btn3D.classList.remove("active");
-        canvas2D.style.display = "flex";
-        threeContainer.style.display = "none";
+        setCameraToTopDownView();
       } else {
         btn3D.classList.add("active");
         btn2D.classList.remove("active");
-        canvas2D.style.display = "none";
-        threeContainer.style.display = "block";
+        syncCameraToIsometricView();
+      }
 
-        if (!isThreeInitialized) {
-          initThreeScene();
-          isThreeInitialized = true;
-        } else {
-          loadFloorGlbModel(activeFloor);
-        }
+      syncPinsTo3D();
+    }
 
-        syncPinsTo3D();
-        syncCameraTo2DView();
+    // 2D 탑뷰 설정: 배율 확대 + 수직 투시 + 회전 잠금(이동 및 줌만 허용) + 줌 제한
+    function setCameraToTopDownView() {
+      if (!controls || !camera) return;
+
+      let centerX = 0, centerY = 0, centerZ = 0;
+      let maxDim = 60;
+
+      if (loadedStationModel) {
+        const box = new THREE.Box3().setFromObject(loadedStationModel);
+        const center = box.getCenter(new THREE.Vector3());
+        const size = box.getSize(new THREE.Vector3());
+        centerX = center.x;
+        centerY = center.y;
+        centerZ = center.z;
+        maxDim = Math.max(size.x, size.z);
+      } else {
+        const defaultCenter = coord2Dto3D(180, 260);
+        centerX = defaultCenter.x;
+        centerZ = defaultCenter.z;
+      }
+
+      // 1. 배율 확대: frustumSize를 줄여 모델이 화면에 큼직하게 꽉 차도록 설정
+      const aspect = threeContainer.clientWidth / threeContainer.clientHeight;
+      const frustumSize = maxDim * 0.85;
+
+      camera.left = -frustumSize * aspect / 2;
+      camera.right = frustumSize * aspect / 2;
+      camera.top = frustumSize / 2;
+      camera.bottom = -frustumSize / 2;
+      camera.zoom = 1.0;
+      camera.updateProjectionMatrix();
+
+      // 2. 수직 상공(Y축)에 카메라 배치 및 정면 방향 정렬
+      camera.up.set(0, 0, -1);
+      camera.position.set(centerX, centerY + 300, centerZ);
+      controls.target.set(centerX, centerY, centerZ);
+      camera.lookAt(centerX, centerY, centerZ);
+
+      // 3. 2D 평면 모드 제약: 회전 차단, 이동(Pan) 및 줌만 허용
+      controls.enableRotate = false;
+      controls.enablePan = true;
+      controls.enableZoom = true;
+      controls.screenSpacePanning = true;
+
+      // 과도한 축소/확대 방지
+      controls.minZoom = 0.7;
+      controls.maxZoom = 2.8;
+
+      // 마우스 왼쪽 드래그를 화면 이동(Pan)으로 바인딩
+      controls.mouseButtons = {
+        LEFT: THREE.MOUSE.PAN,
+        MIDDLE: THREE.MOUSE.DOLLY,
+        RIGHT: THREE.MOUSE.PAN
+      };
+
+      // 터치 제스처: 한 손가락 패닝, 두 손가락 줌
+      controls.touches = {
+        ONE: THREE.TOUCH.PAN,
+        TWO: THREE.TOUCH.DOLLY_PAN
+      };
+
+      controls.update();
+    }
+
+    // 3D 쿼터뷰(아이소메트릭) 복귀 함수: 기본 배율 + 자유 회전 복원
+    function syncCameraToIsometricView() {
+      if (!controls || !camera) return;
+
+      let centerX = 0, centerY = 0, centerZ = 0;
+      let maxDim = 60;
+
+      if (loadedStationModel) {
+        const box = new THREE.Box3().setFromObject(loadedStationModel);
+        const center = box.getCenter(new THREE.Vector3());
+        const size = box.getSize(new THREE.Vector3());
+        centerX = center.x;
+        centerY = center.y;
+        centerZ = center.z;
+        maxDim = Math.max(size.x, size.y, size.z);
+      } else {
+        const defaultCenter = coord2Dto3D(180, 260);
+        centerX = defaultCenter.x;
+        centerZ = defaultCenter.z;
+      }
+
+      // 1. 기본 배율 복원 (전체 조망)
+      const aspect = threeContainer.clientWidth / threeContainer.clientHeight;
+      const frustumSize = maxDim * 1.35;
+
+      camera.left = -frustumSize * aspect / 2;
+      camera.right = frustumSize * aspect / 2;
+      camera.top = frustumSize / 2;
+      camera.bottom = -frustumSize / 2;
+      camera.zoom = 1.0;
+      camera.updateProjectionMatrix();
+
+      // 2. 3D 기준 상단 벡터(Y축) 및 쿼터뷰 위치 복원
+      camera.up.set(0, 1, 0);
+      camera.position.set(centerX + maxDim * 0.9, centerY + maxDim * 1.1, centerZ + maxDim * 0.9);
+      controls.target.set(centerX, centerY, centerZ);
+      camera.lookAt(centerX, centerY, centerZ);
+
+      // 3. 360도 자유 회전 복원
+      controls.enableRotate = true;
+      controls.enablePan = true;
+      controls.enableZoom = true;
+
+      controls.minZoom = 0.3;
+      controls.maxZoom = 4.0;
+
+      controls.mouseButtons = {
+        LEFT: THREE.MOUSE.ROTATE,
+        MIDDLE: THREE.MOUSE.DOLLY,
+        RIGHT: THREE.MOUSE.PAN
+      };
+
+      controls.touches = {
+        ONE: THREE.TOUCH.ROTATE,
+        TWO: THREE.TOUCH.DOLLY_PAN
+      };
+
+      controls.update();
+    }
+
+    // 2D 탑뷰 모드 시 이동 범위를 3D 모델 바운딩 박스 안으로 제한하는 함수 (경계 락)
+    function clampTopDownPan() {
+      if (currentIndoorMode !== "2D" || !loadedStationModel || !controls || !camera) return;
+
+      const bbox = new THREE.Box3().setFromObject(loadedStationModel);
+      
+      const marginX = (bbox.max.x - bbox.min.x) * 0.25;
+      const marginZ = (bbox.max.z - bbox.min.z) * 0.25;
+
+      const minX = bbox.min.x - marginX;
+      const maxX = bbox.max.x + marginX;
+      const minZ = bbox.min.z - marginZ;
+      const maxZ = bbox.max.z + marginZ;
+
+      const prevTargetX = controls.target.x;
+      const prevTargetZ = controls.target.z;
+
+      const clampedX = Math.min(Math.max(prevTargetX, minX), maxX);
+      const clampedZ = Math.min(Math.max(prevTargetZ, minZ), maxZ);
+
+      const deltaX = clampedX - prevTargetX;
+      const deltaZ = clampedZ - prevTargetZ;
+
+      if (deltaX !== 0 || deltaZ !== 0) {
+        controls.target.x = clampedX;
+        controls.target.z = clampedZ;
+        camera.position.x += deltaX;
+        camera.position.z += deltaZ;
       }
     }
 
@@ -1708,6 +1852,9 @@
       controls = new THREE.OrbitControls(camera, renderer.domElement);
       controls.enableDamping = true;
       controls.dampingFactor = 0.05;
+
+      // 컨트롤 이동 시 2D 모드 경계 락 리스너 등록
+      controls.addEventListener("change", clampTopDownPan);
 
       const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
       scene.add(ambientLight);
@@ -1776,7 +1923,6 @@
           scene.add(model);
           loadedStationModel = model;
 
-          // 바운딩 박스를 계산하여 중앙 정렬 및 카메라 시야 자동 피팅
           const box = new THREE.Box3().setFromObject(model);
           const center = box.getCenter(new THREE.Vector3());
           const size = box.getSize(new THREE.Vector3());
@@ -1804,7 +1950,14 @@
             controls.update();
           }
 
-          // ⬇️ 모델이 씬에 배치된 후, 모델 형상/표면 높이에 맞춰 핀들의 Y 좌표를 즉시 보정
+          // 현재 활성화된 모드에 맞게 카메라 뷰와 제약 조건 적용
+          if (currentIndoorMode === "2D") {
+            setCameraToTopDownView();
+          } else {
+            syncCameraToIsometricView();
+          }
+
+          // 모델 표면 높이에 맞춰 핀들의 Y 좌표 즉시 보정
           syncPinsTo3D();
 
           console.log(`[${floor}] GLB 모델 로드 완료:`, fileName);
@@ -1829,11 +1982,12 @@
 
       closeIndoorNavigation();
       closePinModal();
-      renderDynamicFixtures(); // 층에 맞게 시설물 다시 렌더링
+      renderDynamicFixtures();
       renderStationPins();
       syncPinsTo3D();
 
-      if (currentIndoorMode === "3D" && isThreeInitialized) {
+      // 2D 탑뷰/3D 모드 모두 GLB 모델을 사용하므로 항상 로드
+      if (isThreeInitialized) {
         loadFloorGlbModel(floor);
       }
     }
@@ -1882,7 +2036,6 @@
           if (modelHits.length > 0) {
             const hitPt = modelHits[0].point;
             const coord2D = coord3Dto2D(hitPt.x, hitPt.z);
-            // 지면 높이(hitPt.y)를 모달 열기 함수에 함께 전달
             openCreatePinModal(coord2D.x, coord2D.y, hitPt.y);
           }
         }
@@ -1893,21 +2046,18 @@
     function getSurfaceHeightAt(x3d, z3d) {
       if (!loadedStationModel) return 0;
 
-      // 모델의 전체 높이 범위 계산
       const bbox = new THREE.Box3().setFromObject(loadedStationModel);
-      const startY = bbox.max.y + 50; // 모델 최고점 위에서 시작
+      const startY = bbox.max.y + 50;
       const rayOrigin = new THREE.Vector3(x3d, startY, z3d);
-      const rayDir = new THREE.Vector3(0, -1, 0); // 수직 아래 방향
+      const rayDir = new THREE.Vector3(0, -1, 0);
 
       const verticalRaycaster = new THREE.Raycaster(rayOrigin, rayDir, 0.1, (bbox.max.y - bbox.min.y) + 100);
       const hits = verticalRaycaster.intersectObject(loadedStationModel, true);
 
       if (hits.length > 0) {
-        // 가장 먼저 맞닿는 표면 높이 반환
         return hits[0].point.y;
       }
 
-      // 모델과 충돌하지 않는 외곽 지점일 경우 모델 바닥 높이 반환
       return bbox.min.y;
     }
 
@@ -1915,7 +2065,6 @@
     function syncPinsTo3D() {
       if (!isThreeInitialized || !pins3DGroup) return;
 
-      // 기존 3D 핀 메쉬 제거
       while (pins3DGroup.children.length > 0) {
         const obj = pins3DGroup.children[0];
         pins3DGroup.remove(obj);
@@ -1929,21 +2078,18 @@
         const pos3d = coord2Dto3D(pin.x, pin.y);
         const pinMesh = create3DPinMesh(pin);
 
-        // 1. 3D에서 직접 찍어서 y3d가 이미 있는 경우 우선 사용
-        // 2. 2D에서 생성되어 y3d가 없거나 0인 경우, 모델 표면 높이를 수직 레이캐스팅으로 자동 산출
         let surfaceY = pin.y3d;
         if (surfaceY === undefined || surfaceY === null || isNaN(surfaceY)) {
           surfaceY = getSurfaceHeightAt(pos3d.x, pos3d.z);
-          pin.y3d = surfaceY; // 캐싱하여 다음번에도 일관되게 사용
+          pin.y3d = surfaceY;
         }
 
-        // 핀의 뾰족한 끝이 표면에 정확히 맞닿도록 오프셋 적용 (+0.1)
         pinMesh.position.set(pos3d.x, surfaceY + 0.1, pos3d.z);
         pins3DGroup.add(pinMesh);
       });
     }
 
-    // create3DPinMesh 함수 피벗(Pivot) 개선: 핀 뾰족한 끝이 원점(0,0,0)에 오도록 수정
+    // 3D 핀 메쉬 생성 헬퍼 함수
     function create3DPinMesh(pinData) {
       const group = new THREE.Group();
 
@@ -1966,8 +2112,6 @@
       group.add(head);
       group.add(tip);
       group.userData = { pinData: pinData };
-
-      // 다른 구조물보다 시각적으로 뚜렷하게 보이도록 렌더 오더 설정
       group.renderOrder = 10;
 
       return group;
