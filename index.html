@@ -106,14 +106,15 @@
     #main-view {
       background: #f8f9fb;
       overflow: hidden;
-      touch-action: none;
+      touch-action: none; /* 브라우저 자체 제스처 차단 */
     }
-
+    
     .metro-canvas-container {
       width: 100%;
       height: 100%;
       position: relative;
       overflow: hidden;
+      touch-action: none; /* 필수 */
       cursor: grab;
     }
     .metro-canvas-container:active { cursor: grabbing; }
@@ -984,41 +985,68 @@
     }
 
     /* ========================================================
-       스마트 줌 & 패닝 바운더리 락
+       스마트 줌 & 패닝 엔진 (마우스 휠 + 터치 핀치 줌 완벽 지원)
     ======================================================== */
     function getViewportDimensions() {
+      const rect = metroContainer.getBoundingClientRect();
       return {
-        w: metroContainer.clientWidth || 412,
-        h: metroContainer.clientHeight || window.innerHeight
+        w: rect.width || 412,
+        h: rect.height || window.innerHeight
       };
     }
-    
+
     let scale = 1.0;
     let panX = 0;
     let panY = 0;
-    const maxScale = 2.4;
-    
-    function getMinScale() {
-      const { w, h } = getViewportDimensions();
-      return Math.max(w / MAP_SIZE, h / MAP_SIZE);
-    }
-    
+    const minScale = 0.45; // 최소 배율을 유연하게 확보하여 휠/핀치 축소가 즉시 잠기지 않도록 수정
+    const maxScale = 3.5;  // 넉넉한 최대 확대 배율
+
     function clampPan() {
       const { w, h } = getViewportDimensions();
       const currentMapW = MAP_SIZE * scale;
       const currentMapH = MAP_SIZE * scale;
-      panX = Math.min(Math.max(panX, w - currentMapW), 0);
-      panY = Math.min(Math.max(panY, h - currentMapH), 0);
+
+      // 맵이 화면보다 클 때와 작을 때 모두 자연스럽게 중앙/한계 배치
+      if (currentMapW > w) {
+        panX = Math.min(Math.max(panX, w - currentMapW), 0);
+      } else {
+        panX = (w - currentMapW) / 2;
+      }
+
+      if (currentMapH > h) {
+        panY = Math.min(Math.max(panY, h - currentMapH), 0);
+      } else {
+        panY = (h - currentMapH) / 2;
+      }
     }
 
     function updateTransform(animate = false) {
       clampPan();
-      mapWrapper.style.transition = animate ? "transform 0.45s cubic-bezier(0.19, 1, 0.22, 1)" : "none";
+      mapWrapper.style.transition = animate ? "transform 0.35s cubic-bezier(0.19, 1, 0.22, 1)" : "none";
       mapWrapper.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
     }
-    
+
+    // 1. 마우스 휠 줌 (커서 위치 중심 확대/축소)
+    metroContainer.addEventListener("wheel", (e) => {
+      e.preventDefault();
+      const rect = metroContainer.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+
+      // 부드러운 줌 팩터
+      const zoomFactor = e.deltaY < 0 ? 1.12 : 0.89;
+      const newScale = Math.min(Math.max(scale * zoomFactor, minScale), maxScale);
+
+      // 마우스 커서 위치를 축으로 이동
+      panX = mouseX - (mouseX - panX) * (newScale / scale);
+      panY = mouseY - (mouseY - panY) * (newScale / scale);
+      scale = newScale;
+
+      updateTransform(false);
+    }, { passive: false });
+
+    // 수동 줌 버튼 (+ / −)
     function zoomManual(delta) {
-      const minScale = getMinScale();
       const newScale = Math.min(Math.max(scale + delta, minScale), maxScale);
       const { w, h } = getViewportDimensions();
       panX = (w / 2) - ((w / 2) - panX) * (newScale / scale);
@@ -1026,9 +1054,8 @@
       scale = newScale;
       updateTransform(true);
     }
-    
-    function panToStation(stationX, stationY, targetScale = 1.15) {
-      const minScale = getMinScale();
+
+    function panToStation(stationX, stationY, targetScale = 1.2) {
       scale = Math.min(Math.max(targetScale, minScale), maxScale);
       const { w, h } = getViewportDimensions();
       panX = (w / 2) - (stationX * scale);
@@ -1036,6 +1063,7 @@
       updateTransform(true);
     }
 
+    // 2. PC 마우스 드래그 & 클릭 판별
     let isDragging = false;
     let startX = 0, startY = 0;
     let isMovedDrag = false;
@@ -1065,13 +1093,20 @@
       if (!isMovedDrag) handleMapClick(e.clientX, e.clientY);
     });
 
+    // 3. 모바일 터치 패닝(한 손가락) & 핀치 줌(두 손가락)
     let touchMoved = false;
     let touchDownX = 0, touchDownY = 0;
-    let initialPinchDistance = null;
+    let initialPinchDist = 0;
     let initialScale = 1.0;
+    let pinchMidX = 0, pinchMidY = 0;
 
     metroContainer.addEventListener("touchstart", (e) => {
+      if (e.target.closest(".zoom-controls") || e.target.closest(".station-popup-card") || e.target.closest(".bottom-search-wrapper")) return;
+
+      const rect = metroContainer.getBoundingClientRect();
+
       if (e.touches.length === 1) {
+        // 단일 터치: 패닝 시작
         isDragging = true;
         touchMoved = false;
         touchDownX = e.touches[0].clientX;
@@ -1079,60 +1114,74 @@
         startX = e.touches[0].clientX - panX;
         startY = e.touches[0].clientY - panY;
       } else if (e.touches.length === 2) {
+        // 듀얼 터치: 핀치 줌 시작
         isDragging = false;
         touchMoved = true;
-        initialPinchDistance = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        initialPinchDist = Math.hypot(dx, dy);
         initialScale = scale;
+
+        // 두 손가락의 중심점(컨테이너 기준)
+        pinchMidX = ((e.touches[0].clientX + e.touches[1].clientX) / 2) - rect.left;
+        pinchMidY = ((e.touches[0].clientY + e.touches[1].clientY) / 2) - rect.top;
       }
     }, { passive: false });
 
     metroContainer.addEventListener("touchmove", (e) => {
-      e.preventDefault();
+      if (e.target.closest(".zoom-controls") || e.target.closest(".station-popup-card") || e.target.closest(".bottom-search-wrapper")) return;
+      e.preventDefault(); // 브라우저 전체 스크롤 및 기본 줌 방지
+
+      const rect = metroContainer.getBoundingClientRect();
+
       if (e.touches.length === 1 && isDragging) {
-        if (Math.hypot(e.touches[0].clientX - touchDownX, e.touches[0].clientY - touchDownY) > 6) touchMoved = true;
+        // 한 손가락 드래그 이동
+        if (Math.hypot(e.touches[0].clientX - touchDownX, e.touches[0].clientY - touchDownY) > 6) {
+          touchMoved = true;
+        }
         panX = e.touches[0].clientX - startX;
         panY = e.touches[0].clientY - startY;
         updateTransform(false);
-      } else if (e.touches.length === 2 && initialPinchDistance) {
+      } else if (e.touches.length === 2 && initialPinchDist > 0) {
+        // 두 손가락 핀치 줌 계산
         touchMoved = true;
-        const currentDistance = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
-        const newScale = Math.min(Math.max(initialScale * (currentDistance / initialPinchDistance), getMinScale()), maxScale);
-        const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
-        const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
-        panX = midX - (midX - panX) * (newScale / scale);
-        panY = midY - (midY - panY) * (newScale / scale);
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        const currentDist = Math.hypot(dx, dy);
+
+        const currentMidX = ((e.touches[0].clientX + e.touches[1].clientX) / 2) - rect.left;
+        const currentMidY = ((e.touches[0].clientY + e.touches[1].clientY) / 2) - rect.top;
+
+        const factor = currentDist / initialPinchDist;
+        const newScale = Math.min(Math.max(initialScale * factor, minScale), maxScale);
+
+        // 중심점을 축으로 줌 & 손가락 이동에 맞춘 이동
+        panX = currentMidX - (pinchMidX - panX) * (newScale / scale);
+        panY = currentMidY - (pinchMidY - panY) * (newScale / scale);
         scale = newScale;
+
+        pinchMidX = currentMidX;
+        pinchMidY = currentMidY;
+
         updateTransform(false);
       }
     }, { passive: false });
 
     metroContainer.addEventListener("touchend", (e) => {
-      isDragging = false;
-      initialPinchDistance = null;
-      if (!touchMoved && e.changedTouches.length > 0) handleMapClick(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
-    });
-
-    function handleMapClick(clientX, clientY) {
-      const targetEl = document.elementFromPoint(clientX, clientY);
-      if (targetEl && (targetEl.closest(".station-popup-card") || targetEl.closest(".bottom-search-wrapper") || targetEl.closest(".zoom-controls"))) return;
-
-      const rect = metroContainer.getBoundingClientRect();
-      const mapX = (clientX - rect.left - panX) / scale;
-      const mapY = (clientY - rect.top - panY) / scale;
-
-      let nearestStation = null;
-      let minDistance = 45;
-
-      for (const st of STATIONS_LIST) {
-        const dist = Math.hypot(st.x - mapX, st.y - mapY);
-        if (dist < minDistance) {
-          minDistance = dist;
-          nearestStation = st;
+      if (e.touches.length === 0) {
+        isDragging = false;
+        initialPinchDist = 0;
+        if (!touchMoved && e.changedTouches.length > 0) {
+          handleMapClick(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
         }
+      } else if (e.touches.length === 1) {
+        // 두 손가락 중 하나를 뗐을 때 튀지 않도록 다시 단일 패닝 모드로 리셋
+        isDragging = true;
+        initialPinchDist = 0;
+        startX = e.touches[0].clientX - panX;
+        startY = e.touches[0].clientY - panY;
       }
-
-      if (nearestStation) selectStation(nearestStation);
-    }
+    });
 
     /* ========================================================
        2. 실내 지도 화면 전환
