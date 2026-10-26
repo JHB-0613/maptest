@@ -1960,6 +1960,9 @@
       document.getElementById("pin-modal-title").innerText = `📍 [${activeFloor}] 새로운 장소 핑 등록`;
       pinTitleInput.value = "";
       pinDescInput.value = "";
+      
+      // ⬇️ [수정] 신규 등록 모드 버튼 문구 복원
+      btnSavePin.innerText = "핑 저장하기";
       btnSavePin.style.display = "block";
       btnDeletePin.style.display = "none";
       pinModal.style.display = "flex";
@@ -1967,11 +1970,14 @@
 
     function openViewPinModal(pin) {
       currentEditingPin = pin;
-      document.getElementById("pin-modal-title").innerText = `📍 [${pin.floor}] ${pin.title}`;
+      document.getElementById("pin-modal-title").innerText = `📍 [${pin.floor}] 핀 정보 및 수정`;
       pinTitleInput.value = pin.title;
       pinDescInput.value = pin.desc || "";
       pinCatSelect.value = pin.category;
-      btnSavePin.style.display = "none";
+
+      // ⬇️ [수정] 수정 모드에서도 저장 버튼을 노출하고 버튼 텍스트를 '수정 완료'로 변경
+      btnSavePin.innerText = "수정 완료";
+      btnSavePin.style.display = "block";
       btnDeletePin.style.display = "block";
       pinModal.style.display = "flex";
     }
@@ -1987,18 +1993,30 @@
       const stName = currentSelectedStation ? currentSelectedStation.name : "강남역";
       if (!STATION_PINS_DB[stName]) STATION_PINS_DB[stName] = [];
 
-      STATION_PINS_DB[stName].push({
-        id: Date.now(),
-        floor: activeFloor,
-        title: title,
-        category: pinCatSelect.value,
-        desc: pinDescInput.value.trim(),
-        x: tempClickCoord.x,
-        y: tempClickCoord.y,
-        y3d: tempClickCoord.y3d || 0,
-        realX3d: tempClickCoord.realX3d,
-        realZ3d: tempClickCoord.realZ3d
-      });
+      // 1. 기존 핀 수정 모드인 경우
+      if (currentEditingPin) {
+        const targetPin = STATION_PINS_DB[stName].find(p => p.id === currentEditingPin.id);
+        if (targetPin) {
+          targetPin.title = title;
+          targetPin.category = pinCatSelect.value;
+          targetPin.desc = pinDescInput.value.trim();
+        }
+      } 
+      // 2. 신규 핀 등록 모드인 경우
+      else {
+        STATION_PINS_DB[stName].push({
+          id: Date.now(),
+          floor: activeFloor,
+          title: title,
+          category: pinCatSelect.value,
+          desc: pinDescInput.value.trim(),
+          x: tempClickCoord.x,
+          y: tempClickCoord.y,
+          y3d: tempClickCoord.y3d || 0,
+          realX3d: tempClickCoord.realX3d,
+          realZ3d: tempClickCoord.realZ3d
+        });
+      }
 
       closePinModal();
       renderExplorePinsList();
