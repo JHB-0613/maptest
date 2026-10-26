@@ -1251,16 +1251,6 @@
       closeIndoorNavigation();
     }
 
-    function selectFloor(floor, btnEl) {
-      activeFloor = floor;
-      document.querySelectorAll(".floor-btn").forEach(b => b.classList.remove("active"));
-      if (btnEl) btnEl.classList.add("active");
-      
-      closeIndoorNavigation();
-      closePinModal();
-      renderStationPins();
-      syncPinsTo3D();
-    }
 
     /* ========================================================
        3. 2D ↔ 3D 좌표 변환 및 핑 시스템
@@ -1776,7 +1766,58 @@
             return;
           }
         }
+        // 2D 핑 데이터를 3D 입체 핀 오브젝트로 동기화
+        function syncPinsTo3D() {
+          if (!isThreeInitialized || !pins3DGroup) return;
 
+          // 기존 3D 핀 메쉬 제거
+          while (pins3DGroup.children.length > 0) {
+            const obj = pins3DGroup.children[0];
+            pins3DGroup.remove(obj);
+            if (obj.geometry) obj.geometry.dispose();
+          }
+
+          const stName = currentSelectedStation ? currentSelectedStation.name : "강남역";
+          // 현재 선택된 층(activeFloor)에 등록된 핑만 3D로 변환
+          const pins = (STATION_PINS_DB[stName] || []).filter(p => p.floor === activeFloor);
+
+          pins.forEach(pin => {
+            const pos3d = coord2Dto3D(pin.x, pin.y);
+            const pinMesh = create3DPinMesh(pin);
+            pinMesh.position.set(pos3d.x, 3.0, pos3d.z);
+            pins3DGroup.add(pinMesh);
+          });
+        }
+
+        // 3D 핀 메쉬 생성 헬퍼 함수
+        function create3DPinMesh(pinData) {
+          const group = new THREE.Group();
+
+          const headGeo = new THREE.SphereGeometry(1.6, 16, 16);
+          const headMat = new THREE.MeshStandardMaterial({ color: 0xe84118, roughness: 0.3 });
+          const head = new THREE.Mesh(headGeo, headMat);
+          head.position.y = 4.0;
+
+          const tipGeo = new THREE.ConeGeometry(1.2, 4.0, 16);
+          const tipMat = new THREE.MeshStandardMaterial({ color: 0xe84118 });
+          const tip = new THREE.Mesh(tipGeo, tipMat);
+          tip.rotation.x = Math.PI;
+          tip.position.y = 2.0;
+
+          group.add(head);
+          group.add(tip);
+          group.userData = { pinData: pinData };
+          return group;
+        }
+
+        // 2D 뷰 중심 시점을 3D 카메라 중심점으로 맞추는 함수 (누락 방지)
+        function syncCameraTo2DView() {
+          if (!controls) return;
+          const target3D = coord2Dto3D(180, 260);
+          controls.target.set(target3D.x, 0, target3D.z);
+          camera.position.set(target3D.x + 50, 70, target3D.z + 50);
+          controls.update();
+        }
         // 2. 3D 메쉬 표면 클릭 시 새로운 핑 생성
         if (loadedStationModel) {
           const modelHits = raycaster.intersectObject(loadedStationModel, true);
