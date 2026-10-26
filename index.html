@@ -1613,7 +1613,7 @@
       animate();
     }
 
-    // 강남역_b1 b3.obj 파일 비동기 로더 (NaN 버텍스 및 오류 필터링 적용)
+    // 강남역 OBJ 자동 카메라 피팅 & 강제 렌더링 로더
     function loadGangnamObjModel() {
       const modelFileName = "gangnam_b1_b3.obj";
       const objLoader = new THREE.OBJLoader();
@@ -1626,92 +1626,69 @@
         (obj) => {
           loadingIndicator.style.display = "none";
 
-          const stationMat = new THREE.MeshStandardMaterial({
-            color: 0x94a3b8,
-            roughness: 0.45,
-            metalness: 0.1,
-            side: THREE.DoubleSide
+          // 1. 조명/노멀 문제로 인한 블랙아웃 방지: 자체 발광 기본 머티리얼 적용
+          const debugMat = new THREE.MeshBasicMaterial({
+            color: 0x94a3b8,        // 밝은 슬레이트 그레이
+            wireframe: false,       // 면으로 채우기
+            side: THREE.DoubleSide  // 앞뒤 양면 강제 렌더링
           });
 
-          const validMeshes = [];
-
-          // 1. 모델 내 모든 메쉬의 비정상 버텍스(NaN) 정제
+          // 2. 모델 내부 메쉬 정제 및 재질 부여
           obj.traverse((child) => {
             if (child.isMesh && child.geometry) {
-              const geom = child.geometry;
-              const pos = geom.attributes.position;
-
-              if (pos && pos.count > 0) {
-                let hasNaN = false;
-                const arr = pos.array;
-
-                for (let i = 0; i < arr.length; i++) {
-                  if (isNaN(arr[i]) || !isFinite(arr[i])) {
-                    arr[i] = 0; // 비정상 좌표를 0으로 강제 보정
-                    hasNaN = true;
-                  }
-                }
-
-                if (hasNaN) {
-                  pos.needsUpdate = true;
-                }
-
-                // 바운딩 볼륨 수동 재계산
-                geom.computeVertexNormals();
-                geom.computeBoundingBox();
-                geom.computeBoundingSphere();
-
-                child.material = stationMat;
-                child.castShadow = true;
-                child.receiveShadow = true;
-                validMeshes.push(child);
-              }
+              child.geometry.computeVertexNormals();
+              child.material = debugMat;
             }
           });
 
-          // 유효한 메쉬만 담는 래퍼 그룹 구성
-          const cleanGroup = new THREE.Group();
-          validMeshes.forEach(m => cleanGroup.add(m));
-          loadedStationModel = cleanGroup;
+          scene.add(obj);
+          loadedStationModel = obj;
 
-          // 2. 안전한 바운딩 박스 계산 및 크기/원점 자동 정렬
-          const box = new THREE.Box3();
-          validMeshes.forEach(m => {
-            if (m.geometry.boundingBox) {
-              box.expandByObject(m);
-            }
-          });
-
+          // 3. 카메라 자동 피팅 (모델 크기와 위치에 맞게 카메라 시야를 강제 정렬)
+          const box = new THREE.Box3().setFromObject(obj);
           const center = box.getCenter(new THREE.Vector3());
           const size = box.getSize(new THREE.Vector3());
 
-          // 중심 및 크기 유효성 검증
-          if (!isNaN(center.x) && !isNaN(center.y) && !isNaN(center.z)) {
-            cleanGroup.position.x -= center.x;
-            cleanGroup.position.y -= center.y;
-            cleanGroup.position.z -= center.z;
+          console.log("3D 모델 로드 완료 - 중심:", center, "크기:", size);
 
-            const maxDim = Math.max(size.x, size.y, size.z);
-            if (maxDim > 0 && isFinite(maxDim)) {
-              const scaleFactor = 75 / maxDim;
-              cleanGroup.scale.set(scaleFactor, scaleFactor, scaleFactor);
-            }
-          } else {
-            console.warn("모델 좌표 계산 불가로 기본 스케일(1.0) 적용");
+          // 모델의 중심을 OrbitControls 타겟으로 설정
+          controls.target.copy(center);
+
+          // 모델 최대 크기 측정
+          const maxDim = Math.max(size.x, size.y, size.z);
+          if (maxDim > 0 && isFinite(maxDim)) {
+            // 카메라 절두체(시야각)를 모델 크기에 맞춰 확장
+            const aspect = threeContainer.clientWidth / threeContainer.clientHeight;
+            const frustumSize = maxDim * 1.3;
+
+            camera.left = -frustumSize * aspect / 2;
+            camera.right = frustumSize * aspect / 2;
+            camera.top = frustumSize / 2;
+            camera.bottom = -frustumSize / 2;
+            camera.near = 0.1;
+            camera.far = maxDim * 10;
+            camera.updateProjectionMatrix();
+
+            // 카메라 위치를 모델 중심에서 대각선 위로 이동
+            camera.position.set(
+              center.x + maxDim * 0.8,
+              center.y + maxDim * 1.0,
+              center.z + maxDim * 0.8
+            );
+            controls.update();
           }
 
-          scene.add(cleanGroup);
-          console.log("강남역 3D OBJ 정제 로드 완료");
+          console.log("카메라 자동 피팅 완료");
         },
         (xhr) => {
           if (xhr.lengthComputable) {
             const percent = Math.round((xhr.loaded / xhr.total) * 100);
-            loadingIndicator.innerText = `3D 모델 로딩 중... ${percent}%`;
+            loadingIndicator.innerText = `3D 모델 렌더링 중... ${percent}%`;
           }
         },
         (err) => {
           loadingIndicator.style.display = "none";
-          console.warn("강남역 OBJ 로드 실패, 대체 기본 맵을 로드합니다:", err);
+          console.warn("강남역 OBJ 로드 실패:", err);
           loadFallbackBoxModel();
         }
       );
