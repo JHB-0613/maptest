@@ -1676,70 +1676,77 @@
       syncPinsTo3D();
     }
 
-    // 2D 탑뷰 설정: 배율 확대 + 수직 투시 + 회전 잠금(이동 및 줌만 허용) + 줌 제한
     function setCameraToTopDownView() {
       if (!controls || !camera) return;
 
       let centerX = 0, centerY = 0, centerZ = 0;
       let maxDim = 60;
+      let modelHeight = 10;
 
       if (loadedStationModel) {
         const box = new THREE.Box3().setFromObject(loadedStationModel);
         const center = box.getCenter(new THREE.Vector3());
         const size = box.getSize(new THREE.Vector3());
+
         centerX = center.x;
         centerY = center.y;
         centerZ = center.z;
         maxDim = Math.max(size.x, size.z);
+        modelHeight = Math.max(size.y, 10);
       } else {
         const defaultCenter = coord2Dto3D(180, 260);
         centerX = defaultCenter.x;
         centerZ = defaultCenter.z;
       }
 
-      // 1. 배율 확대: frustumSize를 줄여 모델이 화면에 큼직하게 꽉 차도록 설정
+      // 1. 모델이 0이거나 NaN일 경우 안전한 기본값 부여
+      if (!isFinite(maxDim) || maxDim <= 0) maxDim = 60;
+
       const aspect = threeContainer.clientWidth / threeContainer.clientHeight;
-      const frustumSize = maxDim * 0.85;
+      // 0.85가 너무 확대되어 화면 밖으로 밀려났을 수 있으므로 안전한 1.15로 화면에 가득 차게 조절
+      const frustumSize = maxDim * 1.15;
 
       camera.left = -frustumSize * aspect / 2;
       camera.right = frustumSize * aspect / 2;
       camera.top = frustumSize / 2;
       camera.bottom = -frustumSize / 2;
       camera.zoom = 1.0;
+
+      // 2. 모델 높이에 비례하여 카메라 높이(Y)와 클리핑 평면(Near/Far)을 동적 설정 (중요!)
+      const camAltitude = Math.max(maxDim * 2, 200);
+      camera.near = 0.1;
+      camera.far = camAltitude * 3; // 카메라가 모델을 자르지 못하도록 충분한 거리 확보
       camera.updateProjectionMatrix();
 
-      // 2. 수직 상공(Y축)에 카메라 배치 및 정면 방향 정렬
+      // 3. 카메라를 모델 상공에 배치
       camera.up.set(0, 0, -1);
-      camera.position.set(centerX, centerY + 300, centerZ);
+      camera.position.set(centerX, centerY + camAltitude, centerZ);
       controls.target.set(centerX, centerY, centerZ);
       camera.lookAt(centerX, centerY, centerZ);
 
-      // 3. 2D 평면 모드 제약: 회전 차단, 이동(Pan) 및 줌만 허용
+      // 4. 컨트롤 제약
       controls.enableRotate = false;
       controls.enablePan = true;
       controls.enableZoom = true;
       controls.screenSpacePanning = true;
 
-      // 과도한 축소/확대 방지
-      controls.minZoom = 0.7;
-      controls.maxZoom = 2.8;
+      controls.minZoom = 0.5;
+      controls.maxZoom = 4.0;
 
-      // 마우스 왼쪽 드래그를 화면 이동(Pan)으로 바인딩
       controls.mouseButtons = {
         LEFT: THREE.MOUSE.PAN,
         MIDDLE: THREE.MOUSE.DOLLY,
         RIGHT: THREE.MOUSE.PAN
       };
 
-      // 터치 제스처: 한 손가락 패닝, 두 손가락 줌
       controls.touches = {
         ONE: THREE.TOUCH.PAN,
         TWO: THREE.TOUCH.DOLLY_PAN
       };
 
       controls.update();
+      console.log("✅ 2D 탑뷰 전환 완료 (Frustum:", frustumSize, "고도:", camAltitude, ")");
     }
-
     // 3D 쿼터뷰(아이소메트릭) 복귀 함수: 기본 배율 + 자유 회전 복원
     function syncCameraToIsometricView() {
       if (!controls || !camera) return;
