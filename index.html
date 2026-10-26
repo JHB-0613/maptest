@@ -1182,7 +1182,32 @@
         startY = e.touches[0].clientY - panY;
       }
     });
+    function handleMapClick(clientX, clientY) {
+      // 팝업 카드, 검색바, 줌 버튼 클릭 시 지도 클릭 무시
+      const targetEl = document.elementFromPoint(clientX, clientY);
+      if (targetEl && (targetEl.closest(".station-popup-card") || targetEl.closest(".bottom-search-wrapper") || targetEl.closest(".zoom-controls"))) {
+        return;
+      }
 
+      const rect = metroContainer.getBoundingClientRect();
+      const mapX = (clientX - rect.left - panX) / scale;
+      const mapY = (clientY - rect.top - panY) / scale;
+
+      let nearestStation = null;
+      let minDistance = 45; // 클릭 유효 반경(px)
+
+      for (const st of STATIONS_LIST) {
+        const dist = Math.hypot(st.x - mapX, st.y - mapY);
+        if (dist < minDistance) {
+          minDistance = dist;
+          nearestStation = st;
+        }
+      }
+
+      if (nearestStation) {
+        selectStation(nearestStation);
+      }
+    }
     /* ========================================================
        2. 실내 지도 화면 전환
     ======================================================== */
