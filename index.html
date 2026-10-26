@@ -1679,9 +1679,8 @@
     function setCameraToTopDownView() {
       if (!controls || !camera) return;
 
-      let centerX = 0, centerY = 0, centerZ = 0;
-      let maxDim = 60;
-      let modelHeight = 10;
+      let centerX = -15.57, centerY = -10.86, centerZ = 38.40;
+      let sizeX = 20, sizeZ = 120;
 
       if (loadedStationModel) {
         const box = new THREE.Box3().setFromObject(loadedStationModel);
@@ -1691,47 +1690,55 @@
         centerX = center.x;
         centerY = center.y;
         centerZ = center.z;
-        maxDim = Math.max(size.x, size.z);
-        modelHeight = Math.max(size.y, 10);
-      } else {
-        const defaultCenter = coord2Dto3D(180, 260);
-        centerX = defaultCenter.x;
-        centerZ = defaultCenter.z;
+        sizeX = Math.max(size.x, 10);
+        sizeZ = Math.max(size.z, 10);
       }
 
-      // 1. 모델이 0이거나 NaN일 경우 안전한 기본값 부여
-      if (!isFinite(maxDim) || maxDim <= 0) maxDim = 60;
+      // 1. 화면의 가로/세로 비율 계산
+      const width = threeContainer.clientWidth || 412;
+      const height = threeContainer.clientHeight || 800;
+      const aspect = width / height;
 
-      const aspect = threeContainer.clientWidth / threeContainer.clientHeight;
-      // 0.85가 너무 확대되어 화면 밖으로 밀려났을 수 있으므로 안전한 1.15로 화면에 가득 차게 조절
-      const frustumSize = maxDim * 1.15;
+      // 2. 모델 전체(Z축 114)가 화면 위아래에 여유 있게 꽉 차도록 Frustum 계산
+      // 세로 여유율 1.15배 적용
+      const paddingFactor = 1.15;
+      let viewHeight = sizeZ * paddingFactor;
+      let viewWidth = viewHeight * aspect;
 
-      camera.left = -frustumSize * aspect / 2;
-      camera.right = frustumSize * aspect / 2;
-      camera.top = frustumSize / 2;
-      camera.bottom = -frustumSize / 2;
+      // 가로 폭이 모델 가로 길이보다 좁아지면 가로 기준으로 재조정
+      if (viewWidth < sizeX * paddingFactor) {
+        viewWidth = sizeX * paddingFactor;
+        viewHeight = viewWidth / aspect;
+      }
+
+      camera.left = -viewWidth / 2;
+      camera.right = viewWidth / 2;
+      camera.top = viewHeight / 2;
+      camera.bottom = -viewHeight / 2;
       camera.zoom = 1.0;
 
-      // 2. 모델 높이에 비례하여 카메라 높이(Y)와 클리핑 평면(Near/Far)을 동적 설정 (중요!)
-      const camAltitude = Math.max(maxDim * 2, 200);
-      camera.near = 0.1;
-      camera.far = camAltitude * 3; // 카메라가 모델을 자르지 못하도록 충분한 거리 확보
+      // 3. 수직 상공 고도 및 클리핑 평면 설정 (Gimbal Lock 방지를 위해 Z축으로 0.001 미세 오프셋)
+      const altitude = 250;
+      camera.near = 1;
+      camera.far = 1000;
       camera.updateProjectionMatrix();
 
-      // 3. 카메라를 모델 상공에 배치
+      // 4. 탑뷰 시 위쪽을 북쪽(-Z 방향)으로 설정
       camera.up.set(0, 0, -1);
-      camera.position.set(centerX, centerY + camAltitude, centerZ);
+      camera.position.set(centerX, centerY + altitude, centerZ + 0.001);
+
       controls.target.set(centerX, centerY, centerZ);
       camera.lookAt(centerX, centerY, centerZ);
 
-      // 4. 컨트롤 제약
+      // 5. 2D 제약 적용 (회전 차단, 화면 이동 및 줌 허용)
       controls.enableRotate = false;
       controls.enablePan = true;
       controls.enableZoom = true;
       controls.screenSpacePanning = true;
 
+      // 줌 제한
       controls.minZoom = 0.5;
-      controls.maxZoom = 4.0;
+      controls.maxZoom = 3.5;
 
       controls.mouseButtons = {
         LEFT: THREE.MOUSE.PAN,
@@ -1745,14 +1752,13 @@
       };
 
       controls.update();
-      console.log("✅ 2D 탑뷰 전환 완료 (Frustum:", frustumSize, "고도:", camAltitude, ")");
     }
     // 3D 쿼터뷰(아이소메트릭) 복귀 함수: 기본 배율 + 자유 회전 복원
     function syncCameraToIsometricView() {
       if (!controls || !camera) return;
 
-      let centerX = 0, centerY = 0, centerZ = 0;
-      let maxDim = 60;
+      let centerX = -15.57, centerY = -10.86, centerZ = 38.40;
+      let maxDim = 114;
 
       if (loadedStationModel) {
         const box = new THREE.Box3().setFromObject(loadedStationModel);
@@ -1762,34 +1768,32 @@
         centerY = center.y;
         centerZ = center.z;
         maxDim = Math.max(size.x, size.y, size.z);
-      } else {
-        const defaultCenter = coord2Dto3D(180, 260);
-        centerX = defaultCenter.x;
-        centerZ = defaultCenter.z;
       }
 
-      // 1. 기본 배율 복원 (전체 조망)
-      const aspect = threeContainer.clientWidth / threeContainer.clientHeight;
-      const frustumSize = maxDim * 1.35;
+      const width = threeContainer.clientWidth || 412;
+      const height = threeContainer.clientHeight || 800;
+      const aspect = width / height;
 
-      camera.left = -frustumSize * aspect / 2;
-      camera.right = frustumSize * aspect / 2;
-      camera.top = frustumSize / 2;
-      camera.bottom = -frustumSize / 2;
+      const frustumHeight = maxDim * 1.3;
+      const frustumWidth = frustumHeight * aspect;
+
+      camera.left = -frustumWidth / 2;
+      camera.right = frustumWidth / 2;
+      camera.top = frustumHeight / 2;
+      camera.bottom = -frustumHeight / 2;
       camera.zoom = 1.0;
+      camera.near = 1;
+      camera.far = 1500;
       camera.updateProjectionMatrix();
 
-      // 2. 3D 기준 상단 벡터(Y축) 및 쿼터뷰 위치 복원
-      camera.up.set(0, 1, 0);
-      camera.position.set(centerX + maxDim * 0.9, centerY + maxDim * 1.1, centerZ + maxDim * 0.9);
+      camera.up.set(0, 1, 0); // 3D 월드 상단 벡터 복원
+      camera.position.set(centerX + maxDim * 0.7, centerY + maxDim * 0.8, centerZ + maxDim * 0.7);
       controls.target.set(centerX, centerY, centerZ);
       camera.lookAt(centerX, centerY, centerZ);
 
-      // 3. 360도 자유 회전 복원
       controls.enableRotate = true;
       controls.enablePan = true;
       controls.enableZoom = true;
-
       controls.minZoom = 0.3;
       controls.maxZoom = 4.0;
 
@@ -1813,22 +1817,23 @@
 
       const bbox = new THREE.Box3().setFromObject(loadedStationModel);
       
-      const marginX = (bbox.max.x - bbox.min.x) * 0.25;
-      const marginZ = (bbox.max.z - bbox.min.z) * 0.25;
+      // 모델 크기(가로 약 19, 세로 약 114)의 35% 만큼 여유 마진 허용
+      const marginX = (bbox.max.x - bbox.min.x) * 0.35;
+      const marginZ = (bbox.max.z - bbox.min.z) * 0.35;
 
       const minX = bbox.min.x - marginX;
       const maxX = bbox.max.x + marginX;
       const minZ = bbox.min.z - marginZ;
       const maxZ = bbox.max.z + marginZ;
 
-      const prevTargetX = controls.target.x;
-      const prevTargetZ = controls.target.z;
+      const curX = controls.target.x;
+      const curZ = controls.target.z;
 
-      const clampedX = Math.min(Math.max(prevTargetX, minX), maxX);
-      const clampedZ = Math.min(Math.max(prevTargetZ, minZ), maxZ);
+      const clampedX = Math.min(Math.max(curX, minX), maxX);
+      const clampedZ = Math.min(Math.max(curZ, minZ), maxZ);
 
-      const deltaX = clampedX - prevTargetX;
-      const deltaZ = clampedZ - prevTargetZ;
+      const deltaX = clampedX - curX;
+      const deltaZ = clampedZ - curZ;
 
       if (deltaX !== 0 || deltaZ !== 0) {
         controls.target.x = clampedX;
@@ -1837,7 +1842,6 @@
         camera.position.z += deltaZ;
       }
     }
-
     function initThreeScene() {
       const width = threeContainer.clientWidth;
       const height = threeContainer.clientHeight;
@@ -1861,7 +1865,7 @@
       controls.dampingFactor = 0.05;
 
       // 컨트롤 이동 시 2D 모드 경계 락 리스너 등록
-      //controls.addEventListener("change", clampTopDownPan);
+      controls.addEventListener("change", clampTopDownPan);
 
       const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
       scene.add(ambientLight);
