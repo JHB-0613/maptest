@@ -1169,13 +1169,16 @@
     }
 
     /* ========================================================
-       3. 실내 핑(POI) 시스템 (클릭으로 핑 생성 / 사진 / 글)
+       3. 층별 실내 핑(POI) 시스템 (각 층마다 독립 저장/표시)
     ======================================================== */
-    // 각 역별 등록된 핑 저장소 { "강남역": [ {id, title, desc, img, x, y}, ... ] }
+    let activeFloor = "B1"; // 현재 선택된 층
+
+    // 역 및 층별 초기 핑 데이터
     const STATION_PINS_DB = {
       "강남역": [
-        { id: 1, title: "물품보관함 A구역", desc: "개찰구 바로 우측에 위치", img: "", x: 230, y: 260 },
-        { id: 2, title: "약국 및 수유실", desc: "1번 출구 에스컬레이터 옆", img: "", x: 90, y: 230 }
+        { id: 1, floor: "B1", title: "물품보관함 A구역", desc: "개찰구 바로 우측에 위치", img: "", x: 230, y: 260 },
+        { id: 2, floor: "B1", title: "약국 및 수유실", desc: "1번 출구 에스컬레이터 옆", img: "", x: 90, y: 230 },
+        { id: 3, floor: "B2", title: "2호선 환승통로 자판기", desc: "계단 내려오자마자 보임", img: "", x: 180, y: 160 }
       ]
     };
 
@@ -1194,7 +1197,7 @@
     let tempClickCoord = null;
     let tempUploadedImg = "";
 
-    // 실내 SVG 클릭 시 핑 생성 모달 열기
+    // 실내 캔버스 클릭 시 현재 층에 핑 생성 모달 열기
     indoorSvg.addEventListener("click", (e) => {
       const rect = indoorSvg.getBoundingClientRect();
       const clickX = ((e.clientX - rect.left) / rect.width) * 360;
@@ -1208,7 +1211,7 @@
       tempClickCoord = { x, y };
       tempUploadedImg = "";
 
-      document.getElementById("pin-modal-title").innerText = "📍 새로운 장소 핑 등록";
+      document.getElementById("pin-modal-title").innerText = `📍 [${activeFloor}] 새로운 장소 핑 등록`;
       pinTitleInput.value = "";
       pinDescInput.value = "";
       pinPreviewImg.style.display = "none";
@@ -1225,7 +1228,7 @@
     function openViewPinModal(pinObj) {
       currentEditingPin = pinObj;
 
-      document.getElementById("pin-modal-title").innerText = `📍 ${pinObj.title}`;
+      document.getElementById("pin-modal-title").innerText = `📍 [${pinObj.floor}] ${pinObj.title}`;
       pinTitleInput.value = pinObj.title;
       pinDescInput.value = pinObj.desc || "";
 
@@ -1260,6 +1263,7 @@
       reader.readAsDataURL(file);
     }
 
+    // 핑 저장 시 현재 선택된 층(activeFloor) 정보 포함
     function saveCurrentPin() {
       const title = pinTitleInput.value.trim();
       if (!title) {
@@ -1272,6 +1276,7 @@
 
       const newPin = {
         id: Date.now(),
+        floor: activeFloor, // 현재 선택된 층 정보 자동 저장
         title: title,
         desc: pinDescInput.value.trim(),
         img: tempUploadedImg,
@@ -1282,33 +1287,33 @@
       STATION_PINS_DB[stName].push(newPin);
       closePinModal();
       renderStationPins();
-      alert(`'${title}' 핑이 등록되었습니다!`);
+      alert(`[${activeFloor}]에 '${title}' 핑이 등록되었습니다!`);
     }
 
     function deleteCurrentPin() {
       if (!currentEditingPin) return;
-      const stName = currentSelectedStation.name;
+      const stName = currentSelectedStation ? currentSelectedStation.name : "강남역";
       STATION_PINS_DB[stName] = STATION_PINS_DB[stName].filter(p => p.id !== currentEditingPin.id);
       closePinModal();
       renderStationPins();
     }
 
+    // 현재 선택된 층(activeFloor)에 해당하는 핑만 화면에 렌더링
     function renderStationPins() {
       indoorPinsLayer.innerHTML = "";
       const stName = currentSelectedStation ? currentSelectedStation.name : "강남역";
-      const pins = STATION_PINS_DB[stName] || [];
+      const pins = (STATION_PINS_DB[stName] || []).filter(p => p.floor === activeFloor);
 
       pins.forEach(pin => {
         const marker = document.createElement("div");
         marker.className = "indoor-pin-marker";
-        // SVG 좌표계를 컨테이너 % 비율로 매핑
         marker.style.left = `${(pin.x / 360) * 100}%`;
         marker.style.top = `${(pin.y / 520) * 100}%`;
         marker.innerHTML = `
           <svg width="34" height="44" viewBox="0 0 384 512">
             <path fill="#e84118" stroke="#ffffff" stroke-width="16" d="M172.268 501.67C26.97 291.031 0 269.413 0 192 0 85.961 86.039 0 192 0s192 85.961 192 192c0 77.413-26.97 99.031-172.268 309.67-9.535 13.774-29.93 13.773-39.464 0z"/>
             <circle cx="192" cy="192" r="75" fill="#ffffff"/>
-            <circle cx="192" cy="192" r="42" fill="#e84118"/>
+            <text x="192" y="215" font-size="64" font-weight="900" fill="#e84118" text-anchor="middle">${pin.floor}</text>
           </svg>
         `;
         marker.onclick = (e) => {
@@ -1319,21 +1324,27 @@
       });
     }
 
-    /* ========================================================
-       4. 실내 핑 검색창 (역 내부 시설물 및 핑 전용)
-    ======================================================== */
-    const indoorSearchBox = document.getElementById("indoor-search-box");
-    const indoorClearSearch = document.getElementById("indoor-clear-search");
-    const indoorSuggestions = document.getElementById("indoor-suggestions");
+    // 층수 버튼 클릭 시 층 변경 핸들러
+    function selectFloor(floor, btnEl) {
+      activeFloor = floor;
+      document.querySelectorAll(".floor-btn").forEach(b => b.classList.remove("active"));
+      if (btnEl) btnEl.classList.add("active");
+      
+      closeIndoorNavigation(); // 층이 바뀌면 기존 경로선 닫기
+      closePinModal();
+      renderStationPins(); // 변경된 층의 핑만 다시 렌더링
+    }
 
-    // 역 내부 기본 시설물
+    /* ========================================================
+       4. 실내 검색 (다른 층의 핑 검색 시 층 자동 전환)
+    ======================================================== */
     const DEFAULT_STATION_FACILITIES = [
-      { title: "2호선 탑승게이트", x: 180, y: 75, type: "gate" },
-      { title: "신분당선 탑승게이트", x: 180, y: 445, type: "gate" },
-      { title: "1번 출구", x: 65, y: 260, type: "exit" },
-      { title: "2번 출구", x: 295, y: 260, type: "exit" },
-      { title: "중앙 개찰구", x: 180, y: 260, type: "turnstile" },
-      { title: "화장실", x: 180, y: 350, type: "toilet" }
+      { floor: "B1", title: "2호선 탑승게이트", x: 180, y: 75, type: "gate" },
+      { floor: "B2", title: "신분당선 탑승게이트", x: 180, y: 445, type: "gate" },
+      { floor: "B1", title: "1번 출구", x: 65, y: 260, type: "exit" },
+      { floor: "B1", title: "2번 출구", x: 295, y: 260, type: "exit" },
+      { floor: "B1", title: "중앙 개찰구", x: 180, y: 260, type: "turnstile" },
+      { floor: "B1", title: "화장실", x: 180, y: 350, type: "toilet" }
     ];
 
     function onIndoorSearchInput(query) {
@@ -1348,10 +1359,13 @@
       indoorSuggestions.innerHTML = "";
 
       const stName = currentSelectedStation ? currentSelectedStation.name : "강남역";
-      const customPins = (STATION_PINS_DB[stName] || []).map(p => ({ ...p, isCustom: true }));
+      const customPins = STATION_PINS_DB[stName] || [];
       const allTargets = [...DEFAULT_STATION_FACILITIES, ...customPins];
 
-      const matched = allTargets.filter(item => item.title.toLowerCase().includes(q) || (item.desc && item.desc.toLowerCase().includes(q)));
+      const matched = allTargets.filter(item => 
+        item.title.toLowerCase().includes(q) || 
+        (item.desc && item.desc.toLowerCase().includes(q))
+      );
 
       if (matched.length === 0) {
         indoorSuggestions.innerHTML = `<div style="padding:14px; text-align:center; color:#8e95a5; font-size:13px;">일치하는 핑이나 시설이 없습니다.</div>`;
@@ -1360,11 +1374,18 @@
           const item = document.createElement("div");
           item.className = "suggestion-item";
           item.innerHTML = `
-            <span>📍 <strong>${target.title}</strong></span>
+            <span>📍 <strong>${target.title}</strong> <span style="font-size:10px; color:#aaa; margin-left:4px;">[${target.floor}]</span></span>
             <span style="font-size:11px; color:#00e5ff;">길안내 ›</span>
           `;
           item.onclick = () => {
             indoorSuggestions.style.display = "none";
+
+            // 검색한 목적지가 다른 층에 있다면 해당 층으로 자동 전환
+            if (target.floor && target.floor !== activeFloor) {
+              const targetFloorBtn = Array.from(document.querySelectorAll(".floor-btn")).find(b => b.innerText === target.floor);
+              selectFloor(target.floor, targetFloorBtn);
+            }
+
             startRouteToTarget(target);
           };
           indoorSuggestions.appendChild(item);
@@ -1372,13 +1393,6 @@
       }
       indoorSuggestions.style.display = "block";
     }
-
-    function clearIndoorSearch() {
-      indoorSearchBox.value = "";
-      indoorClearSearch.style.display = "none";
-      indoorSuggestions.style.display = "none";
-    }
-
     /* ========================================================
        5. 실내 전용 길안내 엔진 (내 위치 ➔ 핑 / 탑승게이트)
     ======================================================== */
