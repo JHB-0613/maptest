@@ -1217,38 +1217,40 @@
     };
 
     function enterIndoorView() {
-        if (!currentSelectedStation) return;
+      if (!currentSelectedStation) return;
 
-        document.getElementById("indoor-title-text").innerText = `${currentSelectedStation.name} 실내 지도`;
-        floorList.innerHTML = "";
+      document.getElementById("indoor-title-text").innerText = `${currentSelectedStation.name} 실내 지도`;
+      floorList.innerHTML = "";
 
-        const floors = currentSelectedStation.name.includes("강남") 
-          ? ["B1", "B2", "B3", "B4"] 
-          : ["2F", "1F", "B1", "B2", "B3"];
-        const defaultFloor = "B1";
+      const floors = currentSelectedStation.name.includes("강남") 
+        ? ["B1", "B2", "B3", "B4"] 
+        : ["2F", "1F", "B1", "B2", "B3"];
+      const defaultFloor = "B1";
 
-        floors.forEach(floor => {
-          const btn = document.createElement("button");
-          btn.className = `floor-btn ${floor === defaultFloor ? 'active' : ''}`;
-          btn.innerText = floor;
-          btn.onclick = () => selectFloor(floor, btn);
-          floorList.appendChild(btn);
-        });
+      floors.forEach(floor => {
+        const btn = document.createElement("button");
+        btn.className = `floor-btn ${floor === defaultFloor ? 'active' : ''}`;
+        btn.innerText = floor;
+        btn.onclick = () => selectFloor(floor, btn);
+        floorList.appendChild(btn);
+      });
 
-        activeFloor = defaultFloor;
-        
-        // 1. 화면 전환을 먼저 완료하여 DOM 크기가 잡히도록 설정
-        mainView.classList.add("hidden");
-        indoorView.classList.remove("hidden");
+      activeFloor = defaultFloor;
+      mainView.classList.add("hidden");
+      indoorView.classList.remove("hidden");
 
-        renderStationPins();
-        closeIndoorNavigation();
+      renderStationPins();
+      closeIndoorNavigation();
 
-        // 2. DOM 크기 계산이 완료된 프레임에 3D 초기화 및 2D 모드 실행
-        requestAnimationFrame(() => {
-          setIndoorMode("2D");
-        });
-      }
+      requestAnimationFrame(() => {
+        if (!isThreeInitialized) {
+          initThreeScene();
+          isThreeInitialized = true;
+        }
+        // 첫 진입 시 즉시 2D 탑뷰 위치 세팅
+        setCameraToTopDownView();
+      });
+    }
 
     function exitIndoorView() {
       indoorView.classList.add("hidden");
@@ -1656,7 +1658,125 @@
       "B4": "gangnam_B4.glb"
     };
 
+    let isCameraTransitioning = false;
+
+    // 2D ↔ 3D 간 시점 활공 애니메이션 함수
+    function transitionCamera(targetMode, duration = 650) {
+      if (!camera || !controls || isCameraTransitioning) return;
+      isCameraTransitioning = true;
+
+      // 1. 현재 보고 있는 화면 중심점을 그대로 유지
+      const currentTarget = controls.target.clone();
+
+      // 2. 시작 카메라 상태
+      const startPos = camera.position.clone();
+      const startLeft = camera.left;
+      const startRight = camera.right;
+      const startTop = camera.top;
+      const startBottom = camera.bottom;
+
+      // 3. 목표 카메라 상태 계산
+      const rect = threeContainer.getBoundingClientRect();
+      const aspect = (rect.width || 412) / (rect.height || 800);
+
+      let endPos = new THREE.Vector3();
+      let endLeft, endRight, endTop, endBottom;
+
+      if (targetMode === "3D") {
+        // 3D 쿼터뷰 목적지: 현재 보고 있는 중심점을 기준으로 사선 뒤쪽/위쪽에 배치
+        const dist = 55; // 3D 시점 거리
+        endPos.set(currentTarget.x + dist * 0.8, currentTarget.y + dist * 1.1, currentTarget.z + dist * 0.9);
+
+        const targetHeight = 55;
+        const targetWidth = targetHeight * aspect;
+        endLeft = -targetWidth / 2;
+        endRight = targetWidth / 2;
+        endTop = targetHeight / 2;
+        endBottom = -targetHeight / 2;
+      } else {
+        // 2D 탑뷰 목적지: 현재 보고 있는 중심점의 정수직 상공
+        endPos.set(currentTarget.x, currentTarget.y + 200, currentTarget.z + 0.05);
+
+        const targetWidth = 34; // 2D 줌인 배율
+        const targetHeight = targetWidth / aspect;
+        endLeft = -targetWidth / 2;
+        endRight = targetWidth / 2;
+        endTop = targetHeight / 2;
+        endBottom = -targetHeight / 2;
+      }
+
+      const startTime = performance.now();
+
+      // 부드러운 감속 곡선 (Cubic Ease-Out)
+      function easeOutCubic(t) {
+        return 1 - Math.pow(1 - t, 3);
+      }
+
+      function step(now) {
+        const elapsed = now - startTime;
+        const progress = Math.min(elapsed / duration, 1.0);
+        const ease = easeOutCubic(progress);
+
+        // 카메라 위치 보간
+        camera.position.lerpVectors(startPos, endPos, ease);
+        controls.target.copy(currentTarget);
+        camera.lookAt(currentTarget);
+
+        // 프러스텀(배율) 보간
+        camera.left = THREE.MathUtils.lerp(startLeft, endLeft, ease);
+        camera.right = THREE.MathUtils.lerp(startRight, endRight, ease);
+        camera.top = THREE.MathUtils.lerp(startTop, endTop, ease);
+        camera.bottom = THREE.MathUtils.lerp(startBottom, endBottom, ease);
+        camera.updateProjectionMatrix();
+
+        controls.update();
+
+        if (progress < 1.0) {
+          requestAnimationFrame(step);
+        } else {
+          isCameraTransitioning = false;
+
+          // 애니메이션 완료 후 모드별 컨트롤 제약 적용
+          if (targetMode === "3D") {
+            controls.enableRotate = true; // 3D 자유 회전 복원
+            controls.enablePan = true;
+            controls.enableZoom = true;
+            controls.minZoom = 0.3;
+            controls.maxZoom = 4.0;
+            controls.mouseButtons = {
+              LEFT: THREE.MOUSE.ROTATE,
+              MIDDLE: THREE.MOUSE.DOLLY,
+              RIGHT: THREE.MOUSE.PAN
+            };
+            controls.touches = {
+              ONE: THREE.TOUCH.ROTATE,
+              TWO: THREE.TOUCH.DOLLY_PAN
+            };
+          } else {
+            controls.enableRotate = false; // 2D 회전 잠금
+            controls.enablePan = true;
+            controls.enableZoom = true;
+            controls.minZoom = 0.4;
+            controls.maxZoom = 2.5;
+            controls.mouseButtons = {
+              LEFT: THREE.MOUSE.PAN,
+              MIDDLE: THREE.MOUSE.DOLLY,
+              RIGHT: THREE.MOUSE.PAN
+            };
+            controls.touches = {
+              ONE: THREE.TOUCH.PAN,
+              TWO: THREE.TOUCH.DOLLY_PAN
+            };
+          }
+          controls.update();
+        }
+      }
+
+      requestAnimationFrame(step);
+    }
+
     function setIndoorMode(mode) {
+      if (currentIndoorMode === mode && isThreeInitialized) return;
       currentIndoorMode = mode;
 
       if (!isThreeInitialized) {
@@ -1667,22 +1787,19 @@
       canvas2D.style.display = "none";
       threeContainer.style.display = "block";
 
-      // ⬇️ 캔버스 크기를 컨테이너 실제 픽셀 크기로 강제 동기화 (검은 화면 방지)
       if (renderer) {
         const rect = threeContainer.getBoundingClientRect();
-        const w = rect.width || 412;
-        const h = rect.height || 800;
-        renderer.setSize(w, h);
+        renderer.setSize(rect.width || 412, rect.height || 800);
       }
 
       if (mode === "2D") {
         btn2D.classList.add("active");
         btn3D.classList.remove("active");
-        setCameraToTopDownView();
+        transitionCamera("2D", 650); // 2D 수직 탑뷰로 부드럽게 세우기
       } else {
         btn3D.classList.add("active");
         btn2D.classList.remove("active");
-        syncCameraToIsometricView();
+        transitionCamera("3D", 650); // 3D 사선 쿼터뷰로 부드럽게 눕히기
       }
 
       syncPinsTo3D();
