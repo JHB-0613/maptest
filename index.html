@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>sub note - 서울 지하철 실내 내비게이션 & 3D 맵</title>
+  <title>sub note - 서울 지하철 스마트 실내 내비게이션 & 3D 맵</title>
   <!-- Three.js CDN -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
@@ -107,7 +107,7 @@
       visibility: hidden;
     }
 
-    /* 공통 상단 네비게이션 헤더 */
+    /* 공통 상단 헤더 바 */
     .figma-header {
       padding: 44px 18px 12px 18px;
       background: #ffffff;
@@ -118,10 +118,15 @@
       z-index: 60;
     }
 
+    /* 로고 클릭 시 노선도로 복귀 가능한 버튼형 래퍼 */
     .header-logo-group {
       display: flex;
       align-items: center;
-      gap: 8px;
+      cursor: pointer;
+      background: none;
+      border: none;
+      padding: 0;
+      outline: none;
     }
 
     .brand-title {
@@ -135,8 +140,8 @@
     }
 
     .brand-icon-box {
-      width: 28px;
-      height: 28px;
+      width: 26px;
+      height: 26px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -148,10 +153,13 @@
       gap: 6px;
     }
 
+    /* 커뮤니티와 MEMO 버튼 크기 및 폰트 통일 */
     .nav-btn {
-      padding: 6px 11px;
+      min-width: 82px;
+      height: 32px;
+      padding: 0 10px;
       border-radius: 12px;
-      background: #9094a6;
+      background: #8e93a6;
       color: #ffffff;
       font-size: 11px;
       font-weight: 700;
@@ -159,9 +167,11 @@
       cursor: pointer;
       display: flex;
       align-items: center;
-      gap: 4px;
-      transition: background-color 0.2s;
+      justify-content: center;
+      gap: 5px;
+      transition: background-color 0.2s, transform 0.1s;
     }
+    .nav-btn:active { transform: scale(0.97); }
     .nav-btn.active { background: #686d82; }
 
     .nav-user-circle {
@@ -236,7 +246,6 @@
       z-index: 90;
     }
 
-    /* 노선도 툴팁 뱃지 */
     .map-notice-badge {
       position: absolute;
       top: 104px;
@@ -279,7 +288,6 @@
       box-shadow: 0 4px 12px rgba(0,0,0,0.06);
     }
 
-    /* 역 선택 팝업 카드 */
     .station-popup-card {
       position: absolute;
       bottom: calc(86px + env(safe-area-inset-bottom, 0px));
@@ -304,7 +312,7 @@
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
     }
 
     .station-title-box {
@@ -376,7 +384,6 @@
       line-height: 1.4;
     }
 
-    /* 활성/비활성 버튼 디자인 분기 */
     .btn-detail {
       width: 100%;
       border: none;
@@ -476,26 +483,6 @@
       height: 100%;
     }
 
-    /* 피그마 3, 4, 6번 스타일 노선도 복귀 버튼 */
-    .btn-indoor-back {
-      position: absolute;
-      top: 100px;
-      left: 14px;
-      background: rgba(255, 255, 255, 0.95);
-      border: 1px solid var(--border-color);
-      border-radius: 20px;
-      padding: 7px 16px;
-      font-size: 12px;
-      font-weight: 700;
-      color: #475569;
-      cursor: pointer;
-      z-index: 50;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-
     .indoor-top-controls {
       position: absolute;
       top: 100px;
@@ -545,12 +532,12 @@
 
     .floor-btn {
       width: 44px;
-      height: 42px;
-      border-radius: 14px;
+      height: 40px;
+      border-radius: 12px;
       border: none;
       background: transparent;
       color: #9da2ae;
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 800;
       cursor: pointer;
     }
@@ -587,7 +574,7 @@
       border: 1px solid var(--border-color);
     }
 
-    /* Figma Explore 드로어 패널 */
+    /* 좌측 EXPLORE 서랍 패널 */
     #explore-panel {
       position: absolute;
       top: 96px;
@@ -692,7 +679,6 @@
       z-index: 55;
     }
 
-    /* 우측 하단 확장형 AI 캡슐바 (Figma 6, 7번 스타일) */
     .floating-ai-capsule {
       position: absolute;
       bottom: calc(20px + env(safe-area-inset-bottom, 0px));
@@ -799,7 +785,7 @@
     .btn-pin-save { background: var(--primary-mint); color: var(--primary-dark); }
     .btn-pin-delete { background: #fee2e2; color: #dc2626; }
 
-    /* 서브페이지 (Figma 8, 9, 10번) */
+    /* 서브페이지 */
     .subpage-overlay {
       position: absolute;
       top: 0;
@@ -852,16 +838,17 @@
     <!-- 1. 메인 노선도 화면 -->
     <div id="main-view" class="view">
       <header class="figma-header main-header">
-        <div class="header-logo-group">
+        <!-- 앱 로고 클릭 시 노선도 홈 복귀 -->
+        <button class="header-logo-group" onclick="exitIndoorView()" title="노선도 홈으로 이동">
           <div class="brand-title">
             <span class="brand-icon-box">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#334155" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1e293b" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
                 <path d="m2 9 10-5 10 5-10 5Z"/><path d="m2 13 10 5 10-5"/><path d="m2 17 10 5 10-5"/>
               </svg>
             </span>
             sub note
           </div>
-        </div>
+        </button>
         <nav class="header-nav">
           <button class="nav-btn" id="btn-main-comm" onclick="toggleSubpage('community')">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
@@ -871,7 +858,7 @@
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
             MEMO
           </button>
-          <div class="nav-user-circle" onclick="toggleSubpage('mypage')">
+          <div class="nav-user-circle" onclick="toggleSubpage('mypage')" title="마이페이지">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
           </div>
         </nav>
@@ -883,6 +870,7 @@
         <div id="map-wrapper">
           <img src="metroimg.jpg" id="official-metro-img" alt="서울 지하철 노선도" onerror="this.src='metroimg.svg'">
 
+          <!-- 역 선택 드롭 핀 -->
           <svg id="pin-general" class="map-pin" width="38" height="52" viewBox="0 0 384 512">
             <path fill="#367b67" stroke="#ffffff" stroke-width="14" d="M172.268 501.67C26.97 291.031 0 269.413 0 192 0 85.961 86.039 0 192 0s192 85.961 192 192c0 77.413-26.97 99.031-172.268 309.67-9.535 13.774-29.93 13.773-39.464 0z"/>
             <circle cx="192" cy="192" r="75" fill="#ffffff"/>
@@ -896,7 +884,7 @@
         <button class="btn-zoom" onclick="zoomManual(-0.25)">−</button>
       </div>
 
-      <!-- 역 선택 팝업 카드 (강남역 외 실내지도 준비중 분기) -->
+      <!-- 역 팝업 카드 -->
       <div class="station-popup-card" id="station-card">
         <div class="card-header">
           <div class="station-title-box">
@@ -926,16 +914,17 @@
     <!-- 2. 실내 지도 화면 -->
     <div id="indoor-view" class="view hidden">
       <header class="figma-header">
-        <div class="header-logo-group">
+        <!-- 실내 지도 상단 로고 클릭 시에도 노선도 복귀 -->
+        <button class="header-logo-group" onclick="exitIndoorView()" title="노선도 홈으로 이동">
           <div class="brand-title">
             <span class="brand-icon-box">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#334155" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1e293b" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
                 <path d="m2 9 10-5 10 5-10 5Z"/><path d="m2 13 10 5 10-5"/><path d="m2 17 10 5 10-5"/>
               </svg>
             </span>
             sub note
           </div>
-        </div>
+        </button>
         <nav class="header-nav">
           <button class="nav-btn" id="btn-nav-comm" onclick="toggleSubpage('community')">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
@@ -945,17 +934,13 @@
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
             MEMO
           </button>
-          <div class="nav-user-circle" onclick="toggleSubpage('mypage')">
+          <div class="nav-user-circle" onclick="toggleSubpage('mypage')" title="마이페이지">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
           </div>
         </nav>
       </header>
 
-      <!-- 피그마 시안 스타일 노선도 복귀 버튼 -->
-      <button class="btn-indoor-back" onclick="exitIndoorView()">
-        ‹ 노선도
-      </button>
-
+      <!-- 우측 상단 모드 및 층(B1~B4) 선택기 -->
       <div class="indoor-top-controls">
         <div class="toggle-mode">
           <button class="toggle-btn active" id="btn-2d" onclick="setIndoorMode('2D')">2D</button>
@@ -967,7 +952,7 @@
       <div id="loading-indicator">3D 모델 로딩 중...</div>
       <div id="three-container"></div>
 
-      <!-- 좌측 EXPLORE 서랍 패널 (Figma 5번 스타일) -->
+      <!-- 좌측 EXPLORE 서랍 패널 -->
       <aside id="explore-panel">
         <div class="explore-header">
           <div style="font-size:10px; font-weight:800; letter-spacing:1px; color:#94a3b8;">EXPLORE UNDERGROUND</div>
@@ -991,7 +976,7 @@
         <div id="explore-pins-list" style="margin-top:8px; display:flex; flex-direction:column; gap:6px;"></div>
       </aside>
 
-      <!-- 좌측 하단 플로팅 메뉴 도구 (Figma 6번) -->
+      <!-- 좌측 하단 플로팅 메뉴 도구 -->
       <div class="floating-tools-left">
         <button class="btn-circle-tool" id="btn-tool-explore" onclick="toggleExplorePanel()">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
@@ -1010,7 +995,7 @@
         </div>
       </div>
 
-      <!-- 우측 하단 확장형 AI 캡슐바 (Figma 6, 7번) -->
+      <!-- 우측 하단 확장형 AI 캡슐바 -->
       <div class="floating-ai-capsule" id="ai-capsule">
         <div class="ai-input-wrap">
           <input type="text" id="ai-query-input" class="ai-input" placeholder="궁금한 점이 있으신가요?" onkeydown="handleAiSubmit(event)">
@@ -1035,7 +1020,7 @@
       </div>
     </div>
 
-    <!-- 3. 공통 커뮤니티 / MEMO / 마이페이지 서브페이지 (Figma 8, 9, 10번) -->
+    <!-- 3. 공통 커뮤니티 / MEMO / 마이페이지 오버레이 -->
     <div class="subpage-overlay" id="subpage-community">
       <div style="margin-bottom:18px;">
         <span style="font-size:12px; color:#367b67; font-weight:700; cursor:pointer;" onclick="toggleSubpage(null)">← 노선도로 돌아가기</span>
@@ -1138,8 +1123,11 @@
           };
         });
 
-        const gangnam = STATIONS_LIST.find(s => s.queryTerm === "강남" || s.name === "강남역");
-        if (gangnam) selectStation(gangnam);
+        // 초기 시작 위치: 서울역 중심 (선택 핀 없이 시점만 이동)
+        const seoul = STATIONS_LIST.find(s => s.queryTerm === "서울" || s.name === "서울역");
+        if (seoul) {
+          panToStation(seoul.x, seoul.y, 1.0);
+        }
       } catch (err) {
         console.warn("데이터 로드 실패:", err);
       }
@@ -1411,20 +1399,20 @@
     }
 
     /* ========================================================
-       3. Figma 5번 카테고리 & 실내 핀 테마 시스템
+       3. 실내 핀 테마 & 2D/3D 그래픽 생성기
     ======================================================== */
-    const FIGMA_CATEGORIES = ['전체', '화장실', '충전', '엘리베이터', '편의점', '휴식', '쓰레기통'];
+    const FIGMA_CATEGORIES = ['전체', '화장실', '충전소', '엘리베이터', '편의점', '휴식', '쓰레기통'];
     
-    // 피그마 시안(3, 4번) 테마 색상 및 엠블럼 매핑
+    // 시안(MAP PINS 2D vs 3D) 색상 테마 및 아이콘 심볼 정의
     const CATEGORY_THEMES = {
-      '전체': { color: '#66b69d', light: '#c0eddb', dark: '#3e876f', icon: 'grid' },
-      '화장실': { color: '#9a8bc4', light: '#d8cdef', dark: '#68598f', icon: 'toilet' },
-      '충전': { color: '#66b69d', light: '#c0eddb', dark: '#3e876f', icon: 'bolt' },
-      '엘리베이터': { color: '#7aa7c4', light: '#c3e2f3', dark: '#48718e', icon: 'lift' },
-      '편의점': { color: '#d4a15f', light: '#f7dfb6', dark: '#a3753c', icon: 'shop' },
-      '휴식': { color: '#c38d9e', light: '#f1d0da', dark: '#8f576b', icon: 'coffee' },
-      '쓰레기통': { color: '#9198a7', light: '#dce0e8', dark: '#566072', icon: 'trash' },
-      '기타': { color: '#63b99d', light: '#c6e8dc', dark: '#367b67', icon: 'pin' }
+      '전체': { color: '#66b69d', light: '#c0eddb', dark: '#3e876f', iconType: 'grid' },
+      '화장실': { color: '#9d8ac7', light: '#d9d0f0', dark: '#6e5a99', iconType: 'toilet' },
+      '충전소': { color: '#4ab994', light: '#b8eedc', dark: '#2b8465', iconType: 'charger' },
+      '엘리베이터': { color: '#4770a8', light: '#b9d2f2', dark: '#2d4d7a', iconType: 'elevator' },
+      '편의점': { color: '#bf8643', light: '#f2d8b1', dark: '#8a5c24', iconType: 'store' },
+      '휴식': { color: '#c76643', light: '#f2c8b8', dark: '#8a3c22', iconType: 'rest' },
+      '쓰레기통': { color: '#7a828e', light: '#d3d7de', dark: '#505661', iconType: 'trash' },
+      '기타': { color: '#63b99d', light: '#c6e8dc', dark: '#367b67', iconType: 'pin' }
     };
 
     let activeCategory = '전체';
@@ -1457,8 +1445,8 @@
     const STATION_PINS_DB = {
       "강남역": [
         { id: 1, title: "중앙 화장실", category: "화장실", desc: "1~2번 출구 중간 B1 개찰구 인근", floor: "B1", realX3d: -14.2, realZ3d: 32.0, x: 140, y: 240 },
-        { id: 2, title: "휴대폰 급속 충전소", category: "충전", desc: "만남의 광장 안내센터 옆 기둥", floor: "B1", realX3d: -15.8, realZ3d: 42.0, x: 220, y: 210 },
-        { id: 3, title: "GS25 편의점", category: "편의점", desc: "지하상가 통로 입구", floor: "B1", realX3d: -14.0, realZ3d: 55.0, x: 180, y: 160 },
+        { id: 2, title: "휴대폰 급속 충전소", category: "충전소", desc: "만남의 광장 안내센터 옆 기둥", floor: "B1", realX3d: -15.8, realZ3d: 42.0, x: 220, y: 210 },
+        { id: 3, title: "GS25 편의점", category: "편의점", desc: "지하상가 통로 입구 24시", floor: "B1", realX3d: -14.0, realZ3d: 55.0, x: 180, y: 160 },
         { id: 4, title: "승강장 엘리베이터", category: "엘리베이터", desc: "B3 승강장 연결 위치입니다.", floor: "B3", realX3d: -15.0, realZ3d: 38.0, x: 160, y: 200 },
         { id: 5, title: "쉬어가는 벤치", category: "휴식", desc: "잠시 앉아 쉬기 좋은 공간입니다.", floor: "B2", realX3d: -16.0, realZ3d: 45.0, x: 190, y: 230 }
       ]
@@ -1500,7 +1488,7 @@
       switch(cat) {
         case '전체': return '🗂️';
         case '화장실': return '🚻';
-        case '충전': return '⚡';
+        case '충전소': return '⚡';
         case '엘리베이터': return '🛗';
         case '편의점': return '🏪';
         case '휴식': return '☕';
@@ -1516,7 +1504,8 @@
       }
 
       floorList.innerHTML = "";
-      const floors = ["B1", "B2", "B3"];
+      // 강남역 지하 4층까지 지원
+      const floors = ["B1", "B2", "B3", "B4"];
       const defaultFloor = "B1";
 
       floors.forEach(floor => {
@@ -1631,6 +1620,7 @@
       camera.zoom = Math.min(Math.max(camera.zoom + delta, 0.3), 3.5);
       camera.updateProjectionMatrix();
       if (controls) controls.update();
+      update2DPinsScaling();
     }
 
     const aiCapsule = document.getElementById("ai-capsule");
@@ -1657,7 +1647,6 @@
       }
     }
 
-    /* 서브페이지 렌더링 및 모달 토글 */
     function toggleSubpage(tab) {
       const commEl = document.getElementById("subpage-community");
       const memoEl = document.getElementById("subpage-memo");
@@ -1713,7 +1702,7 @@
     }
 
     /* ========================================================
-       4. Three.js 엔진 및 테마별 3D 입체 핀 제작
+       4. Three.js 엔진 및 2D/3D 전용 핀 그래픽 렌더러
     ======================================================== */
     const threeContainer = document.getElementById("three-container");
     const btn2D = document.getElementById("btn-2d");
@@ -1730,7 +1719,8 @@
     const FLOOR_MODEL_MAP = {
       "B1": "gangnam_B1.glb",
       "B2": "gangnam_B2.glb",
-      "B3": "gangnam_B3.glb"
+      "B3": "gangnam_B3.glb",
+      "B4": "gangnam_B4.glb"
     };
 
     function setIndoorMode(mode) {
@@ -1805,6 +1795,7 @@
       controls.touches = { ONE: THREE.TOUCH.PAN, TWO: THREE.TOUCH.DOLLY_PAN };
 
       controls.update();
+      update2DPinsScaling();
       renderer.render(scene, camera);
     }
 
@@ -1863,7 +1854,6 @@
       renderer.render(scene, camera);
     }
 
-    /* 구면 좌표계 기반 부드러운 대칭 활공 애니메이션 */
     function transitionCamera(targetMode, duration = 700) {
       if (!camera || !controls || !renderer || isCameraTransitioning) return;
       isCameraTransitioning = true;
@@ -1935,6 +1925,7 @@
         camera.bottom = THREE.MathUtils.lerp(startBottom, endBottom, ease);
         camera.updateProjectionMatrix();
 
+        update2DPinsScaling();
         renderer.render(scene, camera);
 
         if (progress < 1.0) {
@@ -1973,6 +1964,7 @@
           }
 
           controls.update();
+          update2DPinsScaling();
           renderer.render(scene, camera);
         }
       }
@@ -2006,6 +1998,20 @@
       }
     }
 
+    // 2D 핀 최소 크기 보장 및 줌 연동 스케일링 함수
+    function update2DPinsScaling() {
+      if (!camera || !pins3DGroup || currentIndoorMode !== "2D") return;
+      // 줌아웃되었을 때도 핀이 작아지지 않도록 1/zoom 배율 적용
+      const safeScale = Math.max(1.0, 1.0 / Math.max(0.2, camera.zoom));
+      pins3DGroup.children.forEach(pinMesh => {
+        if (pinMesh.userData && pinMesh.userData.is2DPin) {
+          pinMesh.scale.set(safeScale, safeScale, safeScale);
+        } else {
+          pinMesh.scale.set(1, 1, 1);
+        }
+      });
+    }
+
     function initThreeScene() {
       const rect = threeContainer.getBoundingClientRect();
       const width = rect.width || 412, height = rect.height || 800;
@@ -2028,7 +2034,10 @@
       controls = new THREE.OrbitControls(camera, renderer.domElement);
       controls.enableDamping = true;
       controls.dampingFactor = 0.05;
-      controls.addEventListener("change", clampTopDownPan);
+      controls.addEventListener("change", () => {
+        clampTopDownPan();
+        update2DPinsScaling();
+      });
 
       const ambientLight = new THREE.AmbientLight(0xffffff, 1.25);
       scene.add(ambientLight);
@@ -2063,6 +2072,7 @@
         }
         camera.updateProjectionMatrix();
         controls.update();
+        update2DPinsScaling();
       });
 
       function animate() {
@@ -2185,97 +2195,275 @@
           pin.y3d = surfaceY;
         }
 
-        const pinMesh = createFigma3DPinMesh(pin);
-        pinMesh.position.set(x3d, surfaceY + 0.1, z3d);
+        // 모드(2D 탑뷰 vs 3D 쿼터뷰)에 맞춰 분기 렌더링
+        const pinMesh = (currentIndoorMode === '2D')
+          ? create2DTopViewPin(pin)
+          : create3DIsometricPin(pin);
+
+        pinMesh.position.set(x3d, surfaceY + 0.15, z3d);
         pins3DGroup.add(pinMesh);
       });
+
+      update2DPinsScaling();
     }
 
-    /* 피그마 시안(3, 4번) 테마 맞춤형 핀 생성 함수 */
-    function createFigma3DPinMesh(pinData) {
-      const group = new THREE.Group();
-      const theme = CATEGORY_THEMES[pinData.category] || CATEGORY_THEMES['기타'];
+    /* 시안 이미지 1:1 맞춤형 2D Pins 캔버스 텍스처 (상단 수평 방패 형태) */
+    function draw2DPinCanvas(theme) {
+      const c = document.createElement("canvas");
+      c.width = 160;
+      c.height = 190;
+      const ctx = c.getContext("2d");
 
-      // 1. 하단 바닥 그림자 타원
-      const shadowGeo = new THREE.PlaneGeometry(3.6, 3.6);
-      const shadowMat = new THREE.MeshBasicMaterial({
-        color: new THREE.Color(theme.dark),
-        transparent: true,
-        opacity: 0.28,
-        depthWrite: false
-      });
-      const shadow = new THREE.Mesh(shadowGeo, shadowMat);
-      shadow.rotation.x = -Math.PI / 2;
-      shadow.position.y = 0.05;
-      group.add(shadow);
-
-      // 2. 핀 하단 기둥 지지대
-      const stemGeo = new THREE.CylinderGeometry(0.3, 0.15, 2.2, 12);
-      const stemMat = new THREE.MeshStandardMaterial({
-        color: new THREE.Color(theme.dark),
-        roughness: 0.3
-      });
-      const stem = new THREE.Mesh(stemGeo, stemMat);
-      stem.position.y = 1.1;
-      group.add(stem);
-
-      // 3. 핀 메인 입체 헤드 (테마별 특화 캡슐)
-      let head;
-      const headMat = new THREE.MeshStandardMaterial({
-        color: new THREE.Color(theme.color),
-        roughness: 0.25,
-        metalness: 0.1
-      });
-
-      if (pinData.category === '화장실') {
-        head = new THREE.Mesh(new THREE.BoxGeometry(2.4, 2.4, 0.8), headMat);
-      } else if (pinData.category === '충전') {
-        head = new THREE.Mesh(new THREE.CylinderGeometry(1.4, 1.4, 0.8, 6), headMat);
-        head.rotation.x = Math.PI / 2;
-      } else if (pinData.category === '편의점') {
-        head = new THREE.Mesh(new THREE.ConeGeometry(1.6, 2.2, 5), headMat);
-      } else {
-        head = new THREE.Mesh(new THREE.SphereGeometry(1.35, 16, 16), headMat);
-      }
-      head.position.y = 3.3;
-      group.add(head);
-
-      // 4. 핀 전면 엠블럼 페이스 (밝은 포인트 뱃지)
-      const emblemCanvas = document.createElement("canvas");
-      emblemCanvas.width = 128;
-      emblemCanvas.height = 128;
-      const ctx = emblemCanvas.getContext("2d");
-
-      ctx.fillStyle = "#ffffff";
+      // 둥근 사각 방패 + 하단 포인터 실루엣
       ctx.beginPath();
-      ctx.arc(64, 64, 52, 0, Math.PI * 2);
+      ctx.moveTo(35, 20);
+      ctx.lineTo(125, 20);
+      ctx.quadraticCurveTo(145, 20, 145, 40);
+      ctx.lineTo(145, 120);
+      ctx.quadraticCurveTo(145, 140, 125, 140);
+      ctx.lineTo(95, 140);
+      ctx.lineTo(80, 175);
+      ctx.lineTo(65, 140);
+      ctx.lineTo(35, 140);
+      ctx.quadraticCurveTo(15, 140, 15, 120);
+      ctx.lineTo(15, 40);
+      ctx.quadraticCurveTo(15, 20, 35, 20);
+      ctx.closePath();
+
+      // 외부 은은한 그림자
+      ctx.shadowColor = "rgba(0,0,0,0.18)";
+      ctx.shadowBlur = 10;
+      ctx.shadowOffsetY = 4;
+
+      // 몸체 채우기
+      ctx.fillStyle = theme.light;
       ctx.fill();
 
+      // 외곽선 테두리
+      ctx.shadowColor = "transparent";
+      ctx.strokeStyle = theme.color;
+      ctx.lineWidth = 10;
+      ctx.stroke();
+
+      // 내부 선화 아이콘 그리기 (흰색 라인아트)
+      drawPinIconArt(ctx, theme.iconType, 80, 80, 52, "#ffffff", 6);
+
+      return c;
+    }
+
+    /* 시안 이미지 1:1 맞춤형 3D Pins 캔버스 텍스처 (사선 입체 마름모 타일) */
+    function draw3DPinCanvas(theme) {
+      const c = document.createElement("canvas");
+      c.width = 180;
+      c.height = 180;
+      const ctx = c.getContext("2d");
+
+      // 하단 바닥 그림자
+      ctx.beginPath();
+      ctx.ellipse(90, 148, 55, 20, 0, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(0,0,0,0.2)";
+      ctx.fill();
+
+      // 3D 둥근 마름모 블록 하단 입체면
       ctx.fillStyle = theme.dark;
-      ctx.font = "bold 56px sans-serif";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
+      ctx.beginPath();
+      ctx.moveTo(90, 55);
+      ctx.lineTo(155, 92);
+      ctx.lineTo(155, 108);
+      ctx.lineTo(90, 144);
+      ctx.lineTo(25, 108);
+      ctx.lineTo(25, 92);
+      ctx.closePath();
+      ctx.fill();
 
-      let markText = "📍";
-      if (pinData.category === '화장실') markText = "🚻";
-      else if (pinData.category === '충전') markText = "⚡";
-      else if (pinData.category === '엘리베이터') markText = "🛗";
-      else if (pinData.category === '편의점') markText = "🏪";
-      else if (pinData.category === '휴식') markText = "☕";
-      else if (pinData.category === '쓰레기통') markText = "🗑️";
+      // 3D 둥근 마름모 블록 윗면 (밝은 컬러)
+      ctx.fillStyle = theme.color;
+      ctx.beginPath();
+      ctx.moveTo(90, 50);
+      ctx.lineTo(155, 88);
+      ctx.lineTo(90, 126);
+      ctx.lineTo(25, 88);
+      ctx.closePath();
+      ctx.fill();
 
-      ctx.fillText(markText, 64, 66);
+      // 윗면 은은한 하이라이트 테두리
+      ctx.strokeStyle = theme.light;
+      ctx.lineWidth = 4;
+      ctx.stroke();
 
-      const emblemTexture = new THREE.CanvasTexture(emblemCanvas);
-      const emblemMat = new THREE.MeshBasicMaterial({ map: emblemTexture, transparent: true });
-      const emblemGeo = new THREE.PlaneGeometry(1.8, 1.8);
-      const emblemMesh = new THREE.Mesh(emblemGeo, emblemMat);
-      emblemMesh.position.set(0, 3.3, 0.45);
-      group.add(emblemMesh);
+      // 윗면에 아이콘 투영
+      drawPinIconArt(ctx, theme.iconType, 90, 88, 44, "#ffffff", 5);
 
-      group.userData = { pinData: pinData };
-      group.renderOrder = 10;
-      return group;
+      return c;
+    }
+
+    /* 시안에 표시된 정밀 벡터 라인아트 렌더링 */
+    function drawPinIconArt(ctx, type, cx, cy, sz, color, lw) {
+      ctx.save();
+      ctx.strokeStyle = color;
+      ctx.fillStyle = color;
+      ctx.lineWidth = lw;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+
+      if (type === 'toilet') {
+        // 변기 실루엣
+        ctx.beginPath();
+        ctx.rect(cx - 16, cy - 20, 10, 24);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(cx + 4, cy - 2, 12, 0, Math.PI);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(cx + 4, cy + 10);
+        ctx.lineTo(cx + 4, cy + 20);
+        ctx.stroke();
+      } else if (type === 'charger') {
+        // 배터리 & 플러그
+        ctx.beginPath();
+        ctx.strokeRect(cx - 18, cy - 18, 22, 34);
+        ctx.beginPath();
+        ctx.moveTo(cx - 12, cy - 23);
+        ctx.lineTo(cx - 2, cy - 23);
+        ctx.stroke();
+        // 번개 마크
+        ctx.beginPath();
+        ctx.moveTo(cx - 5, cy - 12);
+        ctx.lineTo(cx - 12, cy - 1);
+        ctx.lineTo(cx - 5, cy - 1);
+        ctx.lineTo(cx - 9, cy + 10);
+        ctx.stroke();
+        // 플러그 선
+        ctx.beginPath();
+        ctx.arc(cx + 12, cy + 2, 6, -Math.PI / 2, Math.PI / 2);
+        ctx.stroke();
+      } else if (type === 'elevator') {
+        // 상하 화살표 + 도어
+        ctx.beginPath();
+        ctx.moveTo(cx - 9, cy - 16);
+        ctx.lineTo(cx - 9, cy - 24);
+        ctx.lineTo(cx - 14, cy - 19);
+        ctx.moveTo(cx - 9, cy - 24);
+        ctx.lineTo(cx - 4, cy - 19);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(cx + 9, cy - 24);
+        ctx.lineTo(cx + 9, cy - 16);
+        ctx.lineTo(cx + 4, cy - 21);
+        ctx.moveTo(cx + 9, cy - 16);
+        ctx.lineTo(cx + 14, cy - 21);
+        ctx.stroke();
+        ctx.strokeRect(cx - 16, cy - 10, 32, 30);
+        ctx.beginPath();
+        ctx.moveTo(cx, cy - 10);
+        ctx.lineTo(cx, cy + 20);
+        ctx.stroke();
+      } else if (type === 'store') {
+        // 어닝 상점 & 24 마크
+        ctx.beginPath();
+        ctx.moveTo(cx - 18, cy - 12);
+        ctx.lineTo(cx + 18, cy - 12);
+        ctx.lineTo(cx + 14, cy + 18);
+        ctx.lineTo(cx - 14, cy + 18);
+        ctx.closePath();
+        ctx.stroke();
+        ctx.font = "bold 15px sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("24", cx, cy + 4);
+      } else if (type === 'rest') {
+        // 커피 잔 & 스팀
+        ctx.beginPath();
+        ctx.arc(cx - 2, cy + 2, 14, 0, Math.PI);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(cx - 16, cy + 2);
+        ctx.lineTo(cx + 12, cy + 2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(cx + 12, cy + 2, 5, -Math.PI / 2, Math.PI / 2);
+        ctx.stroke();
+        // 스팀 선
+        ctx.beginPath();
+        ctx.moveTo(cx - 7, cy - 8);
+        ctx.lineTo(cx - 7, cy - 16);
+        ctx.moveTo(cx + 3, cy - 8);
+        ctx.lineTo(cx + 3, cy - 16);
+        ctx.stroke();
+      } else if (type === 'trash') {
+        // 쓰레기통
+        ctx.beginPath();
+        ctx.moveTo(cx - 16, cy - 14);
+        ctx.lineTo(cx + 16, cy - 14);
+        ctx.stroke();
+        ctx.strokeRect(cx - 13, cy - 10, 26, 28);
+        ctx.beginPath();
+        ctx.moveTo(cx - 5, cy - 6);
+        ctx.lineTo(cx - 5, cy + 14);
+        ctx.moveTo(cx + 5, cy - 6);
+        ctx.lineTo(cx + 5, cy + 14);
+        ctx.stroke();
+      } else {
+        ctx.beginPath();
+        ctx.arc(cx, cy - 4, 10, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(cx, cy + 6);
+        ctx.lineTo(cx, cy + 18);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    // 2D 탑뷰용 핀 생성기 (바닥면 수평 배치)
+    function create2DTopViewPin(pinData) {
+      const theme = CATEGORY_THEMES[pinData.category] || CATEGORY_THEMES['기타'];
+      const canvas = draw2DPinCanvas(theme);
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.minFilter = THREE.LinearFilter;
+
+      // 4.2 x 5.0 크기의 평면
+      const geo = new THREE.PlaneGeometry(4.2, 5.0);
+      const mat = new THREE.MeshBasicMaterial({
+        map: texture,
+        transparent: true,
+        side: THREE.DoubleSide,
+        depthTest: false
+      });
+      const mesh = new THREE.Mesh(geo, mat);
+
+      // 탑뷰(위에서 볼 때) 바로 보이도록 수평 눕힘
+      mesh.rotation.x = -Math.PI / 2;
+      mesh.position.y = 0.3; // 바닥 위에 살짝 띄움
+
+      mesh.userData = { pinData: pinData, is2DPin: true };
+      mesh.renderOrder = 25;
+      return mesh;
+    }
+
+    // 3D 쿼터뷰용 입체 핀 생성기 (카메라 시선 방향 정면 정렬)
+    function create3DIsometricPin(pinData) {
+      const theme = CATEGORY_THEMES[pinData.category] || CATEGORY_THEMES['기타'];
+      const canvas = draw3DPinCanvas(theme);
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.minFilter = THREE.LinearFilter;
+
+      const geo = new THREE.PlaneGeometry(5.2, 5.2);
+      const mat = new THREE.MeshBasicMaterial({
+        map: texture,
+        transparent: true,
+        side: THREE.DoubleSide,
+        depthTest: false
+      });
+      const mesh = new THREE.Mesh(geo, mat);
+
+      // 3D 사선 각도에 맞춰 자연스럽게 보이도록 살짝 기울임
+      mesh.position.y = 2.4;
+      mesh.rotation.x = -Math.PI / 6;
+
+      mesh.userData = { pinData: pinData, is2DPin: false };
+      mesh.renderOrder = 30;
+      return mesh;
     }
 
     function focusOnPin(pin) {
@@ -2292,6 +2480,7 @@
       camera.position.x = x3d;
       camera.position.z = z3d + (currentIndoorMode === "2D" ? 0.1 : 45);
       controls.update();
+      update2DPinsScaling();
     }
 
     let tempClickCoord = null;
