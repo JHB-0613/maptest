@@ -3,6 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <!-- 모바일 브라우저 주소창 및 인터페이스 숨김(PWA/웹앱 전체화면) 설정 -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#ffffff">
   <title>sub note - 서울 지하철 스마트 실내 내비게이션 & 3D 맵</title>
   <!-- Three.js CDN -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -63,6 +68,20 @@
         max-height: none;
         border-radius: 0;
         box-shadow: none;
+      }
+      /* ⬇️ 모바일 접속 시 목업 상태표시줄(9:41 등) 완전 숨김 */
+      .status-bar {
+        display: none !important;
+      }
+      /* 모바일에서는 목업 상단바가 사라지므로 헤더 상단 여백 보정 */
+      .figma-header {
+        padding-top: calc(14px + env(safe-area-inset-top, 0px)) !important;
+      }
+      .subpage-overlay {
+        padding-top: calc(20px + env(safe-area-inset-top, 0px)) !important;
+      }
+      .zoom-controls, .map-notice-badge, .btn-indoor-back, .indoor-top-controls {
+        top: calc(72px + env(safe-area-inset-top, 0px)) !important;
       }
     }
 
@@ -2514,6 +2533,29 @@
       syncPinsTo3D();
       showToast(`'${title}' 핀이 삭제되었습니다.`);
     }
+
+    // 모바일 접속 시 첫 화면 터치로 브라우저 상/하단 UI 전체화면 숨김 처리
+    function enableFullScreenOnMobile() {
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || window.innerWidth <= 480;
+      if (!isMobile) return;
+
+      const docEl = document.documentElement;
+      const enterFS = () => {
+        if (!document.fullscreenElement && docEl.requestFullscreen) {
+          docEl.requestFullscreen().catch(() => {});
+        }
+        window.removeEventListener("touchstart", enterFS);
+        window.removeEventListener("click", enterFS);
+      };
+
+      window.addEventListener("touchstart", enterFS, { once: true });
+      window.addEventListener("click", enterFS, { once: true });
+    }
+
+    window.addEventListener("DOMContentLoaded", () => {
+      initStations();
+      enableFullScreenOnMobile();
+    });
 
     window.addEventListener("DOMContentLoaded", () => {
       initStations();
