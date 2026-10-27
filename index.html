@@ -1475,7 +1475,7 @@
         { id: 1, title: "중앙 화장실", category: "화장실", desc: "1~2번 출구 중간 B1 개찰구 인근", floor: "B1", realX3d: -14.2, realZ3d: 32.0, x: 140, y: 240 },
         { id: 2, title: "휴대폰 급속 충전소", category: "충전소", desc: "만남의 광장 안내센터 옆 기둥", floor: "B1", realX3d: -15.8, realZ3d: 42.0, x: 220, y: 210 },
         { id: 3, title: "GS25 편의점", category: "편의점", desc: "지하상가 통로 입구 24시", floor: "B1", realX3d: -14.0, realZ3d: 55.0, x: 180, y: 160 },
-        { id: 4, title: "승강장 엘리베이터", category: "엘리베이터", desc: "B3 승강장 연결 위치입니다.", floor: "B3", realX3d: -15.0, realZ3d: 38.0, x: 160, y: 200 },
+        { id: 4, title: "승강장 엘리베이터", category: "엘리베이터", desc: "B3 승강장 연결 위치입니다.", floor: "B3", realX3d: -15.5, realZ3d: 36.5, y3d: null, x: 160, y: 200 },
         { id: 5, title: "쉬어가는 벤치", category: "휴식", desc: "잠시 앉아 쉬기 좋은 공간입니다.", floor: "B2", realX3d: -15.2, realZ3d: 40.0, y3d: null, x: 160, y: 220 }
       ]
     };
@@ -2209,9 +2209,19 @@
       if (!loadedStationModel) return 0;
       const bbox = new THREE.Box3().setFromObject(loadedStationModel);
       const startY = bbox.max.y + 50;
-      const raycaster = new THREE.Raycaster(new THREE.Vector3(x3d, startY, z3d), new THREE.Vector3(0, -1, 0), 0.1, (bbox.max.y - bbox.min.y) + 100);
+      const raycaster = new THREE.Raycaster(
+        new THREE.Vector3(x3d, startY, z3d), 
+        new THREE.Vector3(0, -1, 0), 
+        0.1, 
+        (bbox.max.y - bbox.min.y) + 100
+      );
       const hits = raycaster.intersectObject(loadedStationModel, true);
-      return hits.length > 0 ? hits[0].point.y : bbox.min.y;
+      
+      // 적중한 면 중 가장 위쪽 슬래브 높이 반환, 없을 경우 중간층 기본값 반환
+      if (hits.length > 0) {
+        return hits[0].point.y;
+      }
+      return (bbox.min.y + bbox.max.y) / 2;
     }
 
     function syncPinsTo3D() {
@@ -2318,25 +2328,39 @@
       if (glbPath) {
         const group = new THREE.Group();
         group.userData = { pinData: pinData, is2DPin: false };
-        group.renderOrder = 30;
+        group.renderOrder = 999; // 최상위 렌더 우선순위
 
         function attachModel(model) {
           const clone = model.clone(true);
-          
-          // 바운딩 박스를 계산하여 모델 크기 및 높이 안전 보정
+
+          // 1. 모델 크기 표준화 (바운딩 박스 기준 높이를 3.5~4.0 단위로 일정하게 맞춤)
           const box = new THREE.Box3().setFromObject(clone);
           const size = box.getSize(new THREE.Vector3());
+          const maxDim = Math.max(size.x, size.y, size.z);
           
-          // 모델링 크기가 비정상적으로 작거나 클 경우 적정 기본 크기(높이 약 4~5 단위)로 자동 보정
-          if (size.y > 0 && (size.y < 0.5 || size.y > 20)) {
-            const fitScale = 4.2 / size.y;
-            clone.scale.set(fitScale, fitScale, fitScale);
+          if (maxDim > 0) {
+            const targetSize = 4.2;
+            const s = targetSize / maxDim;
+            clone.scale.set(s, s, s);
           }
 
-          // 바닥면이 정확히 지표면(Y=0)에 오도록 바닥 오프셋 정렬
+          // 2. 스케일 적용 후 최하단 바닥점 재계산하여 피벗(Y=0)으로 정렬
           const updatedBox = new THREE.Box3().setFromObject(clone);
           clone.position.y -= updatedBox.min.y;
-          clone.position.y += 0.25; // 슬래브 깜빡임 방지 미세 띄움
+          clone.position.y += 0.5; // 바닥 슬래브 위로 0.5 단위 확실하게 띄워 파묻힘 방지
+
+          // 3. 바닥 모델 뒤로 가려지지 않도록 메쉬 속성 강제 보정
+          clone.traverse((child) => {
+            if (child.isMesh) {
+              child.castShadow = true;
+              child.receiveShadow = false;
+              child.renderOrder = 999;
+              if (child.material) {
+                child.material.depthTest = true;
+                child.material.depthWrite = true;
+              }
+            }
+          });
 
           group.add(clone);
           if (renderer && scene && camera) {
@@ -2352,21 +2376,13 @@
             glbPath,
             (gltf) => {
               const model = gltf.scene;
-              model.traverse((child) => {
-                if (child.isMesh) {
-                  child.castShadow = true;
-                  child.receiveShadow = true;
-                  child.renderOrder = 30;
-                }
-              });
-
               pin3DModelCache[glbPath] = model;
               attachModel(model);
             },
             undefined,
             (err) => {
               console.warn(`[${glbPath}] 로드 실패:`, err);
-              // 로드 실패 시 보이지 않는 문제를 방지하기 위해 대체 지오메트리 핀 자동 렌더링
+              // 혹시 모를 로드 실패 시 대체 지오메트리 핀 즉시 노출
               group.add(createFallbackGeometryPin(pinData));
               if (renderer && scene && camera) renderer.render(scene, camera);
             }
@@ -2379,7 +2395,6 @@
       // 그 외 카테고리는 기본 지오메트리 메쉬 핀
       return createFallbackGeometryPin(pinData);
     }
-
     // 기본 지오메트리 핀 렌더 함수 (대체용)
     function createFallbackGeometryPin(pinData) {
       const group = new THREE.Group();
