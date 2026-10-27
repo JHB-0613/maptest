@@ -64,16 +64,28 @@
     }
 
     @media (max-width: 480px) {
-      .phone-container {
-        max-height: none;
-        border-radius: 0;
-        box-shadow: none;
+      /* body 자체의 회색 배경을 앱 배경과 동일하게 화이트/연그레이로 통일 */
+      body {
+        background-color: var(--bg-main) !important;
       }
-      /* ⬇️ 모바일 접속 시 목업 상태표시줄(9:41 등) 완전 숨김 */
+
+      /* 좌우 제한(412px)을 완전히 해제하고 기기 화면 100% 채움 */
+      .phone-container {
+        width: 100vw !important;
+        max-width: 100% !important;
+        height: 100vh !important;
+        height: 100dvh !important;
+        max-height: none !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+      }
+
+      /* 모바일에서는 불필요한 목업 상태표시줄(9:41 등) 숨김 */
       .status-bar {
         display: none !important;
       }
-      /* 모바일에서는 목업 상단바가 사라지므로 헤더 상단 여백 보정 */
+
+      /* 상단바가 사라진 만큼 헤더 여백 최적화 (노치 및 펀치홀 대응) */
       .figma-header {
         padding-top: calc(14px + env(safe-area-inset-top, 0px)) !important;
       }
