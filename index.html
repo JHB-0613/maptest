@@ -1723,13 +1723,15 @@
       renderer.render(scene, camera);
     }
 
+    // 2D ↔ 3D 시점 완벽 대칭/역순 활공 애니메이션
     function transitionCamera(targetMode, duration = 650) {
       if (!camera || !controls || !renderer || isCameraTransitioning) return;
       isCameraTransitioning = true;
 
-      // ⬇️ [중요] 애니메이션 진행 중 OrbitControls의 카메라 위치 간섭 차단
+      // 1. 애니메이션 도중 OrbitControls의 카메라 위치 덮어쓰기 방지
       controls.enabled = false;
 
+      // 현재 사용자가 주시하고 있던 타깃 지점 유지
       const currentTarget = controls.target.clone();
       const startPos = camera.position.clone();
       const startLeft = camera.left, startRight = camera.right, startTop = camera.top, startBottom = camera.bottom;
@@ -1740,40 +1742,48 @@
       let endPos = new THREE.Vector3();
       let endLeft, endRight, endTop, endBottom;
 
+      // 3D 뷰 규격 상수 (양방향 동일 적용)
+      const dist = 65;
+      const targetHeight3D = 80;
+      const targetWidth3D = targetHeight3D * aspect;
+
+      // 2D 뷰 규격 상수 (양방향 동일 적용)
+      const targetWidth2D = 54;
+      const targetHeight2D = targetWidth2D / aspect;
+
       if (targetMode === "3D") {
-        const dist = 65;
-        // 3D 쿼터뷰 목적지: 현재 보고 있는 중심점을 기준으로 사선 뒤쪽/위쪽에 배치
+        // [2D -> 3D]: 3D에서 2D로 오던 궤적을 정확히 역재생하여 사선으로 눕힘
         endPos.set(currentTarget.x + dist * 0.8, currentTarget.y + dist * 1.1, currentTarget.z + dist * 0.9);
-        const targetHeight = 80;
-        const targetWidth = targetHeight * aspect;
-        endLeft = -targetWidth / 2;
-        endRight = targetWidth / 2;
-        endTop = targetHeight / 2;
-        endBottom = -targetHeight / 2;
+        endLeft = -targetWidth3D / 2;
+        endRight = targetWidth3D / 2;
+        endTop = targetHeight3D / 2;
+        endBottom = -targetHeight3D / 2;
       } else {
-        // 2D 탑뷰 목적지: 현재 보고 있는 중심점의 수직 상공 (Gimbal Lock 방지 오프셋 포함)
+        // [3D -> 2D]: 3D 상태에서 정수직 상공으로 똑바로 일어섬
         endPos.set(currentTarget.x, currentTarget.y + 220, currentTarget.z + 0.1);
-        const targetWidth = 54;
-        const targetHeight = targetWidth / aspect;
-        endLeft = -targetWidth / 2;
-        endRight = targetWidth / 2;
-        endTop = targetHeight / 2;
-        endBottom = -targetHeight / 2;
+        endLeft = -targetWidth2D / 2;
+        endRight = targetWidth2D / 2;
+        endTop = targetHeight2D / 2;
+        endBottom = -targetHeight2D / 2;
       }
 
       const startTime = performance.now();
-      function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
+
+      // 양방향 역순 감각을 살려주는 부드러운 대칭 곡선 (Ease-In-Out Cubic)
+      function easeInOutCubic(t) {
+        return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+      }
 
       function step(now) {
         const elapsed = now - startTime;
         const progress = Math.min(elapsed / duration, 1.0);
-        const ease = easeOutCubic(progress);
+        const ease = easeInOutCubic(progress);
 
-        // 1. 카메라 위치 보간
+        // 1. 카메라 위치 역순 보간 (Lerp)
         camera.position.lerpVectors(startPos, endPos, ease);
         camera.lookAt(currentTarget);
 
-        // 2. 프러스텀(화면 배율) 보간
+        // 2. 화면 화각(Frustum/Zoom) 역순 보간
         camera.left = THREE.MathUtils.lerp(startLeft, endLeft, ease);
         camera.right = THREE.MathUtils.lerp(startRight, endRight, ease);
         camera.top = THREE.MathUtils.lerp(startTop, endTop, ease);
@@ -1785,16 +1795,16 @@
         if (progress < 1.0) {
           requestAnimationFrame(step);
         } else {
-          // ⬇️ [완료 시점] 애니메이션이 완전히 끝난 후 컨트롤 복원 및 모드별 권한 활성화
+          // 애니메이션 도착 완료 후 컨트롤 활성화
           isCameraTransitioning = false;
-          controls.enabled = true; // 컨트롤 잠금 해제
+          controls.enabled = true;
           controls.target.copy(currentTarget);
 
           if (targetMode === "3D") {
             controls.enableRotate = true; // 3D 회전 허용
             controls.enablePan = true;
             controls.enableZoom = true;
-            controls.minZoom = 0.3; 
+            controls.minZoom = 0.3;
             controls.maxZoom = 4.0;
             // 좌클릭: 이동, 우클릭: 회전
             controls.mouseButtons = {
@@ -1807,10 +1817,10 @@
               TWO: THREE.TOUCH.DOLLY_ROTATE
             };
           } else {
-            controls.enableRotate = false; // 2D 회전 잠금
+            controls.enableRotate = false; // 2D 회전 차단
             controls.enablePan = true;
             controls.enableZoom = true;
-            controls.minZoom = 0.3; 
+            controls.minZoom = 0.3;
             controls.maxZoom = 2.5;
             controls.mouseButtons = {
               LEFT: THREE.MOUSE.PAN,
