@@ -826,6 +826,13 @@
       transform: translateX(-50%) translateY(0);
       opacity: 1;
     }
+    /* 상단 브랜드 로고 이미지 스타일 */
+    .brand-logo-img {
+      height: 28px;
+      width: auto;
+      object-fit: contain;
+      display: block;
+    }
   </style>
 </head>
 <body>
@@ -842,16 +849,9 @@
     <!-- 1. 메인 노선도 화면 -->
     <div id="main-view" class="view">
       <header class="figma-header main-header">
-        <!-- 앱 로고 클릭 시 노선도 홈 복귀 -->
+        <!-- 앱 로고 버튼 (이미지 적용) -->
         <button class="header-logo-group" onclick="exitIndoorView()" title="노선도 홈으로 이동">
-          <div class="brand-title">
-            <span class="brand-icon-box">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1e293b" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
-                <path d="m2 9 10-5 10 5-10 5Z"/><path d="m2 13 10 5 10-5"/><path d="m2 17 10 5 10-5"/>
-              </svg>
-            </span>
-            sub note
-          </div>
+          <img src="logo/subnote.png" alt="sub note" class="brand-logo-img">
         </button>
         <nav class="header-nav">
           <button class="nav-btn" id="btn-main-comm" onclick="toggleSubpage('community')">
@@ -918,16 +918,9 @@
     <!-- 2. 실내 지도 화면 -->
     <div id="indoor-view" class="view hidden">
       <header class="figma-header">
-        <!-- 실내 지도 상단 로고 클릭 시에도 노선도 복귀 -->
+        <!-- 실내 지도 상단 로고 버튼 (이미지 적용) -->
         <button class="header-logo-group" onclick="exitIndoorView()" title="노선도 홈으로 이동">
-          <div class="brand-title">
-            <span class="brand-icon-box">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1e293b" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
-                <path d="m2 9 10-5 10 5-10 5Z"/><path d="m2 13 10 5 10-5"/><path d="m2 17 10 5 10-5"/>
-              </svg>
-            </span>
-            sub note
-          </div>
+          <img src="logo/subnote.png" alt="sub note" class="brand-logo-img">
         </button>
         <nav class="header-nav">
           <button class="nav-btn" id="btn-nav-comm" onclick="toggleSubpage('community')">
