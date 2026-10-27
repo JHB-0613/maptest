@@ -2314,38 +2314,44 @@
     function create3DIsometricPin(pinData) {
       const glbPath = PIN_3D_MODEL_MAP[pinData.category];
 
-      // 쓰레기통 등 GLB 3D 모델이 지정된 카테고리인 경우
+      // GLB 3D 모델이 지정된 카테고리인 경우 (쓰레기통, 엘리베이터 등)
       if (glbPath) {
         const group = new THREE.Group();
         group.userData = { pinData: pinData, is2DPin: false };
         group.renderOrder = 30;
 
-        function alignModelToGround(model) {
+        function attachModel(model) {
           const clone = model.clone(true);
           
-          // ⬇️ [크기 제한 해제] 임의 스케일 조절을 없애고 모델링 원본 크기(1, 1, 1) 그대로 적용
-          clone.scale.set(1, 1, 1);
-
-          // 모델 자체의 바닥면을 원점(Y=0)에 맞추어 지면 뚫림 방지
+          // 바운딩 박스를 계산하여 모델 크기 및 높이 안전 보정
           const box = new THREE.Box3().setFromObject(clone);
-          const bottomY = box.min.y;
-          clone.position.y -= bottomY;
-          clone.position.y += 0.2; // 바닥 슬래브 깜빡임 방지 미세 오프셋
+          const size = box.getSize(new THREE.Vector3());
+          
+          // 모델링 크기가 비정상적으로 작거나 클 경우 적정 기본 크기(높이 약 4~5 단위)로 자동 보정
+          if (size.y > 0 && (size.y < 0.5 || size.y > 20)) {
+            const fitScale = 4.2 / size.y;
+            clone.scale.set(fitScale, fitScale, fitScale);
+          }
+
+          // 바닥면이 정확히 지표면(Y=0)에 오도록 바닥 오프셋 정렬
+          const updatedBox = new THREE.Box3().setFromObject(clone);
+          clone.position.y -= updatedBox.min.y;
+          clone.position.y += 0.25; // 슬래브 깜빡임 방지 미세 띄움
 
           group.add(clone);
-          if (renderer && scene && camera) renderer.render(scene, camera);
+          if (renderer && scene && camera) {
+            renderer.render(scene, camera);
+          }
         }
 
         if (pin3DModelCache[glbPath]) {
-          alignModelToGround(pin3DModelCache[glbPath]);
+          attachModel(pin3DModelCache[glbPath]);
         } else {
           const gltfLoader = new THREE.GLTFLoader();
           gltfLoader.load(
             glbPath,
             (gltf) => {
               const model = gltf.scene;
-
-              // 그림자 및 렌더 순서 설정
               model.traverse((child) => {
                 if (child.isMesh) {
                   child.castShadow = true;
@@ -2355,11 +2361,14 @@
               });
 
               pin3DModelCache[glbPath] = model;
-              alignModelToGround(model);
+              attachModel(model);
             },
             undefined,
             (err) => {
               console.warn(`[${glbPath}] 로드 실패:`, err);
+              // 로드 실패 시 보이지 않는 문제를 방지하기 위해 대체 지오메트리 핀 자동 렌더링
+              group.add(createFallbackGeometryPin(pinData));
+              if (renderer && scene && camera) renderer.render(scene, camera);
             }
           );
         }
@@ -2367,7 +2376,12 @@
         return group;
       }
 
-      // 그 외 일반 카테고리 지오메트리 메쉬 핀 유지
+      // 그 외 카테고리는 기본 지오메트리 메쉬 핀
+      return createFallbackGeometryPin(pinData);
+    }
+
+    // 기본 지오메트리 핀 렌더 함수 (대체용)
+    function createFallbackGeometryPin(pinData) {
       const group = new THREE.Group();
       const theme = CATEGORY_THEMES[pinData.category] || CATEGORY_THEMES['기타'];
       const colorHex = theme.color;
