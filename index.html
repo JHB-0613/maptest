@@ -1723,44 +1723,58 @@
       renderer.render(scene, camera);
     }
 
-    // 2D ↔ 3D 시점 완벽 대칭/역순 활공 애니메이션
-    function transitionCamera(targetMode, duration = 650) {
+    // 구면 좌표계(Spherical Arc) 기반 부드러운 2D ↔ 3D 시점 전환
+    function transitionCamera(targetMode, duration = 750) {
       if (!camera || !controls || !renderer || isCameraTransitioning) return;
       isCameraTransitioning = true;
 
-      // 1. 애니메이션 도중 OrbitControls의 카메라 위치 덮어쓰기 방지
+      // 애니메이션 진행 동안 조작 잠금
       controls.enabled = false;
 
-      // 현재 사용자가 주시하고 있던 타깃 지점 유지
       const currentTarget = controls.target.clone();
-      const startPos = camera.position.clone();
-      const startLeft = camera.left, startRight = camera.right, startTop = camera.top, startBottom = camera.bottom;
-
       const rect = threeContainer.getBoundingClientRect();
       const aspect = (rect.width || 412) / (rect.height || 800);
 
-      let endPos = new THREE.Vector3();
-      let endLeft, endRight, endTop, endBottom;
-
-      // 3D 뷰 규격 상수 (양방향 동일 적용)
-      const dist = 65;
+      // 모드별 목표 프러스텀 및 구면 각도 설정
+      // 2D: 수직 상공 (phi: 0.001 rad, Y축 바로 위)
+      // 3D: 사선 각도 (phi: 1.05 rad 약 60도, theta: 0.8 rad)
+      const dist3D = 75;
       const targetHeight3D = 80;
       const targetWidth3D = targetHeight3D * aspect;
 
-      // 2D 뷰 규격 상수 (양방향 동일 적용)
+      const dist2D = 220;
       const targetWidth2D = 54;
       const targetHeight2D = targetWidth2D / aspect;
 
+      const startLeft = camera.left;
+      const startRight = camera.right;
+      const startTop = camera.top;
+      const startBottom = camera.bottom;
+
+      let endLeft, endRight, endTop, endBottom;
+
+      // 시작 시점의 구면 좌표 계산
+      const offset = new THREE.Vector3().subVectors(camera.position, currentTarget);
+      const startRadius = offset.length();
+      const startSpherical = new THREE.Spherical().setFromVector3(offset);
+
+      // 목표 구면 좌표 설정
+      const endSpherical = new THREE.Spherical();
+
       if (targetMode === "3D") {
-        // [2D -> 3D]: 3D에서 2D로 오던 궤적을 정확히 역재생하여 사선으로 눕힘
-        endPos.set(currentTarget.x + dist * 0.8, currentTarget.y + dist * 1.1, currentTarget.z + dist * 0.9);
+        endSpherical.radius = dist3D;
+        endSpherical.phi = 0.98; // 사선으로 눕는 각도 (~56도)
+        endSpherical.theta = 0.78; // 쿼터뷰 수평 회전 각도 (~45도)
+
         endLeft = -targetWidth3D / 2;
         endRight = targetWidth3D / 2;
         endTop = targetHeight3D / 2;
         endBottom = -targetHeight3D / 2;
       } else {
-        // [3D -> 2D]: 3D 상태에서 정수직 상공으로 똑바로 일어섬
-        endPos.set(currentTarget.x, currentTarget.y + 220, currentTarget.z + 0.1);
+        endSpherical.radius = dist2D;
+        endSpherical.phi = 0.001; // 수직 탑뷰 (짐벌락 방지 미세값)
+        endSpherical.theta = 0.0;
+
         endLeft = -targetWidth2D / 2;
         endRight = targetWidth2D / 2;
         endTop = targetHeight2D / 2;
@@ -1769,21 +1783,26 @@
 
       const startTime = performance.now();
 
-      // 양방향 역순 감각을 살려주는 부드러운 대칭 곡선 (Ease-In-Out Cubic)
-      function easeInOutCubic(t) {
-        return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+      // 끊김 없는 실키한 감속 곡선 (Quintic Ease-Out)
+      function easeOutQuint(t) {
+        return 1 - Math.pow(1 - t, 5);
       }
 
       function step(now) {
         const elapsed = now - startTime;
         const progress = Math.min(elapsed / duration, 1.0);
-        const ease = easeInOutCubic(progress);
+        const ease = easeOutQuint(progress);
 
-        // 1. 카메라 위치 역순 보간 (Lerp)
-        camera.position.lerpVectors(startPos, endPos, ease);
+        // 1. 구면 좌표계(반지름, 고도각 phi, 회전각 theta) 곡선 보간
+        const curRadius = THREE.MathUtils.lerp(startRadius, endSpherical.radius, ease);
+        const curPhi = THREE.MathUtils.lerp(startSpherical.phi, endSpherical.phi, ease);
+        const curTheta = THREE.MathUtils.lerp(startSpherical.theta, endSpherical.theta, ease);
+
+        const currentOffset = new THREE.Vector3().setFromSphericalCoords(curRadius, curPhi, curTheta);
+        camera.position.copy(currentTarget).add(currentOffset);
         camera.lookAt(currentTarget);
 
-        // 2. 화면 화각(Frustum/Zoom) 역순 보간
+        // 2. 화각(프러스텀) 보간
         camera.left = THREE.MathUtils.lerp(startLeft, endLeft, ease);
         camera.right = THREE.MathUtils.lerp(startRight, endRight, ease);
         camera.top = THREE.MathUtils.lerp(startTop, endTop, ease);
@@ -1795,18 +1814,15 @@
         if (progress < 1.0) {
           requestAnimationFrame(step);
         } else {
-          // 애니메이션 도착 완료 후 컨트롤 활성화
+          // 전환 완료 시점: 컨트롤 인계
           isCameraTransitioning = false;
           controls.enabled = true;
           controls.target.copy(currentTarget);
 
           if (targetMode === "3D") {
-            controls.enableRotate = true; // 3D 회전 허용
-            controls.enablePan = true;
-            controls.enableZoom = true;
+            controls.enableRotate = true;
             controls.minZoom = 0.3;
             controls.maxZoom = 4.0;
-            // 좌클릭: 이동, 우클릭: 회전
             controls.mouseButtons = {
               LEFT: THREE.MOUSE.PAN,
               MIDDLE: THREE.MOUSE.DOLLY,
@@ -1817,9 +1833,7 @@
               TWO: THREE.TOUCH.DOLLY_ROTATE
             };
           } else {
-            controls.enableRotate = false; // 2D 회전 차단
-            controls.enablePan = true;
-            controls.enableZoom = true;
+            controls.enableRotate = false;
             controls.minZoom = 0.3;
             controls.maxZoom = 2.5;
             controls.mouseButtons = {
@@ -1832,10 +1846,12 @@
               TWO: THREE.TOUCH.DOLLY_PAN
             };
           }
+
           controls.update();
           renderer.render(scene, camera);
         }
       }
+
       requestAnimationFrame(step);
     }
 
