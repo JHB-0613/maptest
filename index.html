@@ -66,8 +66,12 @@
       }
     }
 
-    /* 상단 상태표시줄 */
+    /* 상단 상태표시줄 (실내 지도 및 모든 화면 최상단 고정) */
     .status-bar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
       height: 44px;
       display: flex;
       justify-content: space-between;
@@ -75,7 +79,7 @@
       padding: 0 24px;
       font-size: 13px;
       font-weight: 700;
-      z-index: 120;
+      z-index: 250; /* ⬅️ 120에서 250으로 올려 실내 지도(150) 위로 항상 표시 */
       pointer-events: none;
       color: #374151;
     }
@@ -1032,7 +1036,7 @@
 
     <div class="subpage-overlay" id="subpage-memo">
       <div style="margin-bottom:18px;">
-        <span style="font-size:12px; color:#367b67; font-weight:700; cursor:pointer;" onclick="toggleSubpage(null)">← 노선도로 돌아가기</span>
+        <span style="font-size:12px; color:#367b67; font-weight:700; cursor:pointer;" onclick="toggleSubpage(null)">← 이전으로 돌아가기</span>
         <h2 style="font-size:24px; font-weight:800; color:#0f172a; margin-top:14px;">나의 메모</h2>
         <p style="font-size:12px; color:#64748b; margin-top:4px;">나만의 지하 탐험을 기록하는 공간입니다.</p>
       </div>
@@ -1041,7 +1045,7 @@
 
     <div class="subpage-overlay" id="subpage-mypage">
       <div style="margin-bottom:18px;">
-        <span style="font-size:12px; color:#367b67; font-weight:700; cursor:pointer;" onclick="toggleSubpage(null)">← 노선도로 돌아가기</span>
+        <span style="font-size:12px; color:#367b67; font-weight:700; cursor:pointer;" onclick="toggleSubpage(null)">← 이전으로 돌아가기</span>
         <h2 style="font-size:24px; font-weight:800; color:#0f172a; margin-top:14px;">마이페이지</h2>
         <p style="font-size:12px; color:#64748b; margin-top:4px;">나만의 지하 탐험을 기록하는 공간입니다.</p>
       </div>
@@ -1716,11 +1720,12 @@
     let isCameraTransitioning = false;
     let isClamping = false;
 
+    // models/gangnam 폴더 내부 GLB 모델 경로 매핑
     const FLOOR_MODEL_MAP = {
-      "B1": "gangnam_B1.glb",
-      "B2": "gangnam_B2.glb",
-      "B3": "gangnam_B3.glb",
-      "B4": "gangnam_B4.glb"
+      "B1": "models/gangnam/gangnam_B1.glb",
+      "B2": "models/gangnam/gangnam_B2.glb",
+      "B3": "models/gangnam/gangnam_B3.glb",
+      "B4": "models/gangnam/gangnam_B4.glb"
     };
 
     function setIndoorMode(mode) {
@@ -2098,7 +2103,7 @@
         loadedStationModel = null;
       }
 
-      const fileName = FLOOR_MODEL_MAP[floor] || "gangnam_B1.glb";
+      const fileName = FLOOR_MODEL_MAP[floor] || "models/gangnam/gangnam_B1.glb";
       const gltfLoader = new THREE.GLTFLoader();
 
       loadingIndicator.style.display = "block";
@@ -2139,6 +2144,7 @@
         (err) => {
           loadingIndicator.style.display = "none";
           console.warn(`[${floor}] 모델 로드 실패 (${fileName}):`, err);
+          showToast(`[${floor}] 3D 모델을 불러오지 못했습니다.`);
         }
       );
     }
@@ -2205,223 +2211,35 @@
       update2DPinsScaling();
     }
 
-    /* 시안 이미지 1:1 맞춤형 2D Pins 캔버스 텍스처 (상단 수평 방패 형태) */
-    function draw2DPinCanvas(theme) {
-      const c = document.createElement("canvas");
-      c.width = 160;
-      c.height = 190;
-      const ctx = c.getContext("2d");
+    // Pins 폴더 내부 파일 경로 매핑
+    const PIN_2D_IMAGE_MAP = {
+      '화장실': 'Pins/Restroom.png',
+      '충전소': 'Pins/Charging.png',
+      '엘리베이터': 'Pins/Elevator.png',
+      '편의점': 'Pins/Store.png',
+      '휴식': 'Pins/RestArea.png',
+      '쓰레기통': 'Pins/Trash.png',
+      '기타': 'Pins/Restroom.png'
+    };
 
-      // 둥근 사각 방패 + 하단 포인터 실루엣
-      ctx.beginPath();
-      ctx.moveTo(35, 20);
-      ctx.lineTo(125, 20);
-      ctx.quadraticCurveTo(145, 20, 145, 40);
-      ctx.lineTo(145, 120);
-      ctx.quadraticCurveTo(145, 140, 125, 140);
-      ctx.lineTo(95, 140);
-      ctx.lineTo(80, 175);
-      ctx.lineTo(65, 140);
-      ctx.lineTo(35, 140);
-      ctx.quadraticCurveTo(15, 140, 15, 120);
-      ctx.lineTo(15, 40);
-      ctx.quadraticCurveTo(15, 20, 35, 20);
-      ctx.closePath();
+    const textureLoader = new THREE.TextureLoader();
+    const pinTextureCache = {};
 
-      // 외부 은은한 그림자
-      ctx.shadowColor = "rgba(0,0,0,0.18)";
-      ctx.shadowBlur = 10;
-      ctx.shadowOffsetY = 4;
-
-      // 몸체 채우기
-      ctx.fillStyle = theme.light;
-      ctx.fill();
-
-      // 외곽선 테두리
-      ctx.shadowColor = "transparent";
-      ctx.strokeStyle = theme.color;
-      ctx.lineWidth = 10;
-      ctx.stroke();
-
-      // 내부 선화 아이콘 그리기 (흰색 라인아트)
-      drawPinIconArt(ctx, theme.iconType, 80, 80, 52, "#ffffff", 6);
-
-      return c;
-    }
-
-    /* 시안 이미지 1:1 맞춤형 3D Pins 캔버스 텍스처 (사선 입체 마름모 타일) */
-    function draw3DPinCanvas(theme) {
-      const c = document.createElement("canvas");
-      c.width = 180;
-      c.height = 180;
-      const ctx = c.getContext("2d");
-
-      // 하단 바닥 그림자
-      ctx.beginPath();
-      ctx.ellipse(90, 148, 55, 20, 0, 0, Math.PI * 2);
-      ctx.fillStyle = "rgba(0,0,0,0.2)";
-      ctx.fill();
-
-      // 3D 둥근 마름모 블록 하단 입체면
-      ctx.fillStyle = theme.dark;
-      ctx.beginPath();
-      ctx.moveTo(90, 55);
-      ctx.lineTo(155, 92);
-      ctx.lineTo(155, 108);
-      ctx.lineTo(90, 144);
-      ctx.lineTo(25, 108);
-      ctx.lineTo(25, 92);
-      ctx.closePath();
-      ctx.fill();
-
-      // 3D 둥근 마름모 블록 윗면 (밝은 컬러)
-      ctx.fillStyle = theme.color;
-      ctx.beginPath();
-      ctx.moveTo(90, 50);
-      ctx.lineTo(155, 88);
-      ctx.lineTo(90, 126);
-      ctx.lineTo(25, 88);
-      ctx.closePath();
-      ctx.fill();
-
-      // 윗면 은은한 하이라이트 테두리
-      ctx.strokeStyle = theme.light;
-      ctx.lineWidth = 4;
-      ctx.stroke();
-
-      // 윗면에 아이콘 투영
-      drawPinIconArt(ctx, theme.iconType, 90, 88, 44, "#ffffff", 5);
-
-      return c;
-    }
-
-    /* 시안에 표시된 정밀 벡터 라인아트 렌더링 */
-    function drawPinIconArt(ctx, type, cx, cy, sz, color, lw) {
-      ctx.save();
-      ctx.strokeStyle = color;
-      ctx.fillStyle = color;
-      ctx.lineWidth = lw;
-      ctx.lineCap = "round";
-      ctx.lineJoin = "round";
-
-      if (type === 'toilet') {
-        // 변기 실루엣
-        ctx.beginPath();
-        ctx.rect(cx - 16, cy - 20, 10, 24);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.arc(cx + 4, cy - 2, 12, 0, Math.PI);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(cx + 4, cy + 10);
-        ctx.lineTo(cx + 4, cy + 20);
-        ctx.stroke();
-      } else if (type === 'charger') {
-        // 배터리 & 플러그
-        ctx.beginPath();
-        ctx.strokeRect(cx - 18, cy - 18, 22, 34);
-        ctx.beginPath();
-        ctx.moveTo(cx - 12, cy - 23);
-        ctx.lineTo(cx - 2, cy - 23);
-        ctx.stroke();
-        // 번개 마크
-        ctx.beginPath();
-        ctx.moveTo(cx - 5, cy - 12);
-        ctx.lineTo(cx - 12, cy - 1);
-        ctx.lineTo(cx - 5, cy - 1);
-        ctx.lineTo(cx - 9, cy + 10);
-        ctx.stroke();
-        // 플러그 선
-        ctx.beginPath();
-        ctx.arc(cx + 12, cy + 2, 6, -Math.PI / 2, Math.PI / 2);
-        ctx.stroke();
-      } else if (type === 'elevator') {
-        // 상하 화살표 + 도어
-        ctx.beginPath();
-        ctx.moveTo(cx - 9, cy - 16);
-        ctx.lineTo(cx - 9, cy - 24);
-        ctx.lineTo(cx - 14, cy - 19);
-        ctx.moveTo(cx - 9, cy - 24);
-        ctx.lineTo(cx - 4, cy - 19);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(cx + 9, cy - 24);
-        ctx.lineTo(cx + 9, cy - 16);
-        ctx.lineTo(cx + 4, cy - 21);
-        ctx.moveTo(cx + 9, cy - 16);
-        ctx.lineTo(cx + 14, cy - 21);
-        ctx.stroke();
-        ctx.strokeRect(cx - 16, cy - 10, 32, 30);
-        ctx.beginPath();
-        ctx.moveTo(cx, cy - 10);
-        ctx.lineTo(cx, cy + 20);
-        ctx.stroke();
-      } else if (type === 'store') {
-        // 어닝 상점 & 24 마크
-        ctx.beginPath();
-        ctx.moveTo(cx - 18, cy - 12);
-        ctx.lineTo(cx + 18, cy - 12);
-        ctx.lineTo(cx + 14, cy + 18);
-        ctx.lineTo(cx - 14, cy + 18);
-        ctx.closePath();
-        ctx.stroke();
-        ctx.font = "bold 15px sans-serif";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText("24", cx, cy + 4);
-      } else if (type === 'rest') {
-        // 커피 잔 & 스팀
-        ctx.beginPath();
-        ctx.arc(cx - 2, cy + 2, 14, 0, Math.PI);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(cx - 16, cy + 2);
-        ctx.lineTo(cx + 12, cy + 2);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.arc(cx + 12, cy + 2, 5, -Math.PI / 2, Math.PI / 2);
-        ctx.stroke();
-        // 스팀 선
-        ctx.beginPath();
-        ctx.moveTo(cx - 7, cy - 8);
-        ctx.lineTo(cx - 7, cy - 16);
-        ctx.moveTo(cx + 3, cy - 8);
-        ctx.lineTo(cx + 3, cy - 16);
-        ctx.stroke();
-      } else if (type === 'trash') {
-        // 쓰레기통
-        ctx.beginPath();
-        ctx.moveTo(cx - 16, cy - 14);
-        ctx.lineTo(cx + 16, cy - 14);
-        ctx.stroke();
-        ctx.strokeRect(cx - 13, cy - 10, 26, 28);
-        ctx.beginPath();
-        ctx.moveTo(cx - 5, cy - 6);
-        ctx.lineTo(cx - 5, cy + 14);
-        ctx.moveTo(cx + 5, cy - 6);
-        ctx.lineTo(cx + 5, cy + 14);
-        ctx.stroke();
-      } else {
-        ctx.beginPath();
-        ctx.arc(cx, cy - 4, 10, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(cx, cy + 6);
-        ctx.lineTo(cx, cy + 18);
-        ctx.stroke();
+    function getPinTexture(category) {
+      const fileName = PIN_2D_IMAGE_MAP[category] || 'Pins/Restroom.png';
+      if (!pinTextureCache[fileName]) {
+        pinTextureCache[fileName] = textureLoader.load(fileName);
+        pinTextureCache[fileName].minFilter = THREE.LinearFilter;
       }
-      ctx.restore();
+      return pinTextureCache[fileName];
     }
 
-    // 2D 탑뷰용 핀 생성기 (바닥면 수평 배치)
+    // 2. 2D 모드: 원본 PNG 텍스처를 적용한 탑뷰 바닥면 밀착 핀
     function create2DTopViewPin(pinData) {
-      const theme = CATEGORY_THEMES[pinData.category] || CATEGORY_THEMES['기타'];
-      const canvas = draw2DPinCanvas(theme);
-      const texture = new THREE.CanvasTexture(canvas);
-      texture.minFilter = THREE.LinearFilter;
+      const texture = getPinTexture(pinData.category);
 
-      // 4.2 x 5.0 크기의 평면
-      const geo = new THREE.PlaneGeometry(4.2, 5.0);
+      // 전달해주신 핀의 가로세로 비율(정사각형~약간 세로형)에 맞춘 크기
+      const geo = new THREE.PlaneGeometry(4.8, 4.8);
       const mat = new THREE.MeshBasicMaterial({
         map: texture,
         transparent: true,
@@ -2430,38 +2248,72 @@
       });
       const mesh = new THREE.Mesh(geo, mat);
 
-      // 탑뷰(위에서 볼 때) 바로 보이도록 수평 눕힘
+      // 위에서 내려다보는 탑뷰 시선에 맞게 XZ 바닥면으로 눕힘
       mesh.rotation.x = -Math.PI / 2;
-      mesh.position.y = 0.3; // 바닥 위에 살짝 띄움
+      mesh.position.y = 0.25;
 
       mesh.userData = { pinData: pinData, is2DPin: true };
       mesh.renderOrder = 25;
       return mesh;
     }
 
-    // create3DIsometricPin 함수 내부의 Y 위치 오프셋 조정
+    // 3. 3D 모드: 입체 지오메트리 메쉬 핀 (Sphere 볼 헤드 + Cone 팁 + 쉐도우 링)
     function create3DIsometricPin(pinData) {
+      const group = new THREE.Group();
       const theme = CATEGORY_THEMES[pinData.category] || CATEGORY_THEMES['기타'];
-      const canvas = draw3DPinCanvas(theme);
-      const texture = new THREE.CanvasTexture(canvas);
-      texture.minFilter = THREE.LinearFilter;
+      const colorHex = theme.color;
 
-      const geo = new THREE.PlaneGeometry(5.2, 5.2);
-      const mat = new THREE.MeshBasicMaterial({
-        map: texture,
+      // 바닥 접지 원형 링
+      const ringGeo = new THREE.RingGeometry(0.8, 1.25, 24);
+      const ringMat = new THREE.MeshBasicMaterial({
+        color: new THREE.Color(theme.dark),
         transparent: true,
-        side: THREE.DoubleSide,
-        depthTest: false
+        opacity: 0.35,
+        side: THREE.DoubleSide
       });
-      const mesh = new THREE.Mesh(geo, mat);
+      const ring = new THREE.Mesh(ringGeo, ringMat);
+      ring.rotation.x = -Math.PI / 2;
+      ring.position.y = 0.05;
+      group.add(ring);
 
-      // ⬇️ [수정] 핀 텍스처의 하단 그림자가 정확히 바닥면(Y = 0)에 닿도록 중심점 오프셋 조정
-      mesh.position.y = 2.1; 
-      mesh.rotation.x = -Math.PI / 6;
+      // 하단 뾰족한 입체 콘 (팁)
+      const tipGeo = new THREE.ConeGeometry(1.0, 3.2, 20);
+      const tipMat = new THREE.MeshStandardMaterial({
+        color: new THREE.Color(colorHex),
+        roughness: 0.35,
+        metalness: 0.15
+      });
+      const tip = new THREE.Mesh(tipGeo, tipMat);
+      tip.rotation.x = Math.PI;
+      tip.position.y = 1.6;
+      tip.castShadow = true;
+      group.add(tip);
 
-      mesh.userData = { pinData: pinData, is2DPin: false };
-      mesh.renderOrder = 30;
-      return mesh;
+      // 상단 둥근 입체 구 (헤드)
+      const headGeo = new THREE.SphereGeometry(1.4, 24, 24);
+      const headMat = new THREE.MeshStandardMaterial({
+        color: new THREE.Color(colorHex),
+        roughness: 0.25,
+        metalness: 0.1
+      });
+      const head = new THREE.Mesh(headGeo, headMat);
+      head.position.y = 3.2;
+      head.castShadow = true;
+      group.add(head);
+
+      // 구 중심 내부 화이트 포인트 코어
+      const coreGeo = new THREE.SphereGeometry(0.55, 16, 16);
+      const coreMat = new THREE.MeshStandardMaterial({
+        color: new THREE.Color(0xffffff),
+        roughness: 0.2
+      });
+      const core = new THREE.Mesh(coreGeo, coreMat);
+      core.position.y = 3.2;
+      group.add(core);
+
+      group.userData = { pinData: pinData, is2DPin: false };
+      group.renderOrder = 30;
+      return group;
     }
 
     function focusOnPin(pin) {
