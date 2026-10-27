@@ -2215,6 +2215,14 @@
       '기타': 'Pins/Restroom.png'
     };
 
+    // 3D GLB 핀 모델 매핑 (쓰레기통 우선 적용)
+    const PIN_3D_MODEL_MAP = {
+      '쓰레기통': 'Pins/trashcan_3d.glb'
+    };
+
+    // 로드된 3D 핀 모델 캐시
+    const pin3DModelCache = {};
+
     const textureLoader = new THREE.TextureLoader();
     const pinTextureCache = {};
 
@@ -2250,8 +2258,55 @@
       return mesh;
     }
 
-    // 3. 3D 모드: 입체 지오메트리 메쉬 핀 (Sphere 볼 헤드 + Cone 팁 + 쉐도우 링)
+    // 3. 3D 모드: 쓰레기통은 GLB 모델 적용, 그 외는 입체 지오메트리 핀 적용
     function create3DIsometricPin(pinData) {
+      const glbPath = PIN_3D_MODEL_MAP[pinData.category];
+
+      // 쓰레기통 등 GLB 모델이 지정된 카테고리인 경우
+      if (glbPath) {
+        const group = new THREE.Group();
+        group.userData = { pinData: pinData, is2DPin: false };
+        group.renderOrder = 30;
+
+        // 이미 캐시된 모델이 있는 경우 즉시 복제
+        if (pin3DModelCache[glbPath]) {
+          const modelClone = pin3DModelCache[glbPath].clone(true);
+          group.add(modelClone);
+        } else {
+          // 비동기로 GLB 모델 로드 및 캐싱
+          const gltfLoader = new THREE.GLTFLoader();
+          gltfLoader.load(
+            glbPath,
+            (gltf) => {
+              const model = gltf.scene;
+
+              // 크기 및 섀도우 설정 (필요 시 크기 조절)
+              model.scale.set(3.5, 3.5, 3.5);
+              model.traverse((child) => {
+                if (child.isMesh) {
+                  child.castShadow = true;
+                  child.receiveShadow = true;
+                }
+              });
+
+              // 캐시에 저장
+              pin3DModelCache[glbPath] = model;
+
+              // 현재 핀 그룹에 추가 및 렌더링 갱신
+              group.add(model.clone(true));
+              if (renderer && scene && camera) renderer.render(scene, camera);
+            },
+            undefined,
+            (err) => {
+              console.warn(`[${glbPath}] 로드 실패:`, err);
+            }
+          );
+        }
+
+        return group;
+      }
+
+      // 그 외 카테고리는 기존 입체 지오메트리 메쉬 핀 유지
       const group = new THREE.Group();
       const theme = CATEGORY_THEMES[pinData.category] || CATEGORY_THEMES['기타'];
       const colorHex = theme.color;
