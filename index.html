@@ -1752,8 +1752,11 @@
       "B4": "models/gangnam/gangnam_B4.glb"
     };
 
+    let cameraAnimFrameId = null; // 실행 중인 애니메이션 프레임 추적 변수
+
     function setIndoorMode(mode) {
-      if (currentIndoorMode === mode && isThreeInitialized) return;
+      // 애니메이션 중이라도 목표 모드가 다르면 즉시 가로채서 전환 허용
+      if (currentIndoorMode === mode && !isCameraTransitioning) return;
       currentIndoorMode = mode;
 
       if (!isThreeInitialized) {
@@ -1766,15 +1769,16 @@
         renderer.setSize(rect.width || 412, rect.height || 800);
       }
 
+      // 버튼 UI 상태 즉시 동기화
       if (mode === "2D") {
         btn2D.classList.add("active");
         btn3D.classList.remove("active");
-        transitionCamera("2D", 650);
       } else {
         btn3D.classList.add("active");
         btn2D.classList.remove("active");
-        transitionCamera("3D", 650);
       }
+
+      transitionCamera(mode, 650);
       syncPinsTo3D();
     }
 
@@ -1883,8 +1887,16 @@
       renderer.render(scene, camera);
     }
 
-    function transitionCamera(targetMode, duration = 700) {
-      if (!camera || !controls || !renderer || isCameraTransitioning) return;
+    // 연타/고속 전환 지원 실시간 인터럽트 transitionCamera
+    function transitionCamera(targetMode, duration = 650) {
+      if (!camera || !controls || !renderer) return;
+
+      // 1. 이미 진행 중인 프레임 루프가 있다면 즉시 중단 (연타 대응)
+      if (cameraAnimFrameId !== null) {
+        cancelAnimationFrame(cameraAnimFrameId);
+        cameraAnimFrameId = null;
+      }
+
       isCameraTransitioning = true;
       controls.enabled = false;
 
@@ -1892,6 +1904,7 @@
       const rect = threeContainer.getBoundingClientRect();
       const aspect = (rect.width || 412) / (rect.height || 800);
 
+      // 목표 뷰 규격
       const dist3D = 75;
       const targetHeight3D = 80;
       const targetWidth3D = targetHeight3D * aspect;
@@ -1900,6 +1913,7 @@
       const targetWidth2D = 54;
       const targetHeight2D = targetWidth2D / aspect;
 
+      // 현재 카메라의 실제 프러스텀(화각)을 시작점으로 설정
       const startLeft = camera.left;
       const startRight = camera.right;
       const startTop = camera.top;
@@ -1907,15 +1921,18 @@
 
       let endLeft, endRight, endTop, endBottom;
 
-      const offset = new THREE.Vector3().subVectors(camera.position, currentTarget);
-      const startRadius = offset.length();
-      const startSpherical = new THREE.Spherical().setFromVector3(offset);
+      // 현재 카메라의 위치에서 타깃을 뺀 실제 실시간 구면 좌표 계산
+      const currentOffset = new THREE.Vector3().subVectors(camera.position, currentTarget);
+      const startRadius = currentOffset.length();
+      const startSpherical = new THREE.Spherical().setFromVector3(currentOffset);
+
+      // 목표 구면 좌표 설정
       const endSpherical = new THREE.Spherical();
 
       if (targetMode === "3D") {
         endSpherical.radius = dist3D;
-        endSpherical.phi = 0.98;
-        endSpherical.theta = 0.78;
+        endSpherical.phi = 0.98; // 사선 쿼터뷰 각도 (~56도)
+        endSpherical.theta = 0.78; // 수평 쿼터 회전
 
         endLeft = -targetWidth3D / 2;
         endRight = targetWidth3D / 2;
@@ -1923,7 +1940,7 @@
         endBottom = -targetHeight3D / 2;
       } else {
         endSpherical.radius = dist2D;
-        endSpherical.phi = 0.001;
+        endSpherical.phi = 0.001; // 정수직 탑뷰 (Gimbal Lock 방지 미세값)
         endSpherical.theta = 0.0;
 
         endLeft = -targetWidth2D / 2;
@@ -1940,12 +1957,13 @@
         const progress = Math.min(elapsed / duration, 1.0);
         const ease = easeOutQuint(progress);
 
+        // 구면 좌표계(각도/거리)와 프러스텀 실시간 보간
         const curRadius = THREE.MathUtils.lerp(startRadius, endSpherical.radius, ease);
         const curPhi = THREE.MathUtils.lerp(startSpherical.phi, endSpherical.phi, ease);
         const curTheta = THREE.MathUtils.lerp(startSpherical.theta, endSpherical.theta, ease);
 
-        const currentOffset = new THREE.Vector3().setFromSphericalCoords(curRadius, curPhi, curTheta);
-        camera.position.copy(currentTarget).add(currentOffset);
+        const newOffset = new THREE.Vector3().setFromSphericalCoords(curRadius, curPhi, curTheta);
+        camera.position.copy(currentTarget).add(newOffset);
         camera.lookAt(currentTarget);
 
         camera.left = THREE.MathUtils.lerp(startLeft, endLeft, ease);
@@ -1958,8 +1976,9 @@
         renderer.render(scene, camera);
 
         if (progress < 1.0) {
-          requestAnimationFrame(step);
+          cameraAnimFrameId = requestAnimationFrame(step);
         } else {
+          cameraAnimFrameId = null;
           isCameraTransitioning = false;
           controls.enabled = true;
           controls.target.copy(currentTarget);
@@ -1997,7 +2016,8 @@
           renderer.render(scene, camera);
         }
       }
-      requestAnimationFrame(step);
+
+      cameraAnimFrameId = requestAnimationFrame(step);
     }
 
     function clampTopDownPan() {
