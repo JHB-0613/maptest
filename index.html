@@ -2088,14 +2088,19 @@
         update2DPinsScaling();
       });
 
-      const ambientLight = new THREE.AmbientLight(0xffffff, 1.25);
+      // 렌더러 색상 감마/색공간 보정 추가
+      renderer.outputEncoding = THREE.sRGBEncoding;
+
+      // 조명 균형 조절 (빛으로 인한 색 왜곡 최소화)
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.85); // 자연스러운 밝기로 조정
       scene.add(ambientLight);
 
-      const dirLight1 = new THREE.DirectionalLight(0xffffff, 0.9);
+      const dirLight1 = new THREE.DirectionalLight(0xffffff, 0.8);
       dirLight1.position.set(40, 150, 80);
       scene.add(dirLight1);
 
-      const dirLight2 = new THREE.DirectionalLight(0xc6e8dc, 0.4);
+      // 민트색 보조광 대신 순수 화이트 보조광으로 변경 (색 간섭 방지)
+      const dirLight2 = new THREE.DirectionalLight(0xffffff, 0.3);
       dirLight2.position.set(-60, 100, -20);
       scene.add(dirLight2);
 
