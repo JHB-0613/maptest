@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>서울 지하철 스마트 실내 네비게이션 & 강남역 3D (Figma Edition)</title>
+  <title>sub note - 서울 지하철 실내 내비게이션 & 3D 맵</title>
   <!-- Three.js CDN -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
@@ -13,13 +13,13 @@
   <style>
     :root {
       --bg-main: #f7f8fa;
-      --card-bg: rgba(255, 255, 255, 0.95);
+      --card-bg: rgba(255, 255, 255, 0.96);
       --primary-mint: #c6e8dc;
       --primary-dark: #367b67;
-      --accent-green: #66b69d;
-      --text-main: #29373d;
+      --accent-mint-bg: #e4f6ef;
+      --text-main: #1f2937;
       --text-sub: #808691;
-      --border-color: #e4e8eb;
+      --border-color: #e5e8eb;
       --border-light: #edf0f2;
     }
 
@@ -107,6 +107,76 @@
       visibility: hidden;
     }
 
+    /* 공통 상단 네비게이션 헤더 */
+    .figma-header {
+      padding: 44px 18px 12px 18px;
+      background: #ffffff;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 60;
+    }
+
+    .header-logo-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .brand-title {
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: -0.5px;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      color: #1e293b;
+    }
+
+    .brand-icon-box {
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .header-nav {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .nav-btn {
+      padding: 6px 11px;
+      border-radius: 12px;
+      background: #9094a6;
+      color: #ffffff;
+      font-size: 11px;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: background-color 0.2s;
+    }
+    .nav-btn.active { background: #686d82; }
+
+    .nav-user-circle {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: #eeedf6;
+      color: #8c8da6;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
     /* ========================================================
        1. 메인 노선도 화면
     ======================================================== */
@@ -166,24 +236,41 @@
       z-index: 90;
     }
 
+    /* 노선도 툴팁 뱃지 */
+    .map-notice-badge {
+      position: absolute;
+      top: 104px;
+      left: 18px;
+      background: rgba(255, 255, 255, 0.92);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      padding: 6px 14px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #64748b;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      z-index: 60;
+      pointer-events: none;
+    }
+
     .zoom-controls {
       position: absolute;
       right: 18px;
       top: 104px;
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 6px;
       z-index: 60;
     }
 
     .btn-zoom {
-      width: 40px;
-      height: 40px;
+      width: 36px;
+      height: 36px;
       background: #ffffff;
       border: 1px solid var(--border-color);
-      border-radius: 14px;
+      border-radius: 12px;
       color: #4b5563;
-      font-size: 20px;
+      font-size: 18px;
       font-weight: 700;
       display: flex;
       align-items: center;
@@ -191,8 +278,8 @@
       cursor: pointer;
       box-shadow: 0 4px 12px rgba(0,0,0,0.06);
     }
-    .btn-zoom:hover { background: #f3f4f6; }
 
+    /* 역 선택 팝업 카드 */
     .station-popup-card {
       position: absolute;
       bottom: calc(86px + env(safe-area-inset-bottom, 0px));
@@ -200,11 +287,11 @@
       right: 16px;
       background: #ffffff;
       border: 1px solid var(--border-color);
-      border-radius: 24px;
-      padding: 18px 20px;
-      z-index: 50;
+      border-radius: 28px;
+      padding: 22px 22px 20px 22px;
+      z-index: 95;
       display: none;
-      box-shadow: 0 16px 36px rgba(0,0,0,0.12);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.12);
       animation: slideUp 0.3s ease;
     }
 
@@ -217,19 +304,26 @@
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
-      margin-bottom: 14px;
+      margin-bottom: 10px;
     }
 
     .station-title-box {
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 3px;
     }
 
     .station-title {
-      font-size: 21px;
+      font-size: 22px;
       font-weight: 800;
-      color: #1f2937;
+      color: #0f172a;
+    }
+
+    .station-subname {
+      font-size: 11px;
+      color: #94a3b8;
+      font-weight: 600;
+      margin-bottom: 6px;
     }
 
     .badge-wrap {
@@ -242,28 +336,28 @@
       font-size: 11px;
       font-weight: 700;
       padding: 2px 8px;
-      border-radius: 8px;
+      border-radius: 10px;
       color: #ffffff;
       line-height: 1.4;
       display: inline-block;
     }
 
-    .badge-line-1 { background-color: #0052a4; }
-    .badge-line-2 { background-color: #00a84d; }
-    .badge-line-3 { background-color: #ef7c1c; }
-    .badge-line-4 { background-color: #00a5de; }
-    .badge-line-5 { background-color: #996cac; }
+    .badge-line-1 { background-color: #246a96; }
+    .badge-line-2 { background-color: #25a45c; }
+    .badge-line-3 { background-color: #ec8542; }
+    .badge-line-4 { background-color: #37a9cb; }
+    .badge-line-5 { background-color: #9972b9; }
     .badge-line-6 { background-color: #cd7c2f; }
-    .badge-line-7 { background-color: #747f00; }
-    .badge-line-8 { background-color: #e6186c; }
-    .badge-line-9 { background-color: #bb8336; }
-    .badge-shin { background-color: #d4003b; }
-    .badge-default { background-color: #6b7280; }
+    .badge-line-7 { background-color: #828847; }
+    .badge-line-8 { background-color: #d45393; }
+    .badge-line-9 { background-color: #aca58c; }
+    .badge-shin { background-color: #c84166; }
+    .badge-default { background-color: #64748b; }
 
     .btn-close-card {
-      background: #f3f4f6;
+      background: #f1f5f9;
       border: none;
-      color: #6b7280;
+      color: #64748b;
       width: 28px;
       height: 28px;
       border-radius: 50%;
@@ -274,13 +368,20 @@
       font-size: 14px;
     }
 
+    .station-card-desc {
+      font-size: 12px;
+      color: #64748b;
+      margin-top: 8px;
+      margin-bottom: 16px;
+      line-height: 1.4;
+    }
+
+    /* 활성/비활성 버튼 디자인 분기 */
     .btn-detail {
       width: 100%;
-      background: #c6e8dc;
-      color: #367b67;
       border: none;
-      padding: 13px;
-      border-radius: 14px;
+      padding: 14px;
+      border-radius: 18px;
       font-size: 14px;
       font-weight: 800;
       cursor: pointer;
@@ -288,7 +389,21 @@
       align-items: center;
       justify-content: center;
       gap: 6px;
+      transition: all 0.2s;
+    }
+
+    .btn-detail.active-btn {
+      background: #bfe7da;
+      color: #367b67;
       box-shadow: 0 4px 14px rgba(102, 182, 157, 0.25);
+    }
+    .btn-detail.active-btn:hover { background: #b0dfd0; }
+
+    .btn-detail.disabled-btn {
+      background: #edf0f2;
+      color: #94a3b8;
+      cursor: not-allowed;
+      box-shadow: none;
     }
 
     .bottom-search-wrapper {
@@ -296,13 +411,13 @@
       bottom: calc(18px + env(safe-area-inset-bottom, 0px));
       left: 16px;
       right: 16px;
-      height: 54px;
+      height: 52px;
       background: #ffffff;
       border: 1px solid var(--border-color);
-      border-radius: 27px;
+      border-radius: 26px;
       display: flex;
       align-items: center;
-      padding: 0 12px 0 18px;
+      padding: 0 14px 0 18px;
       z-index: 100;
       box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
     }
@@ -312,7 +427,7 @@
       background: transparent;
       border: none;
       color: #1f2937;
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 600;
       outline: none;
       user-select: text;
@@ -361,85 +476,24 @@
       height: 100%;
     }
 
-    .figma-header {
-      padding: 44px 16px 10px 16px;
-      background: #ffffff;
-      border-bottom: 1px solid var(--border-color);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      z-index: 60;
-    }
-
-    .header-logo-group {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .btn-header-back {
-      width: 34px;
-      height: 34px;
-      border-radius: 10px;
+    /* 피그마 3, 4, 6번 스타일 노선도 복귀 버튼 */
+    .btn-indoor-back {
+      position: absolute;
+      top: 100px;
+      left: 14px;
+      background: rgba(255, 255, 255, 0.95);
       border: 1px solid var(--border-color);
-      background: #ffffff;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 18px;
-      color: #4b5563;
-      cursor: pointer;
-    }
-
-    .brand-title {
-      font-size: 19px;
-      font-weight: 900;
-      letter-spacing: -0.5px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .brand-icon {
-      width: 28px;
-      height: 28px;
-      background: #e4f6ef;
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--primary-dark);
-      font-size: 14px;
-    }
-
-    .header-nav {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-    }
-
-    .nav-btn {
-      padding: 6px 10px;
-      border-radius: 9px;
-      background: #a6a8bf;
-      color: #ffffff;
-      font-size: 11px;
+      border-radius: 20px;
+      padding: 7px 16px;
+      font-size: 12px;
       font-weight: 700;
-      border: none;
+      color: #475569;
       cursor: pointer;
-    }
-    .nav-btn.active { background: #878aa9; }
-
-    .nav-user-circle {
-      width: 30px;
-      height: 30px;
-      border-radius: 50%;
-      background: #eeedf6;
-      color: #9292ae;
+      z-index: 50;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
       display: flex;
       align-items: center;
-      justify-content: center;
-      font-size: 13px;
-      cursor: pointer;
+      gap: 4px;
     }
 
     .indoor-top-controls {
@@ -463,7 +517,7 @@
     }
 
     .toggle-btn {
-      padding: 6px 12px;
+      padding: 6px 14px;
       border: none;
       background: transparent;
       color: #9b9fae;
@@ -484,15 +538,15 @@
       gap: 4px;
       background: #ffffff;
       padding: 4px;
-      border-radius: 16px;
+      border-radius: 18px;
       border: 1px solid var(--border-color);
       box-shadow: 0 4px 12px rgba(0,0,0,0.06);
     }
 
     .floor-btn {
-      width: 42px;
+      width: 44px;
       height: 42px;
-      border-radius: 12px;
+      border-radius: 14px;
       border: none;
       background: transparent;
       color: #9da2ae;
@@ -533,23 +587,24 @@
       border: 1px solid var(--border-color);
     }
 
+    /* Figma Explore 드로어 패널 */
     #explore-panel {
       position: absolute;
       top: 96px;
       bottom: 84px;
       left: 12px;
       width: calc(100% - 24px);
-      max-width: 320px;
+      max-width: 324px;
       background: rgba(255, 255, 255, 0.96);
       backdrop-filter: blur(20px);
       border: 1px solid var(--border-color);
-      border-radius: 24px;
+      border-radius: 28px;
       z-index: 70;
       display: none;
       flex-direction: column;
       overflow-y: auto;
-      padding: 18px;
-      box-shadow: 0 18px 40px rgba(0,0,0,0.12);
+      padding: 20px;
+      box-shadow: 0 20px 45px rgba(0,0,0,0.12);
       animation: slideRight 0.25s ease-out;
     }
 
@@ -562,13 +617,13 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 12px;
+      margin-bottom: 8px;
     }
 
     .category-grid {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 6px;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 7px;
       margin: 12px 0;
     }
 
@@ -578,13 +633,13 @@
       align-items: center;
       justify-content: center;
       gap: 4px;
-      height: 60px;
-      border-radius: 12px;
+      height: 64px;
+      border-radius: 14px;
       border: 1px solid var(--border-light);
       background: #ffffff;
-      font-size: 10px;
+      font-size: 11px;
       font-weight: 700;
-      color: #6b7280;
+      color: #64748b;
       cursor: pointer;
     }
     .cat-item-btn.active {
@@ -603,8 +658,8 @@
     }
 
     .btn-circle-tool {
-      width: 46px;
-      height: 46px;
+      width: 48px;
+      height: 48px;
       border-radius: 50%;
       background: #ffffff;
       border: 1px solid var(--border-color);
@@ -612,7 +667,7 @@
       align-items: center;
       justify-content: center;
       font-size: 18px;
-      color: #808691;
+      color: #64748b;
       box-shadow: 0 6px 16px rgba(0,0,0,0.08);
       cursor: pointer;
     }
@@ -623,7 +678,7 @@
 
     .tools-popover {
       position: absolute;
-      bottom: 56px;
+      bottom: 58px;
       left: 0;
       width: 170px;
       background: #ffffff;
@@ -637,6 +692,7 @@
       z-index: 55;
     }
 
+    /* 우측 하단 확장형 AI 캡슐바 (Figma 6, 7번 스타일) */
     .floating-ai-capsule {
       position: absolute;
       bottom: calc(20px + env(safe-area-inset-bottom, 0px));
@@ -691,8 +747,6 @@
       font-size: 15px;
       font-weight: 900;
       line-height: 1;
-      padding: 0;
-      margin: 0;
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -745,7 +799,7 @@
     .btn-pin-save { background: var(--primary-mint); color: var(--primary-dark); }
     .btn-pin-delete { background: #fee2e2; color: #dc2626; }
 
-    /* 서브 탭 오버레이 z-index 상향 (메인/실내 공통 최상위) */
+    /* 서브페이지 (Figma 8, 9, 10번) */
     .subpage-overlay {
       position: absolute;
       top: 0;
@@ -756,18 +810,17 @@
       z-index: 200;
       display: none;
       flex-direction: column;
-      padding: 54px 20px 20px 20px;
+      padding: 58px 22px 20px 22px;
       overflow-y: auto;
       animation: slideUp 0.25s ease;
     }
 
-    /* 플로팅 토스트 메시지 */
     .toast-msg {
       position: absolute;
       top: 60px;
       left: 50%;
       transform: translateX(-50%) translateY(-20px);
-      background: #29373d;
+      background: #1e293b;
       color: #ffffff;
       font-size: 12px;
       font-weight: 700;
@@ -801,15 +854,30 @@
       <header class="figma-header main-header">
         <div class="header-logo-group">
           <div class="brand-title">
-            <span class="brand-icon">🗺️</span> mapping
+            <span class="brand-icon-box">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#334155" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m2 9 10-5 10 5-10 5Z"/><path d="m2 13 10 5 10-5"/><path d="m2 17 10 5 10-5"/>
+              </svg>
+            </span>
+            sub note
           </div>
         </div>
         <nav class="header-nav">
-          <button class="nav-btn" id="btn-main-comm" onclick="toggleSubpage('community')">커뮤니티</button>
-          <button class="nav-btn" id="btn-main-memo" onclick="toggleSubpage('memo')">MEMO</button>
-          <div class="nav-user-circle" onclick="showToast('마이페이지 기능 준비 중입니다.')">👤</div>
+          <button class="nav-btn" id="btn-main-comm" onclick="toggleSubpage('community')">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            커뮤니티
+          </button>
+          <button class="nav-btn" id="btn-main-memo" onclick="toggleSubpage('memo')">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+            MEMO
+          </button>
+          <div class="nav-user-circle" onclick="toggleSubpage('mypage')">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </div>
         </nav>
       </header>
+
+      <div class="map-notice-badge">표시된 역을 눌러 살펴보세요</div>
 
       <div class="metro-canvas-container" id="metro-container">
         <div id="map-wrapper">
@@ -828,24 +896,28 @@
         <button class="btn-zoom" onclick="zoomManual(-0.25)">−</button>
       </div>
 
+      <!-- 역 선택 팝업 카드 (강남역 외 실내지도 준비중 분기) -->
       <div class="station-popup-card" id="station-card">
         <div class="card-header">
           <div class="station-title-box">
             <span class="station-title" id="card-station-name">강남역</span>
+            <span class="station-subname" id="card-station-eng">Gangnam</span>
             <div class="badge-wrap" id="card-station-badges"></div>
           </div>
           <button class="btn-close-card" onclick="event.stopPropagation(); deselectStation();">✕</button>
         </div>
 
-        <button class="btn-detail" onclick="enterIndoorView()">
-          <span>실내 지도 자세히 보기</span>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        <p class="station-card-desc" id="card-station-desc">층별 지도와 커뮤니티 핀을 확인해 보세요.</p>
+
+        <button class="btn-detail active-btn" id="btn-station-detail" onclick="enterIndoorView()">
+          <span id="btn-detail-text">실내 지도 자세히 보기</span>
+          <span id="btn-detail-arrow">→</span>
         </button>
       </div>
 
       <div class="bottom-search-wrapper">
-        <span style="font-size:16px; margin-right:8px; color:#9ca3af;">🔍</span>
-        <input type="text" id="main-search-box" class="search-input" placeholder="어떤 역을 찾으시나요?" oninput="onMainSearchInput(this.value)">
+        <span style="font-size:15px; margin-right:8px; color:#9ca3af;">🔍</span>
+        <input type="text" id="main-search-box" class="search-input" placeholder="어느 역으로 가시나요?" oninput="onMainSearchInput(this.value)">
         <button id="main-clear-search" style="border:none; background:none; color:#9ca3af; display:none; cursor:pointer;" onclick="clearMainSearch()">✕</button>
         <div class="search-suggestions" id="main-suggestions"></div>
       </div>
@@ -855,17 +927,34 @@
     <div id="indoor-view" class="view hidden">
       <header class="figma-header">
         <div class="header-logo-group">
-          <button class="btn-header-back" onclick="exitIndoorView()">‹</button>
           <div class="brand-title">
-            <span class="brand-icon">🗺️</span> mapping
+            <span class="brand-icon-box">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#334155" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m2 9 10-5 10 5-10 5Z"/><path d="m2 13 10 5 10-5"/><path d="m2 17 10 5 10-5"/>
+              </svg>
+            </span>
+            sub note
           </div>
         </div>
         <nav class="header-nav">
-          <button class="nav-btn" id="btn-nav-comm" onclick="toggleSubpage('community')">커뮤니티</button>
-          <button class="nav-btn" id="btn-nav-memo" onclick="toggleSubpage('memo')">MEMO</button>
-          <div class="nav-user-circle" onclick="showToast('마이페이지 기능 준비 중입니다.')">👤</div>
+          <button class="nav-btn" id="btn-nav-comm" onclick="toggleSubpage('community')">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            커뮤니티
+          </button>
+          <button class="nav-btn" id="btn-nav-memo" onclick="toggleSubpage('memo')">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+            MEMO
+          </button>
+          <div class="nav-user-circle" onclick="toggleSubpage('mypage')">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </div>
         </nav>
       </header>
+
+      <!-- 피그마 시안 스타일 노선도 복귀 버튼 -->
+      <button class="btn-indoor-back" onclick="exitIndoorView()">
+        ‹ 노선도
+      </button>
 
       <div class="indoor-top-controls">
         <div class="toggle-mode">
@@ -878,30 +967,38 @@
       <div id="loading-indicator">3D 모델 로딩 중...</div>
       <div id="three-container"></div>
 
-      <!-- 좌측 EXPLORE 서랍 패널 -->
+      <!-- 좌측 EXPLORE 서랍 패널 (Figma 5번 스타일) -->
       <aside id="explore-panel">
         <div class="explore-header">
-          <div style="font-size:10px; font-weight:800; letter-spacing:1px; color:#9ca3af;">EXPLORE UNDERGROUND</div>
-          <button style="border:none; background:none; font-size:16px; color:#6b7280; cursor:pointer;" onclick="toggleExplorePanel(false)">✕</button>
+          <div style="font-size:10px; font-weight:800; letter-spacing:1px; color:#94a3b8;">EXPLORE UNDERGROUND</div>
+          <button style="border:none; background:none; font-size:18px; color:#64748b; cursor:pointer;" onclick="toggleExplorePanel(false)">✕</button>
         </div>
-        <h2 style="font-size:18px; font-weight:800; color:#1f2937;">어디를 찾으시나요?</h2>
+        <h2 style="font-size:20px; font-weight:800; color:#0f172a; margin-top:4px;">어디로 가볼까요?</h2>
+        <p style="font-size:11px; color:#94a3b8; margin-top:2px;">복잡한 지하에서도, 나만의 길을 찾다.</p>
         
-        <input type="text" id="explore-search-input" class="pin-input" style="margin-top:10px;" placeholder="시설물 및 핑 이름 검색..." oninput="onExploreSearch(this.value)">
+        <input type="text" id="explore-search-input" class="pin-input" style="margin-top:14px;" placeholder="장소 또는 #해시태그 검색" oninput="onExploreSearch(this.value)">
 
-        <div style="margin-top:14px; font-size:11px; font-weight:800; color:#4b5563;">편의 시설 필터</div>
+        <div style="margin-top:16px; font-size:12px; font-weight:800; display:flex; justify-content:space-between; align-items:center;">
+          <span style="color:#1e293b;">주변 시설</span>
+          <span style="font-size:10px; color:#94a3b8; font-weight:600;">필요한 장소를 한눈에</span>
+        </div>
         <div class="category-grid" id="category-filter-grid"></div>
 
-        <div style="margin-top:12px; font-size:12px; font-weight:800; display:flex; justify-content:space-between;">
-          <span>등록된 핀 목록</span>
+        <div style="margin-top:14px; font-size:12px; font-weight:800; display:flex; justify-content:space-between;">
+          <span style="color:#1e293b;">등록된 핀 목록</span>
           <span style="color:var(--primary-dark);" id="explore-pins-count">0</span>
         </div>
         <div id="explore-pins-list" style="margin-top:8px; display:flex; flex-direction:column; gap:6px;"></div>
       </aside>
 
-      <!-- 좌측 하단 플로팅 메뉴 도구 -->
+      <!-- 좌측 하단 플로팅 메뉴 도구 (Figma 6번) -->
       <div class="floating-tools-left">
-        <button class="btn-circle-tool" id="btn-tool-explore" onclick="toggleExplorePanel()">🔍</button>
-        <button class="btn-circle-tool" id="btn-tool-menu" onclick="toggleToolsPopover()">⚙️</button>
+        <button class="btn-circle-tool" id="btn-tool-explore" onclick="toggleExplorePanel()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        </button>
+        <button class="btn-circle-tool" id="btn-tool-menu" onclick="toggleToolsPopover()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+        </button>
 
         <div class="tools-popover" id="tools-popover">
           <button style="border:none; background:none; text-align:left; font-size:12px; font-weight:700; padding:6px; cursor:pointer;" onclick="resetMapView()">🎯 시점 초기화</button>
@@ -913,10 +1010,10 @@
         </div>
       </div>
 
-      <!-- 우측 하단 확장형 AI 캡슐바 -->
+      <!-- 우측 하단 확장형 AI 캡슐바 (Figma 6, 7번) -->
       <div class="floating-ai-capsule" id="ai-capsule">
         <div class="ai-input-wrap">
-          <input type="text" id="ai-query-input" class="ai-input" placeholder="AI에게 역 내 길안내나 편의시설을 물어보세요..." onkeydown="handleAiSubmit(event)">
+          <input type="text" id="ai-query-input" class="ai-input" placeholder="궁금한 점이 있으신가요?" onkeydown="handleAiSubmit(event)">
         </div>
         <button class="btn-ai-toggle" onclick="toggleAiCapsule()">AI</button>
       </div>
@@ -938,29 +1035,40 @@
       </div>
     </div>
 
-    <!-- 3. 공통 커뮤니티 & MEMO 서브페이지 오버레이 -->
+    <!-- 3. 공통 커뮤니티 / MEMO / 마이페이지 서브페이지 (Figma 8, 9, 10번) -->
     <div class="subpage-overlay" id="subpage-community">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
-        <div style="display:flex; align-items:center; gap:8px;">
-          <button class="btn-header-back" onclick="toggleSubpage(null)">‹</button>
-          <h2 style="font-size:20px; font-weight:800;">역사 커뮤니티</h2>
-        </div>
-        <button style="border:none; background:none; font-size:18px; cursor:pointer;" onclick="toggleSubpage(null)">✕</button>
+      <div style="margin-bottom:18px;">
+        <span style="font-size:12px; color:#367b67; font-weight:700; cursor:pointer;" onclick="toggleSubpage(null)">← 노선도로 돌아가기</span>
+        <h2 style="font-size:24px; font-weight:800; color:#0f172a; margin-top:14px;">커뮤니티</h2>
+        <p style="font-size:12px; color:#64748b; margin-top:4px;">지도에서 장소를 발견하고, 나만의 팁을 공유해 보세요.</p>
       </div>
-      <p style="font-size:12px; color:#6b7280; margin-bottom:14px;">이용자분들이 실시간으로 제보한 역 내 팁과 소식입니다.</p>
-      <div id="community-card-list" style="display:flex; flex-direction:column; gap:10px;"></div>
+      <div id="community-card-list" style="display:flex; flex-direction:column; gap:12px;"></div>
     </div>
 
     <div class="subpage-overlay" id="subpage-memo">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
-        <div style="display:flex; align-items:center; gap:8px;">
-          <button class="btn-header-back" onclick="toggleSubpage(null)">‹</button>
-          <h2 style="font-size:20px; font-weight:800;">내 보관 메모</h2>
-        </div>
-        <button style="border:none; background:none; font-size:18px; cursor:pointer;" onclick="toggleSubpage(null)">✕</button>
+      <div style="margin-bottom:18px;">
+        <span style="font-size:12px; color:#367b67; font-weight:700; cursor:pointer;" onclick="toggleSubpage(null)">← 노선도로 돌아가기</span>
+        <h2 style="font-size:24px; font-weight:800; color:#0f172a; margin-top:14px;">나의 메모</h2>
+        <p style="font-size:12px; color:#64748b; margin-top:4px;">나만의 지하 탐험을 기록하는 공간입니다.</p>
       </div>
-      <p style="font-size:12px; color:#6b7280; margin-bottom:14px;">내가 지도에 등록해 둔 핀들의 메모 모음입니다.</p>
-      <div id="memo-card-list" style="display:flex; flex-direction:column; gap:10px;"></div>
+      <div id="memo-card-list" style="display:flex; flex-direction:column; gap:12px;"></div>
+    </div>
+
+    <div class="subpage-overlay" id="subpage-mypage">
+      <div style="margin-bottom:18px;">
+        <span style="font-size:12px; color:#367b67; font-weight:700; cursor:pointer;" onclick="toggleSubpage(null)">← 노선도로 돌아가기</span>
+        <h2 style="font-size:24px; font-weight:800; color:#0f172a; margin-top:14px;">마이페이지</h2>
+        <p style="font-size:12px; color:#64748b; margin-top:4px;">나만의 지하 탐험을 기록하는 공간입니다.</p>
+      </div>
+      <div style="background:#ffffff; border:1px solid #edf0f2; border-radius:20px; padding:18px; margin-top:10px;">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div style="width:44px; height:44px; border-radius:50%; background:#e4f6ef; color:#367b67; display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:800;">탐</div>
+          <div>
+            <b style="font-size:15px; color:#0f172a;">지하철 탐험가</b>
+            <p style="font-size:11px; color:#94a3b8; margin-top:2px;">등록한 핑 3개 · 저장한 메모 2개</p>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1023,14 +1131,15 @@
           return {
             name: pure + "역",
             queryTerm: pure,
+            eng: data.english || pure,
             x: data.x,
             y: data.y,
             lines: data.lines || ["수도권전철"]
           };
         });
 
-        const seoul = STATIONS_LIST.find(s => s.queryTerm === "서울" || s.name === "서울역");
-        if (seoul) panToStation(seoul.x, seoul.y, 1.0);
+        const gangnam = STATIONS_LIST.find(s => s.queryTerm === "강남" || s.name === "강남역");
+        if (gangnam) selectStation(gangnam);
       } catch (err) {
         console.warn("데이터 로드 실패:", err);
       }
@@ -1042,9 +1151,10 @@
       pinGeneral.style.top = `${stationObj.y}px`;
       pinGeneral.style.display = "block";
 
-      panToStation(stationObj.x, stationObj.y, 1.35);
+      panToStation(stationObj.x, stationObj.y, 1.25);
 
       document.getElementById("card-station-name").innerText = stationObj.name;
+      document.getElementById("card-station-eng").innerText = stationObj.eng;
       const badgeContainer = document.getElementById("card-station-badges");
       badgeContainer.innerHTML = "";
 
@@ -1054,6 +1164,29 @@
         span.innerText = formatLineName(line);
         badgeContainer.appendChild(span);
       });
+
+      const btnDetail = document.getElementById("btn-station-detail");
+      const descEl = document.getElementById("card-station-desc");
+      const btnText = document.getElementById("btn-detail-text");
+      const btnArrow = document.getElementById("btn-detail-arrow");
+
+      // 강남역만 3D 실내지도가 존재하므로 상태 분기
+      const isGangnam = stationObj.name.includes("강남");
+      if (isGangnam) {
+        descEl.innerText = "층별 지도와 커뮤니티 핀을 확인해 보세요.";
+        btnText.innerText = "실내 지도 자세히 보기";
+        btnArrow.style.display = "inline";
+        btnDetail.className = "btn-detail active-btn";
+        btnDetail.disabled = false;
+        btnDetail.onclick = enterIndoorView;
+      } else {
+        descEl.innerText = "이 역의 실내 지도는 준비 중입니다.";
+        btnText.innerText = "실내 지도 준비 중";
+        btnArrow.style.display = "none";
+        btnDetail.className = "btn-detail disabled-btn";
+        btnDetail.disabled = true;
+        btnDetail.onclick = null;
+      }
 
       stationCard.style.display = "block";
       mainSearchBox.value = stationObj.name;
@@ -1108,7 +1241,6 @@
       deselectStation();
     }
 
-    // 바깥 영역 클릭 시 자동완성 닫기
     document.addEventListener("click", (e) => {
       if (!e.target.closest(".bottom-search-wrapper")) {
         mainSuggestions.style.display = "none";
@@ -1279,18 +1411,20 @@
     }
 
     /* ========================================================
-       3. Figma 인터페이스 및 정밀 좌표 사상 시스템
+       3. Figma 5번 카테고리 & 실내 핀 테마 시스템
     ======================================================== */
-    const FIGMA_CATEGORIES = ['전체', '물품보관함', '화장실', '충전소', '엘리베이터', '상점', '카페', '쓰레기통'];
-    const CATEGORY_COLORS = {
-      '물품보관함': '#9a8bc4',
-      '화장실': '#66b69d',
-      '충전소': '#7aa7c4',
-      '엘리베이터': '#7e98cb',
-      '상점': '#d4a15f',
-      '카페': '#c38d9e',
-      '쓰레기통': '#9198a7',
-      '기타': '#63b99d'
+    const FIGMA_CATEGORIES = ['전체', '화장실', '충전', '엘리베이터', '편의점', '휴식', '쓰레기통'];
+    
+    // 피그마 시안(3, 4번) 테마 색상 및 엠블럼 매핑
+    const CATEGORY_THEMES = {
+      '전체': { color: '#66b69d', light: '#c0eddb', dark: '#3e876f', icon: 'grid' },
+      '화장실': { color: '#9a8bc4', light: '#d8cdef', dark: '#68598f', icon: 'toilet' },
+      '충전': { color: '#66b69d', light: '#c0eddb', dark: '#3e876f', icon: 'bolt' },
+      '엘리베이터': { color: '#7aa7c4', light: '#c3e2f3', dark: '#48718e', icon: 'lift' },
+      '편의점': { color: '#d4a15f', light: '#f7dfb6', dark: '#a3753c', icon: 'shop' },
+      '휴식': { color: '#c38d9e', light: '#f1d0da', dark: '#8f576b', icon: 'coffee' },
+      '쓰레기통': { color: '#9198a7', light: '#dce0e8', dark: '#566072', icon: 'trash' },
+      '기타': { color: '#63b99d', light: '#c6e8dc', dark: '#367b67', icon: 'pin' }
     };
 
     let activeCategory = '전체';
@@ -1322,9 +1456,11 @@
 
     const STATION_PINS_DB = {
       "강남역": [
-        { id: 1, title: "물품보관함 1구역", category: "물품보관함", desc: "중앙 홀 북측 통로", floor: "B1", realX3d: -15.5, realZ3d: 30.0, x: 180, y: 160 },
-        { id: 2, title: "중앙 화장실", category: "화장실", desc: "중앙 환승 게이트 인근", floor: "B1", realX3d: -14.0, realZ3d: 40.0, x: 140, y: 240 },
-        { id: 3, title: "휴대폰 급속 충전소", category: "충전소", desc: "메인 복도 기둥", floor: "B1", realX3d: -16.0, realZ3d: 55.0, x: 220, y: 210 }
+        { id: 1, title: "중앙 화장실", category: "화장실", desc: "1~2번 출구 중간 B1 개찰구 인근", floor: "B1", realX3d: -14.2, realZ3d: 32.0, x: 140, y: 240 },
+        { id: 2, title: "휴대폰 급속 충전소", category: "충전", desc: "만남의 광장 안내센터 옆 기둥", floor: "B1", realX3d: -15.8, realZ3d: 42.0, x: 220, y: 210 },
+        { id: 3, title: "GS25 편의점", category: "편의점", desc: "지하상가 통로 입구", floor: "B1", realX3d: -14.0, realZ3d: 55.0, x: 180, y: 160 },
+        { id: 4, title: "승강장 엘리베이터", category: "엘리베이터", desc: "B3 승강장 연결 위치입니다.", floor: "B3", realX3d: -15.0, realZ3d: 38.0, x: 160, y: 200 },
+        { id: 5, title: "쉬어가는 벤치", category: "휴식", desc: "잠시 앉아 쉬기 좋은 공간입니다.", floor: "B2", realX3d: -16.0, realZ3d: 45.0, x: 190, y: 230 }
       ]
     };
 
@@ -1362,24 +1498,25 @@
 
     function getCategoryEmoji(cat) {
       switch(cat) {
-        case '물품보관함': return '🗄️';
+        case '전체': return '🗂️';
         case '화장실': return '🚻';
-        case '충전소': return '⚡';
+        case '충전': return '⚡';
         case '엘리베이터': return '🛗';
-        case '상점': return '🛍️';
-        case '카페': return '☕';
+        case '편의점': return '🏪';
+        case '휴식': return '☕';
         case '쓰레기통': return '🗑️';
         default: return '📍';
       }
     }
 
     function enterIndoorView() {
-      if (!currentSelectedStation) return;
+      if (!currentSelectedStation || !currentSelectedStation.name.includes("강남")) {
+        showToast("이 역의 실내 지도는 아직 준비 중입니다.");
+        return;
+      }
 
       floorList.innerHTML = "";
-      const floors = currentSelectedStation.name.includes("강남") 
-        ? ["B1", "B2", "B3", "B4"] 
-        : ["1F", "B1", "B2", "B3"];
+      const floors = ["B1", "B2", "B3"];
       const defaultFloor = "B1";
 
       floors.forEach(floor => {
@@ -1457,13 +1594,13 @@
 
       filtered.forEach(pin => {
         const item = document.createElement("div");
-        item.style.cssText = "padding:9px 12px; background:#f8fafc; border:1px solid #edf0f2; border-radius:12px; display:flex; justify-content:space-between; align-items:center; cursor:pointer;";
+        item.style.cssText = "padding:10px 14px; background:#ffffff; border:1px solid #edf0f2; border-radius:14px; display:flex; justify-content:space-between; align-items:center; cursor:pointer; box-shadow:0 2px 6px rgba(0,0,0,0.02);";
         item.innerHTML = `
           <div>
-            <div style="font-size:12px; font-weight:800; color:#1f2937;">${pin.title}</div>
-            <div style="font-size:10px; color:#808691; margin-top:2px;">#${pin.category} · ${pin.floor}</div>
+            <div style="font-size:12px; font-weight:800; color:#1e293b;">${pin.title}</div>
+            <div style="font-size:10px; color:#808691; margin-top:3px;">#${pin.category} · ${pin.floor}</div>
           </div>
-          <span style="font-size:12px; color:#367b67; font-weight:800;">›</span>
+          <span style="font-size:13px; color:#367b67; font-weight:800;">›</span>
         `;
         item.onclick = () => {
           toggleExplorePanel(false);
@@ -1520,16 +1657,20 @@
       }
     }
 
+    /* 서브페이지 렌더링 및 모달 토글 */
     function toggleSubpage(tab) {
       const commEl = document.getElementById("subpage-community");
       const memoEl = document.getElementById("subpage-memo");
+      const mypageEl = document.getElementById("subpage-mypage");
 
       const isCommOpen = commEl.style.display === "flex";
       const isMemoOpen = memoEl.style.display === "flex";
+      const isMypageOpen = mypageEl.style.display === "flex";
 
-      if ((tab === 'community' && isCommOpen) || (tab === 'memo' && isMemoOpen) || !tab) {
+      if ((tab === 'community' && isCommOpen) || (tab === 'memo' && isMemoOpen) || (tab === 'mypage' && isMypageOpen) || !tab) {
         commEl.style.display = "none";
         memoEl.style.display = "none";
+        mypageEl.style.display = "none";
         document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
         return;
       }
@@ -1542,37 +1683,37 @@
 
       commEl.style.display = tab === 'community' ? "flex" : "none";
       memoEl.style.display = tab === 'memo' ? "flex" : "none";
+      mypageEl.style.display = tab === 'mypage' ? "flex" : "none";
 
       if (tab === 'community') {
         const list = document.getElementById("community-card-list");
-        list.innerHTML = `
-          <div style="background:#fff; border:1px solid #edf0f2; border-radius:16px; padding:14px; box-shadow:0 2px 8px rgba(0,0,0,0.03);">
-            <b style="font-size:13px; color:#1f2937;">💡 2호선 ➔ 신분당선 빠른 환승 팁</b>
-            <p style="font-size:11px; color:#6b7280; margin-top:4px; line-height:1.5;">출퇴근 시간대에는 2호선 4번 칸 계단보다 10번 칸 환승 통로를 이용하시면 훨씬 쾌적합니다.</p>
+        const stName = currentSelectedStation ? currentSelectedStation.name : "강남역";
+        const pins = STATION_PINS_DB[stName] || [];
+        list.innerHTML = pins.map(p => `
+          <div style="background:#ffffff; border:1px solid #edf0f2; border-radius:18px; padding:16px 18px; box-shadow:0 4px 12px rgba(0,0,0,0.02);">
+            <b style="font-size:14px; color:#0f172a;">${p.title}</b>
+            <p style="font-size:12px; color:#64748b; margin-top:4px; line-height:1.4;">${p.desc || '등록된 메모나 팁이 없습니다.'}</p>
+            <div style="font-size:11px; color:#367b67; font-weight:700; margin-top:8px;">#${p.category} · ${p.floor}</div>
           </div>
-          <div style="background:#fff; border:1px solid #edf0f2; border-radius:16px; padding:14px; box-shadow:0 2px 8px rgba(0,0,0,0.03);">
-            <b style="font-size:13px; color:#1f2937;">☕ B1 만남의 광장 카페 리뉴얼</b>
-            <p style="font-size:11px; color:#6b7280; margin-top:4px; line-height:1.5;">키오스크 주문 가능하며 콘센트 좌석 10석이 새로 마련되었습니다.</p>
-          </div>
-        `;
+        `).join('');
       } else if (tab === 'memo') {
         const list = document.getElementById("memo-card-list");
         const stName = currentSelectedStation ? currentSelectedStation.name : "강남역";
         const pins = STATION_PINS_DB[stName] || [];
         list.innerHTML = pins.map(p => `
-          <div style="background:#fff; border:1px solid #edf0f2; border-radius:16px; padding:14px; box-shadow:0 2px 8px rgba(0,0,0,0.03);">
+          <div style="background:#ffffff; border:1px solid #edf0f2; border-radius:18px; padding:16px 18px; box-shadow:0 4px 12px rgba(0,0,0,0.02);">
             <div style="display:flex; justify-content:space-between; align-items:center;">
-              <b style="font-size:13px; color:#1f2937;">${p.title}</b>
-              <span style="font-size:10px; color:#367b67; font-weight:800; background:#e6f5ee; padding:2px 6px; border-radius:6px;">${p.floor}</span>
+              <b style="font-size:14px; color:#0f172a;">${p.title}</b>
+              <span style="font-size:10px; color:#367b67; font-weight:800; background:#e6f5ee; padding:2px 7px; border-radius:6px;">${p.floor}</span>
             </div>
-            <p style="font-size:11px; color:#6b7280; margin-top:4px;">${p.desc || '작성된 메모가 없습니다.'}</p>
+            <p style="font-size:12px; color:#64748b; margin-top:6px; line-height:1.4;">${p.desc || '작성된 메모가 없습니다.'}</p>
           </div>
-        `).join('') || '<div style="font-size:12px; color:#9ca3af; text-align:center; padding:30px 0;">저장된 메모가 없습니다.</div>';
+        `).join('');
       }
     }
 
     /* ========================================================
-       4. Three.js 엔진 (정밀 2D/3D 전환 및 컨트롤 바인딩)
+       4. Three.js 엔진 및 테마별 3D 입체 핀 제작
     ======================================================== */
     const threeContainer = document.getElementById("three-container");
     const btn2D = document.getElementById("btn-2d");
@@ -1589,8 +1730,7 @@
     const FLOOR_MODEL_MAP = {
       "B1": "gangnam_B1.glb",
       "B2": "gangnam_B2.glb",
-      "B3": "gangnam_B3.glb",
-      "B4": "gangnam_B4.glb"
+      "B3": "gangnam_B3.glb"
     };
 
     function setIndoorMode(mode) {
@@ -1723,21 +1863,16 @@
       renderer.render(scene, camera);
     }
 
-    // 구면 좌표계(Spherical Arc) 기반 부드러운 2D ↔ 3D 시점 전환
-    function transitionCamera(targetMode, duration = 750) {
+    /* 구면 좌표계 기반 부드러운 대칭 활공 애니메이션 */
+    function transitionCamera(targetMode, duration = 700) {
       if (!camera || !controls || !renderer || isCameraTransitioning) return;
       isCameraTransitioning = true;
-
-      // 애니메이션 진행 동안 조작 잠금
       controls.enabled = false;
 
       const currentTarget = controls.target.clone();
       const rect = threeContainer.getBoundingClientRect();
       const aspect = (rect.width || 412) / (rect.height || 800);
 
-      // 모드별 목표 프러스텀 및 구면 각도 설정
-      // 2D: 수직 상공 (phi: 0.001 rad, Y축 바로 위)
-      // 3D: 사선 각도 (phi: 1.05 rad 약 60도, theta: 0.8 rad)
       const dist3D = 75;
       const targetHeight3D = 80;
       const targetWidth3D = targetHeight3D * aspect;
@@ -1753,18 +1888,15 @@
 
       let endLeft, endRight, endTop, endBottom;
 
-      // 시작 시점의 구면 좌표 계산
       const offset = new THREE.Vector3().subVectors(camera.position, currentTarget);
       const startRadius = offset.length();
       const startSpherical = new THREE.Spherical().setFromVector3(offset);
-
-      // 목표 구면 좌표 설정
       const endSpherical = new THREE.Spherical();
 
       if (targetMode === "3D") {
         endSpherical.radius = dist3D;
-        endSpherical.phi = 0.98; // 사선으로 눕는 각도 (~56도)
-        endSpherical.theta = 0.78; // 쿼터뷰 수평 회전 각도 (~45도)
+        endSpherical.phi = 0.98;
+        endSpherical.theta = 0.78;
 
         endLeft = -targetWidth3D / 2;
         endRight = targetWidth3D / 2;
@@ -1772,7 +1904,7 @@
         endBottom = -targetHeight3D / 2;
       } else {
         endSpherical.radius = dist2D;
-        endSpherical.phi = 0.001; // 수직 탑뷰 (짐벌락 방지 미세값)
+        endSpherical.phi = 0.001;
         endSpherical.theta = 0.0;
 
         endLeft = -targetWidth2D / 2;
@@ -1782,18 +1914,13 @@
       }
 
       const startTime = performance.now();
-
-      // 끊김 없는 실키한 감속 곡선 (Quintic Ease-Out)
-      function easeOutQuint(t) {
-        return 1 - Math.pow(1 - t, 5);
-      }
+      function easeOutQuint(t) { return 1 - Math.pow(1 - t, 5); }
 
       function step(now) {
         const elapsed = now - startTime;
         const progress = Math.min(elapsed / duration, 1.0);
         const ease = easeOutQuint(progress);
 
-        // 1. 구면 좌표계(반지름, 고도각 phi, 회전각 theta) 곡선 보간
         const curRadius = THREE.MathUtils.lerp(startRadius, endSpherical.radius, ease);
         const curPhi = THREE.MathUtils.lerp(startSpherical.phi, endSpherical.phi, ease);
         const curTheta = THREE.MathUtils.lerp(startSpherical.theta, endSpherical.theta, ease);
@@ -1802,7 +1929,6 @@
         camera.position.copy(currentTarget).add(currentOffset);
         camera.lookAt(currentTarget);
 
-        // 2. 화각(프러스텀) 보간
         camera.left = THREE.MathUtils.lerp(startLeft, endLeft, ease);
         camera.right = THREE.MathUtils.lerp(startRight, endRight, ease);
         camera.top = THREE.MathUtils.lerp(startTop, endTop, ease);
@@ -1814,7 +1940,6 @@
         if (progress < 1.0) {
           requestAnimationFrame(step);
         } else {
-          // 전환 완료 시점: 컨트롤 인계
           isCameraTransitioning = false;
           controls.enabled = true;
           controls.target.copy(currentTarget);
@@ -1851,7 +1976,6 @@
           renderer.render(scene, camera);
         }
       }
-
       requestAnimationFrame(step);
     }
 
@@ -1906,14 +2030,14 @@
       controls.dampingFactor = 0.05;
       controls.addEventListener("change", clampTopDownPan);
 
-      const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
+      const ambientLight = new THREE.AmbientLight(0xffffff, 1.25);
       scene.add(ambientLight);
 
       const dirLight1 = new THREE.DirectionalLight(0xffffff, 0.9);
       dirLight1.position.set(40, 150, 80);
       scene.add(dirLight1);
 
-      const dirLight2 = new THREE.DirectionalLight(0xc6e8dc, 0.35);
+      const dirLight2 = new THREE.DirectionalLight(0xc6e8dc, 0.4);
       dirLight2.position.set(-60, 100, -20);
       scene.add(dirLight2);
 
@@ -1922,7 +2046,6 @@
       loadFloorGlbModel(activeFloor);
       setup3DInteraction();
 
-      // 화면 리사이즈 대응
       window.addEventListener("resize", () => {
         if (!renderer || !camera || !threeContainer) return;
         const r = threeContainer.getBoundingClientRect();
@@ -2068,23 +2191,88 @@
       });
     }
 
+    /* 피그마 시안(3, 4번) 테마 맞춤형 핀 생성 함수 */
     function createFigma3DPinMesh(pinData) {
       const group = new THREE.Group();
-      const colorHex = CATEGORY_COLORS[pinData.category] || CATEGORY_COLORS['기타'];
+      const theme = CATEGORY_THEMES[pinData.category] || CATEGORY_THEMES['기타'];
 
-      const headGeo = new THREE.SphereGeometry(1.5, 16, 16);
-      const headMat = new THREE.MeshStandardMaterial({ color: colorHex, roughness: 0.3 });
-      const head = new THREE.Mesh(headGeo, headMat);
-      head.position.y = 3.8;
+      // 1. 하단 바닥 그림자 타원
+      const shadowGeo = new THREE.PlaneGeometry(3.6, 3.6);
+      const shadowMat = new THREE.MeshBasicMaterial({
+        color: new THREE.Color(theme.dark),
+        transparent: true,
+        opacity: 0.28,
+        depthWrite: false
+      });
+      const shadow = new THREE.Mesh(shadowGeo, shadowMat);
+      shadow.rotation.x = -Math.PI / 2;
+      shadow.position.y = 0.05;
+      group.add(shadow);
 
-      const tipGeo = new THREE.ConeGeometry(1.1, 3.8, 16);
-      const tipMat = new THREE.MeshStandardMaterial({ color: colorHex });
-      const tip = new THREE.Mesh(tipGeo, tipMat);
-      tip.rotation.x = Math.PI;
-      tip.position.y = 1.9;
+      // 2. 핀 하단 기둥 지지대
+      const stemGeo = new THREE.CylinderGeometry(0.3, 0.15, 2.2, 12);
+      const stemMat = new THREE.MeshStandardMaterial({
+        color: new THREE.Color(theme.dark),
+        roughness: 0.3
+      });
+      const stem = new THREE.Mesh(stemGeo, stemMat);
+      stem.position.y = 1.1;
+      group.add(stem);
 
+      // 3. 핀 메인 입체 헤드 (테마별 특화 캡슐)
+      let head;
+      const headMat = new THREE.MeshStandardMaterial({
+        color: new THREE.Color(theme.color),
+        roughness: 0.25,
+        metalness: 0.1
+      });
+
+      if (pinData.category === '화장실') {
+        head = new THREE.Mesh(new THREE.BoxGeometry(2.4, 2.4, 0.8), headMat);
+      } else if (pinData.category === '충전') {
+        head = new THREE.Mesh(new THREE.CylinderGeometry(1.4, 1.4, 0.8, 6), headMat);
+        head.rotation.x = Math.PI / 2;
+      } else if (pinData.category === '편의점') {
+        head = new THREE.Mesh(new THREE.ConeGeometry(1.6, 2.2, 5), headMat);
+      } else {
+        head = new THREE.Mesh(new THREE.SphereGeometry(1.35, 16, 16), headMat);
+      }
+      head.position.y = 3.3;
       group.add(head);
-      group.add(tip);
+
+      // 4. 핀 전면 엠블럼 페이스 (밝은 포인트 뱃지)
+      const emblemCanvas = document.createElement("canvas");
+      emblemCanvas.width = 128;
+      emblemCanvas.height = 128;
+      const ctx = emblemCanvas.getContext("2d");
+
+      ctx.fillStyle = "#ffffff";
+      ctx.beginPath();
+      ctx.arc(64, 64, 52, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = theme.dark;
+      ctx.font = "bold 56px sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+
+      let markText = "📍";
+      if (pinData.category === '화장실') markText = "🚻";
+      else if (pinData.category === '충전') markText = "⚡";
+      else if (pinData.category === '엘리베이터') markText = "🛗";
+      else if (pinData.category === '편의점') markText = "🏪";
+      else if (pinData.category === '휴식') markText = "☕";
+      else if (pinData.category === '쓰레기통') markText = "🗑️";
+
+      ctx.fillText(markText, 64, 66);
+
+      const emblemTexture = new THREE.CanvasTexture(emblemCanvas);
+      const emblemMat = new THREE.MeshBasicMaterial({ map: emblemTexture, transparent: true });
+      const emblemGeo = new THREE.PlaneGeometry(1.8, 1.8);
+      const emblemMesh = new THREE.Mesh(emblemGeo, emblemMat);
+      emblemMesh.position.set(0, 3.3, 0.45);
+      group.add(emblemMesh);
+
       group.userData = { pinData: pinData };
       group.renderOrder = 10;
       return group;
