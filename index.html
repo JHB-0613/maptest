@@ -2271,13 +2271,14 @@
         function alignModelToGround(model) {
           const clone = model.clone(true);
           
-          // ⬇️ 모델의 바운딩 박스를 계산하여 실제 최하단(바닥면)을 원점(Y=0)으로 맞춤
+          // ⬇️ [크기 제한 해제] 임의 스케일 조절을 없애고 모델링 원본 크기(1, 1, 1) 그대로 적용
+          clone.scale.set(1, 1, 1);
+
+          // 모델 자체의 바닥면을 원점(Y=0)에 맞추어 지면 뚫림 방지
           const box = new THREE.Box3().setFromObject(clone);
           const bottomY = box.min.y;
-          clone.position.y -= bottomY; // 바닥면이 정확히 피벗(Y=0)에 오도록 상향 이동
-
-          // 지면 슬래브와 z-fighting(깜빡임) 방지를 위한 미세 오프셋
-          clone.position.y += 0.3;
+          clone.position.y -= bottomY;
+          clone.position.y += 0.2; // 바닥 슬래브 깜빡임 방지 미세 오프셋
 
           group.add(clone);
           if (renderer && scene && camera) renderer.render(scene, camera);
@@ -2292,13 +2293,11 @@
             (gltf) => {
               const model = gltf.scene;
 
-              // 핀 크기 설정 (필요에 따라 3.0 ~ 4.0 조절)
-              model.scale.set(3.5, 3.5, 3.5);
+              // 그림자 및 렌더 순서 설정
               model.traverse((child) => {
                 if (child.isMesh) {
                   child.castShadow = true;
                   child.receiveShadow = true;
-                  // 바닥 뚫림 현상 및 가려짐 방지를 위한 렌더 순서 보정
                   child.renderOrder = 30;
                 }
               });
@@ -2316,12 +2315,11 @@
         return group;
       }
 
-      // 그 외 일반 카테고리 지오메트리 메쉬 핀
+      // 그 외 일반 카테고리 지오메트리 메쉬 핀 유지
       const group = new THREE.Group();
       const theme = CATEGORY_THEMES[pinData.category] || CATEGORY_THEMES['기타'];
       const colorHex = theme.color;
 
-      // 바닥 접지 원형 링
       const ringGeo = new THREE.RingGeometry(0.8, 1.25, 24);
       const ringMat = new THREE.MeshBasicMaterial({
         color: new THREE.Color(theme.dark),
@@ -2335,7 +2333,6 @@
       ring.position.y = 0.08;
       group.add(ring);
 
-      // 하단 뾰족한 입체 콘 (팁의 뾰족한 끝이 바닥 Y=0에 닿도록 배치)
       const tipGeo = new THREE.ConeGeometry(1.0, 3.2, 20);
       const tipMat = new THREE.MeshStandardMaterial({
         color: new THREE.Color(colorHex),
@@ -2344,11 +2341,10 @@
       });
       const tip = new THREE.Mesh(tipGeo, tipMat);
       tip.rotation.x = Math.PI;
-      tip.position.y = 1.6; // 콘 높이 3.2의 절반 위치
+      tip.position.y = 1.6;
       tip.castShadow = true;
       group.add(tip);
 
-      // 상단 둥근 입체 구 (헤드)
       const headGeo = new THREE.SphereGeometry(1.4, 24, 24);
       const headMat = new THREE.MeshStandardMaterial({
         color: new THREE.Color(colorHex),
@@ -2360,7 +2356,6 @@
       head.castShadow = true;
       group.add(head);
 
-      // 구 중심 내부 화이트 포인트 코어
       const coreGeo = new THREE.SphereGeometry(0.55, 16, 16);
       const coreMat = new THREE.MeshStandardMaterial({
         color: new THREE.Color(0xffffff),
