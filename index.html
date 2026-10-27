@@ -1023,7 +1023,7 @@
     <!-- 3. 공통 커뮤니티 / MEMO / 마이페이지 오버레이 -->
     <div class="subpage-overlay" id="subpage-community">
       <div style="margin-bottom:18px;">
-        <span style="font-size:12px; color:#367b67; font-weight:700; cursor:pointer;" onclick="toggleSubpage(null)">← 노선도로 돌아가기</span>
+        <span style="font-size:12px; color:#367b67; font-weight:700; cursor:pointer;" onclick="toggleSubpage(null)">← 이전으로 돌아가기</span>
         <h2 style="font-size:24px; font-weight:800; color:#0f172a; margin-top:14px;">커뮤니티</h2>
         <p style="font-size:12px; color:#64748b; margin-top:4px;">지도에서 장소를 발견하고, 나만의 팁을 공유해 보세요.</p>
       </div>
@@ -1448,7 +1448,7 @@
         { id: 2, title: "휴대폰 급속 충전소", category: "충전소", desc: "만남의 광장 안내센터 옆 기둥", floor: "B1", realX3d: -15.8, realZ3d: 42.0, x: 220, y: 210 },
         { id: 3, title: "GS25 편의점", category: "편의점", desc: "지하상가 통로 입구 24시", floor: "B1", realX3d: -14.0, realZ3d: 55.0, x: 180, y: 160 },
         { id: 4, title: "승강장 엘리베이터", category: "엘리베이터", desc: "B3 승강장 연결 위치입니다.", floor: "B3", realX3d: -15.0, realZ3d: 38.0, x: 160, y: 200 },
-        { id: 5, title: "쉬어가는 벤치", category: "휴식", desc: "잠시 앉아 쉬기 좋은 공간입니다.", floor: "B2", realX3d: -16.0, realZ3d: 45.0, x: 190, y: 230 }
+        { id: 5, title: "쉬어가는 벤치", category: "휴식", desc: "잠시 앉아 쉬기 좋은 공간입니다.", floor: "B2", realX3d: -15.2, realZ3d: 40.0, y3d: null, x: 160, y: 220 }
       ]
     };
 
@@ -2189,18 +2189,16 @@
           z3d = pos.z;
         }
 
-        let surfaceY = pin.y3d;
-        if (surfaceY === undefined || surfaceY === null || isNaN(surfaceY)) {
-          surfaceY = getSurfaceHeightAt(x3d, z3d);
-          pin.y3d = surfaceY;
-        }
+        // ⬇️ [수정] 층 모델이 바뀔 때마다 정확한 바닥 표면 높이를 즉시 재계산
+        const surfaceY = getSurfaceHeightAt(x3d, z3d);
+        pin.y3d = surfaceY;
 
-        // 모드(2D 탑뷰 vs 3D 쿼터뷰)에 맞춰 분기 렌더링
+        // 2D와 3D 모두 바닥면(surfaceY) 바로 위에 안착하도록 배치
         const pinMesh = (currentIndoorMode === '2D')
           ? create2DTopViewPin(pin)
           : create3DIsometricPin(pin);
 
-        pinMesh.position.set(x3d, surfaceY + 0.15, z3d);
+        pinMesh.position.set(x3d, surfaceY, z3d);
         pins3DGroup.add(pinMesh);
       });
 
@@ -2441,7 +2439,7 @@
       return mesh;
     }
 
-    // 3D 쿼터뷰용 입체 핀 생성기 (카메라 시선 방향 정면 정렬)
+    // create3DIsometricPin 함수 내부의 Y 위치 오프셋 조정
     function create3DIsometricPin(pinData) {
       const theme = CATEGORY_THEMES[pinData.category] || CATEGORY_THEMES['기타'];
       const canvas = draw3DPinCanvas(theme);
@@ -2457,8 +2455,8 @@
       });
       const mesh = new THREE.Mesh(geo, mat);
 
-      // 3D 사선 각도에 맞춰 자연스럽게 보이도록 살짝 기울임
-      mesh.position.y = 2.4;
+      // ⬇️ [수정] 핀 텍스처의 하단 그림자가 정확히 바닥면(Y = 0)에 닿도록 중심점 오프셋 조정
+      mesh.position.y = 2.1; 
       mesh.rotation.x = -Math.PI / 6;
 
       mesh.userData = { pinData: pinData, is2DPin: false };
