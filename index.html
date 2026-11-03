@@ -8,6 +8,8 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#ffffff">
+  <link rel="manifest" href="./manifest.json">
+  <link rel="apple-touch-icon" href="./logo/subnote.png">
   <title>sub note - 서울 지하철 스마트 실내 내비게이션 & 3D 맵</title>
   <!-- Three.js CDN -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -2631,6 +2633,14 @@
     window.addEventListener("DOMContentLoaded", () => {
       initStations();
     });
+    
+    if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js')
+        .then((reg) => console.log('PWA Service Worker 등록 성공:', reg.scope))
+        .catch((err) => console.log('PWA Service Worker 등록 실패:', err));
+    });
+  }
   </script>
 </body>
 </html>
