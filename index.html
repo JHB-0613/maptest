@@ -1566,6 +1566,9 @@
           loadFloorGlbModel(activeFloor);
         }
 
+        // ⬇️ API로부터 실시간 편의시설 핀 불러와 지도에 자동 꽂기
+        fetchAndGenerateApiPins("강남");
+
         if (renderer) {
           const rect = threeContainer.getBoundingClientRect();
           renderer.setSize(rect.width || 412, rect.height || 800);
@@ -2607,6 +2610,107 @@
       showToast(`'${title}' 핀이 삭제되었습니다.`);
     }
 
+    // 1. 위경도 -> Three.js 3D (X, Z) 좌표 변환 보간 함수
+    // (강남역 신분당선 및 2호선 실측 기준 앵커 좌표)
+    const GANGNAM_ANCHOR = {
+      geoP1: { lat: 37.497952, lng: 127.027619 }, // 기준점 1 (위경도)
+      geoP2: { lat: 37.496510, lng: 127.028120 }, // 기준점 2 (위경도)
+      threeP1: { x: -14.0, z: -20.0 },            // 3D 모델 상 기준점 1
+      threeP2: { x: -16.0, z: 95.0 }              // 3D 모델 상 기준점 2
+    };
+
+    function convertGeoToThreeCoord(lat, lng) {
+      const dLat = GANGNAM_ANCHOR.geoP2.lat - GANGNAM_ANCHOR.geoP1.lat;
+      const dLng = GANGNAM_ANCHOR.geoP2.lng - GANGNAM_ANCHOR.geoP1.lng;
+
+      const u = (lat - GANGNAM_ANCHOR.geoP1.lat) / dLat;
+      const v = (lng - GANGNAM_ANCHOR.geoP1.lng) / dLng;
+
+      const x3d = GANGNAM_ANCHOR.threeP1.x + u * (GANGNAM_ANCHOR.threeP2.x - GANGNAM_ANCHOR.threeP1.x);
+      const z3d = GANGNAM_ANCHOR.threeP1.z + v * (GANGNAM_ANCHOR.threeP2.z - GANGNAM_ANCHOR.threeP1.z);
+
+      return { x3d, z3d };
+    }
+
+    // 2. 시설 명칭을 기존 카테고리(엘리베이터, 화장실, 충전소 등)로 분류하는 매퍼
+    function mapFacilityToCategory(fcltNm) {
+      if (fcltNm.includes("엘리베이터") || fcltNm.includes("EV")) return "엘리베이터";
+      if (fcltNm.includes("화장실")) return "화장실";
+      if (fcltNm.includes("충전")) return "충전소";
+      if (fcltNm.includes("보관함") || fcltNm.includes("자판기")) return "편의점";
+      if (fcltNm.includes("쓰레기")) return "쓰레기통";
+      return "기타";
+    }
+
+    // 3. 설명 문구에서 층수(B1~B4)를 감지하는 함수
+    function extractFloorFromText(text) {
+      if (!text) return "B1";
+      if (text.includes("B4") || text.includes("지하 4") || text.includes("지하4")) return "B4";
+      if (text.includes("B3") || text.includes("지하 3") || text.includes("지하3")) return "B3";
+      if (text.includes("B2") || text.includes("지하 2") || text.includes("지하2")) return "B2";
+      return "B1";
+    }
+
+    // 4. API 호출 및 지도 핀 자동 등록 메인 함수
+    async function fetchAndGenerateApiPins(stationName = "강남") {
+      const API_KEY = "***REMOVED***"; // ⬅️ 여기에 실제 키 입력
+      
+      if (!API_KEY || API_KEY === "발급받은_인증키_입력") {
+        console.warn("[API 안내] 공공데이터포털 API 인증키를 입력해주세요. (fetchAndGenerateApiPins)");
+        return;
+      }
+
+      // 공공데이터포털 기준 엔드포인트 URL (CORS 발생 시 프록시 URL 활용 가능)
+      const apiUrl = `https://apis.data.go.kr/B553766/smtConvenience/getConvenienceList?serviceKey=${encodeURIComponent(API_KEY)}&pageNo=1&numOfRows=100&stationNm=${encodeURIComponent(stationName)}&type=json`;
+
+      try {
+        const res = await fetch(apiUrl);
+        if (!res.ok) throw new Error(`API 통신 실패: ${res.status}`);
+
+        const data = await res.json();
+        const rawItems = data.response?.body?.items?.item || [];
+
+        if (!STATION_PINS_DB["강남역"]) STATION_PINS_DB["강남역"] = [];
+        // 기존에 API로 가져온 핀이 있다면 중복 방지를 위해 제거 후 재등록
+        STATION_PINS_DB["강남역"] = STATION_PINS_DB["강남역"].filter(p => !String(p.id).startsWith("api_"));
+
+        rawItems.forEach((item, index) => {
+          const title = item.fcltNm || "편의시설";
+          const desc = item.dtlLoc || item.locInfo || "상세 위치 정보 없음";
+          const floor = extractFloorFromText(desc);
+          const category = mapFacilityToCategory(title);
+
+          const lat = parseFloat(item.lat || item.latitude || 37.4979);
+          const lng = parseFloat(item.lot || item.lng || item.longitude || 127.0276);
+
+          // 위경도를 모델링 내부 3D 좌표로 변환
+          const coords = convertGeoToThreeCoord(lat, lng);
+          const coord2d = typeof coord3Dto2D === "function" ? coord3Dto2D(coords.x3d, coords.z3d) : { x: 180, y: 200 };
+
+          // 기존 핀 DB 포맷에 맞춰 자동 생성
+          STATION_PINS_DB["강남역"].push({
+            id: `api_${index}_${Date.now()}`,
+            title: title,
+            category: category,
+            desc: desc,
+            floor: floor,
+            realX3d: coords.x3d,
+            realZ3d: coords.z3d,
+            x: coord2d.x,
+            y: coord2d.y
+          });
+        });
+
+        console.log(`[성공] API로부터 ${rawItems.length}개의 시설 핀을 자동 생성했습니다.`);
+
+        // 씬에 즉시 반영
+        renderExplorePinsList();
+        syncPinsTo3D();
+      } catch (err) {
+        console.warn("API 핀 자동 생성 실패:", err);
+      }
+    }
+
     // 모바일 접속 시 첫 화면 터치로 브라우저 상/하단 UI 전체화면 숨김 처리
     function enableFullScreenOnMobile() {
       const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || window.innerWidth <= 480;
@@ -2628,10 +2732,6 @@
     window.addEventListener("DOMContentLoaded", () => {
       initStations();
       enableFullScreenOnMobile();
-    });
-
-    window.addEventListener("DOMContentLoaded", () => {
-      initStations();
     });
     
     if ('serviceWorker' in navigator) {
