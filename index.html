@@ -1474,11 +1474,29 @@
 
     const STATION_PINS_DB = {
       "강남역": [
-        { id: 1, title: "중앙 화장실", category: "화장실", desc: "1~2번 출구 중간 B1 개찰구 인근", floor: "B1", realX3d: 4.0, realZ3d: -56.0, x: 171, y: 139 },
-        { id: 2, title: "휴대폰 급속 충전소", category: "충전소", desc: "만남의 광장 안내센터 옆 기둥", floor: "B1", realX3d: -5.0, realZ3d: -60.0, x: 144, y: 130 },
-        { id: 3, title: "GS25 편의점", category: "편의점", desc: "지하상가 통로 입구 24시", floor: "B1", realX3d: 25.0, realZ3d: -55.0, x: 234, y: 141 },
-        { id: 4, title: "승강장 엘리베이터", category: "엘리베이터", desc: "2호선 외선(역삼 방면) 승강기", floor: "B2", realX3d: 20.0, realZ3d: -60.0, y3d: null, x: 219, y: 130 },
-        { id: 5, title: "쉬어가는 벤치", category: "휴식", desc: "2호선 승강장 중앙 대기 벤치", floor: "B2", realX3d: -5.0, realZ3d: -65.0, y3d: null, x: 144, y: 119 }
+        // 지하 1층 (B1) - 2호선 대합실
+        { id: 'base_b1_1', title: "중앙 화장실", category: "화장실", desc: "1~2번 출구 중간 B1 개찰구 인근", floor: "B1", realX3d: 4.0, realZ3d: -56.0, x: 171, y: 139 },
+        { id: 'base_b1_2', title: "휴대폰 급속 충전소", category: "충전소", desc: "만남의 광장 안내센터 옆 기둥", floor: "B1", realX3d: -5.0, realZ3d: -60.0, x: 144, y: 130 },
+        { id: 'base_b1_3', title: "GS25 편의점", category: "편의점", desc: "지하상가 통로 입구 24시", floor: "B1", realX3d: 25.0, realZ3d: -55.0, x: 234, y: 141 },
+        
+        // 지하 2층 (B2) - 2호선 승강장
+        { id: 'base_b2_1', title: "승강장 엘리베이터", category: "엘리베이터", desc: "2호선 외선(역삼 방면) 승강기", floor: "B2", realX3d: 20.0, realZ3d: -60.0, y3d: null, x: 219, y: 130 },
+        { id: 'base_b2_2', title: "쉬어가는 벤치", category: "휴식", desc: "2호선 승강장 중앙 대기 벤치", floor: "B2", realX3d: -5.0, realZ3d: -65.0, y3d: null, x: 144, y: 119 },
+
+        // 지하 3층 (B3) - 신분당선 대합실 & 개찰구
+        { id: 'sbd_b3_1', title: "신분당선 화장실", category: "화장실", desc: "B3 대합실 남측 (개찰구 외부 4·5번 출구 방면)", floor: "B3", realX3d: -15.0, realZ3d: 55.0, x: 114, y: 379 },
+        { id: 'sbd_b3_2', title: "신분당선 승강기 (B3↔B4 하행)", category: "엘리베이터", desc: "B3 대합실 ↔ B4 양재/광교 방면 승강장 연결", floor: "B3", realX3d: -13.0, realZ3d: 20.0, x: 120, y: 303 },
+        { id: 'sbd_b3_3', title: "신분당선 승강기 (B3↔B4 상행)", category: "엘리베이터", desc: "B3 대합실 ↔ B4 신사 방면 승강장 연결", floor: "B3", realX3d: -13.0, realZ3d: 60.0, x: 120, y: 390 },
+        { id: 'sbd_b3_4', title: "신분당선 고객안내센터", category: "기타", desc: "B3 대합실 개찰구 옆 고객안내실", floor: "B3", realX3d: -12.0, realZ3d: 40.0, x: 123, y: 347 },
+        { id: 'sbd_b3_5', title: "교통카드 무인충전기", category: "충전소", desc: "B3 개찰구 앞 무인 발권·충전기", floor: "B3", realX3d: -18.0, realZ3d: 35.0, x: 105, y: 336 },
+        { id: 'sbd_b3_6', title: "신분당선 물품보관함", category: "편의점", desc: "B3 대합실 통로 무인 락커", floor: "B3", realX3d: -20.0, realZ3d: 48.0, x: 99, y: 364 },
+
+        // 지하 4층 (B4) - 신분당선 승강장
+        { id: 'sbd_b4_1', title: "승강장 엘리베이터 (하행)", category: "엘리베이터", desc: "B4 승강장 ↔ B3 대합실 연결 (양재/광교 방면)", floor: "B4", realX3d: -13.0, realZ3d: 20.0, x: 120, y: 303 },
+        { id: 'sbd_b4_2', title: "승강장 엘리베이터 (상행)", category: "엘리베이터", desc: "B4 승강장 ↔ B3 대합실 연결 (신사 방면)", floor: "B4", realX3d: -13.0, realZ3d: 60.0, x: 120, y: 390 },
+        { id: 'sbd_b4_3', title: "휠체어 급속 충전소", category: "충전소", desc: "B4 승강장 중앙 고객 대기실 인근", floor: "B4", realX3d: -16.0, realZ3d: 45.0, x: 111, y: 358 },
+        { id: 'sbd_b4_4', title: "승강장 고객 쉼터 벤치", category: "휴식", desc: "B4 승강장 열차 대기 고객 쉼터", floor: "B4", realX3d: -10.0, realZ3d: 35.0, x: 129, y: 336 },
+        { id: 'sbd_b4_5', title: "음료 자동판매기", category: "편의점", desc: "B4 승강장 중앙 자판기 코너", floor: "B4", realX3d: -16.0, realZ3d: 55.0, x: 111, y: 379 }
       ]
     };
 
@@ -1800,8 +1818,16 @@
       const rect = threeContainer.getBoundingClientRect();
       const aspect = (rect.width || 412) / (rect.height || 800);
 
-      // 54 -> 90으로 확대하여 2호선 전 구역 및 주요 출구 동선이 한눈에 보이도록 조정
-      const targetViewWidth = 90;
+      // 층수에 따라 카메라 뷰포트 센터 자동 변경
+      let targetX = 0.0;
+      let targetZ = -55.0; // B1, B2: 2호선 대합실 및 승강장 중심
+      let targetViewWidth = 90;
+
+      if (activeFloor === "B3" || activeFloor === "B4") {
+        targetX = -13.0;
+        targetZ = 40.0;   // B3, B4: 신분당선 대합실 및 승강장 중심
+        targetViewWidth = 72;
+      }
       const targetViewHeight = targetViewWidth / aspect;
 
       camera.left = -targetViewWidth / 2;
@@ -1813,10 +1839,7 @@
       camera.far = 2000;
       camera.updateProjectionMatrix();
 
-      // 2호선 대합실 및 환승 통로(Z: -55)를 중심으로 시점 설정
-      const targetX = 0.0;
       const targetY = centerY;
-      const targetZ = -55.0;
 
       camera.up.set(0, 1, 0);
       camera.position.set(targetX, targetY + 220, targetZ + 0.1);
@@ -2718,19 +2741,23 @@
         return;
       }
 
-      // 서울교통공사_편의시설위치정보 (서비스 ID: 15143841) 공식 오퍼레이션 목록
+      // 서울교통공사_편의시설위치정보 (서비스 ID: 15143841) 공식 오퍼레이션 전체 목록
       const operations = [
         { op: 'getFcElvtr', category: '엘리베이터' },
-        { op: 'getFcRstrm', category: '화장실' },
-        { op: 'getFcAtm', category: '충전소' },
-        { op: 'getFcLckr', category: '편의점' },
-        { op: 'getFcNrsrm', category: '휴식' }
+        { op: 'getFcEsctr', category: '엘리베이터' },   // 에스컬레이터
+        { op: 'getFcRstrm', category: '화장실' },       // 화장실
+        { op: 'getFcAtm', category: '충전소' },         // ATM
+        { op: 'getFcLckr', category: '편의점' },         // 물품보관함
+        { op: 'getFcNrsrm', category: '휴식' },          // 수유실
+        { op: 'getFcCstct', category: '기타' },          // 고객안전실
+        { op: 'getFcAtdspnr', category: '기타' },       // 무인민원발급기
+        { op: 'getFcTkatm', category: '충전소' }        // 승차권자동발매기 & 교통카드 키오스크 (6대)
       ];
 
       try {
         const cleanStn = stationName.replace(/역$/, "");
         const fetchPromises = operations.map(async ({ op, category }) => {
-          const url = `https://apis.data.go.kr/B553766/facility/${op}?serviceKey=${encodeURIComponent(API_KEY)}&dataType=JSON&pageNo=1&numOfRows=50&stnNm=${encodeURIComponent(cleanStn)}`;
+          const url = `https://apis.data.go.kr/B553766/facility/${op}?serviceKey=${encodeURIComponent(API_KEY)}&dataType=JSON&pageNo=1&numOfRows=100&stnNm=${encodeURIComponent(cleanStn)}`;
           try {
             const res = await fetch(url);
             if (!res.ok) return [];
@@ -2757,11 +2784,19 @@
 
         const stDbKey = "강남역";
         if (!STATION_PINS_DB[stDbKey]) STATION_PINS_DB[stDbKey] = [];
-        // 기존 API 핀 제거 후 최신 데이터로 갱신
+        // 기존 API 핀(2호선 실시간)만 필터링하여 최신으로 갱신 (신분당선 B3/B4 핀은 보존)
         STATION_PINS_DB[stDbKey] = STATION_PINS_DB[stDbKey].filter(p => !String(p.id).startsWith("api_"));
 
         allFetched.forEach(({ item, op, defaultCategory }, index) => {
-          const title = item.fcltNm || item.lckrNm || item.lckrRprsLocNm || defaultCategory;
+          let title = item.fcltNm || item.lckrNm || item.lckrRprsLocNm;
+          if (!title || title === "기타") {
+            if (op === "getFcAtdspnr") title = "무인민원발급기";
+            else if (op === "getFcCstct") title = "고객안전실";
+            else if (op === "getFcLckr") title = "물품보관함 (T-Locker)";
+            else if (op === "getFcTkatm") title = "승차권/교통카드 키오스크";
+            else title = defaultCategory;
+          }
+
           const desc = item.dtlPstn || item.lckrDtlLocNm || item.rstrmInfo || "상세 위치 정보";
           const floor = extractFloorFromItem(item);
           const category = mapFacilityToCategory(title, defaultCategory);
