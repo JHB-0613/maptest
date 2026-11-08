@@ -1450,10 +1450,10 @@
     let activeFloor = "B1";
 
     const MODEL_BBOX = {
-      centerX: -15.57,
-      centerZ: 38.40,
-      width: 19.04,
-      depth: 114.10
+      centerX: 6.9,
+      centerZ: 0.0,
+      width: 120.0,
+      depth: 240.0
     };
 
     function coord2Dto3D(x2d, y2d) {
@@ -1474,11 +1474,11 @@
 
     const STATION_PINS_DB = {
       "강남역": [
-        { id: 1, title: "중앙 화장실", category: "화장실", desc: "1~2번 출구 중간 B1 개찰구 인근", floor: "B1", realX3d: -14.2, realZ3d: 32.0, x: 140, y: 240 },
-        { id: 2, title: "휴대폰 급속 충전소", category: "충전소", desc: "만남의 광장 안내센터 옆 기둥", floor: "B1", realX3d: -15.8, realZ3d: 42.0, x: 220, y: 210 },
-        { id: 3, title: "GS25 편의점", category: "편의점", desc: "지하상가 통로 입구 24시", floor: "B1", realX3d: -14.0, realZ3d: 55.0, x: 180, y: 160 },
-        { id: 4, title: "승강장 엘리베이터", category: "엘리베이터", desc: "B3 승강장 연결 위치입니다.", floor: "B3", realX3d: -15.5, realZ3d: 36.5, y3d: null, x: 160, y: 200 },
-        { id: 5, title: "쉬어가는 벤치", category: "휴식", desc: "잠시 앉아 쉬기 좋은 공간입니다.", floor: "B2", realX3d: -15.2, realZ3d: 40.0, y3d: null, x: 160, y: 220 }
+        { id: 1, title: "중앙 화장실", category: "화장실", desc: "1~2번 출구 중간 B1 개찰구 인근", floor: "B1", realX3d: 4.0, realZ3d: -56.0, x: 171, y: 139 },
+        { id: 2, title: "휴대폰 급속 충전소", category: "충전소", desc: "만남의 광장 안내센터 옆 기둥", floor: "B1", realX3d: -5.0, realZ3d: -60.0, x: 144, y: 130 },
+        { id: 3, title: "GS25 편의점", category: "편의점", desc: "지하상가 통로 입구 24시", floor: "B1", realX3d: 25.0, realZ3d: -55.0, x: 234, y: 141 },
+        { id: 4, title: "승강장 엘리베이터", category: "엘리베이터", desc: "2호선 외선(역삼 방면) 승강기", floor: "B2", realX3d: 20.0, realZ3d: -60.0, y3d: null, x: 219, y: 130 },
+        { id: 5, title: "쉬어가는 벤치", category: "휴식", desc: "2호선 승강장 중앙 대기 벤치", floor: "B2", realX3d: -5.0, realZ3d: -65.0, y3d: null, x: 144, y: 119 }
       ]
     };
 
@@ -1790,17 +1790,18 @@
     function setCameraToTopDownView() {
       if (!controls || !camera || !renderer) return;
 
-      let centerX = MODEL_BBOX.centerX, centerY = -10.86, centerZ = MODEL_BBOX.centerZ;
+      let centerY = -10.86;
       if (loadedStationModel) {
         const box = new THREE.Box3().setFromObject(loadedStationModel);
         const center = box.getCenter(new THREE.Vector3());
-        centerX = center.x; centerY = center.y; centerZ = center.z;
+        centerY = center.y;
       }
 
       const rect = threeContainer.getBoundingClientRect();
       const aspect = (rect.width || 412) / (rect.height || 800);
 
-      const targetViewWidth = 54;
+      // 54 -> 90으로 확대하여 2호선 전 구역 및 주요 출구 동선이 한눈에 보이도록 조정
+      const targetViewWidth = 90;
       const targetViewHeight = targetViewWidth / aspect;
 
       camera.left = -targetViewWidth / 2;
@@ -1812,9 +1813,10 @@
       camera.far = 2000;
       camera.updateProjectionMatrix();
 
-      const targetX = centerX - 7.5;
+      // 2호선 대합실 및 환승 통로(Z: -55)를 중심으로 시점 설정
+      const targetX = 0.0;
       const targetY = centerY;
-      const targetZ = centerZ - 6.0;
+      const targetZ = -55.0;
 
       camera.up.set(0, 1, 0);
       camera.position.set(targetX, targetY + 220, targetZ + 0.1);
@@ -2121,7 +2123,7 @@
         renderer.setSize(w, h);
         const asp = w / h;
         if (currentIndoorMode === "2D") {
-          const tw = 54;
+          const tw = 90;
           camera.left = -tw / 2; camera.right = tw / 2;
           camera.top = (tw / asp) / 2; camera.bottom = -(tw / asp) / 2;
         } else {
@@ -2610,27 +2612,44 @@
       showToast(`'${title}' 핀이 삭제되었습니다.`);
     }
 
-    // 1. 위경도 -> Three.js 3D (X, Z) 좌표 변환 보간 함수
-    // (강남역 신분당선 및 2호선 실측 기준 앵커 좌표)
-    const GANGNAM_ANCHOR = {
-      geoP1: { lat: 37.497952, lng: 127.027619 }, // 기준점 1 (위경도)
-      geoP2: { lat: 37.496510, lng: 127.028120 }, // 기준점 2 (위경도)
-      threeP1: { x: -14.0, z: -20.0 },            // 3D 모델 상 기준점 1
-      threeP2: { x: -16.0, z: 95.0 }              // 3D 모델 상 기준점 2
-    };
-
+    // 1. 위경도 -> Three.js 3D (X, Z) 정밀 아핀 변환 함수
+    // 실측 앵커: 강남역 사거리(0.0, -55.0), 1번 출구(28.0, -64.0), 10번 출구(-18.0, -105.0), 신분당선(-15.0, 80.0)
     function convertGeoToThreeCoord(lat, lng) {
-      const dLat = GANGNAM_ANCHOR.geoP2.lat - GANGNAM_ANCHOR.geoP1.lat;
-      const dLng = GANGNAM_ANCHOR.geoP2.lng - GANGNAM_ANCHOR.geoP1.lng;
-
-      const u = (lat - GANGNAM_ANCHOR.geoP1.lat) / dLat;
-      const v = (lng - GANGNAM_ANCHOR.geoP1.lng) / dLng;
-
-      const x3d = GANGNAM_ANCHOR.threeP1.x + u * (GANGNAM_ANCHOR.threeP2.x - GANGNAM_ANCHOR.threeP1.x);
-      const z3d = GANGNAM_ANCHOR.threeP1.z + v * (GANGNAM_ANCHOR.threeP2.z - GANGNAM_ANCHOR.threeP1.z);
-
+      const x3d = 19993.0 * lat + 38722.3 * lng - 5668509.5;
+      const z3d = -61998.7 * lat - 7006.3 * lng + 3214763.3;
       return { x3d, z3d };
     }
+
+    // 2. 강남역 실측 출구 및 핵심 구역 3D 좌표 맵 (2호선 & 신분당선)
+    const GANGNAM_EXIT_ZONES = {
+      // 2호선 승강장 (B2) 및 연결 엘리베이터
+      '역삼': { x: 20.0, z: -60.0 }, // 2호선 외선 (역삼/잠실 방면 8-1)
+      '교대': { x: -26.0, z: -60.0 }, // 2호선 내선 (교대/사당 방면 3-4)
+
+      // 2호선 대합실 및 출입구 (B1)
+      '1번': { x: 32.0, z: -66.0 },
+      '2번': { x: 44.0, z: -56.0 },
+      '7번': { x: -38.0, z: -70.0 },
+      '8번': { x: -46.0, z: -76.0 },
+      '9번': { x: -36.0, z: -46.0 },
+      '10번': { x: -18.0, z: -100.0 },
+      '11번': { x: -2.0, z: -100.0 },
+      '12번': { x: 22.0, z: -58.0 },
+      '1,12': { x: 18.0, z: -58.0 },
+      '1, 12': { x: 18.0, z: -58.0 },
+      '7,10': { x: -20.0, z: -65.0 },
+      '7, 10': { x: -20.0, z: -65.0 },
+      '고객안전실': { x: 4.0, z: -54.0 },
+      '중앙': { x: 2.0, z: -58.0 },
+      '개찰구': { x: 4.0, z: -56.0 },
+
+      // 신분당선 구역 (B1 환승통로 및 B4 승강장)
+      '3번': { x: -6.0, z: 65.0 },
+      '4번': { x: -6.0, z: 85.0 },
+      '5번': { x: -22.0, z: 85.0 },
+      '6번': { x: -22.0, z: 65.0 },
+      '신분당': { x: -14.0, z: 30.0 }
+    };
 
     // 2. 시설 명칭 및 오퍼레이션을 기존 카테고리(엘리베이터, 화장실, 충전소 등)로 분류
     function mapFacilityToCategory(fcltNm, defaultCategory) {
@@ -2666,25 +2685,28 @@
     function estimateGangnamCoords(item, index) {
       const lat = parseFloat(item.LAT || item.lat || item.latitude);
       const lng = parseFloat(item.LOT || item.lot || item.lng || item.longitude);
-      if (!isNaN(lat) && !isNaN(lng)) {
+      if (!isNaN(lat) && !isNaN(lng) && lat > 30 && lng > 120) {
         return convertGeoToThreeCoord(lat, lng);
       }
 
       const text = `${item.dtlPstn || ''} ${item.vcntEntrcNo || ''} ${item.fcltNm || ''} ${item.lckrDtlLocNm || ''}`;
-      let base = { x3d: -15.2, z3d: 35.0 };
+      let base = null;
 
-      if (text.includes("10번") || text.includes("7번") || text.includes("8번") || text.includes("9번") || text.includes("교대")) {
-        base = { x3d: -16.8, z3d: 38.0 };
-      } else if (text.includes("1번") || text.includes("2번") || text.includes("11번") || text.includes("12번") || text.includes("역삼")) {
-        base = { x3d: -13.8, z3d: 26.0 };
-      } else if (text.includes("3번") || text.includes("4번") || text.includes("5번") || text.includes("6번") || text.includes("신분당")) {
-        base = { x3d: -15.5, z3d: 65.0 };
+      for (const [key, coord] of Object.entries(GANGNAM_EXIT_ZONES)) {
+        if (text.includes(key)) {
+          base = coord;
+          break;
+        }
+      }
+
+      if (!base) {
+        base = { x: 0.0, z: -56.0 };
       }
 
       // 핀들이 동일 위치에 완전히 겹치지 않도록 미세 분산
-      const jitterX = ((index % 3) - 1) * 0.9;
-      const jitterZ = ((Math.floor(index / 3) % 4) - 1.5) * 1.8;
-      return { x3d: base.x3d + jitterX, z3d: base.z3d + jitterZ };
+      const jitterX = ((index % 3) - 1) * 1.5;
+      const jitterZ = ((Math.floor(index / 3) % 3) - 1) * 1.5;
+      return { x3d: base.x + jitterX, z3d: base.z + jitterZ };
     }
 
     // 5. 공공데이터포털(서울교통공사 편의시설위치정보) API 호출 및 지도 핀 자동 등록
