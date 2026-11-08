@@ -1474,14 +1474,32 @@
 
     const STATION_PINS_DB = {
       "강남역": [
-        // 지하 1층 (B1) - 2호선 대합실
+        // 지하 1층 (B1) - 2호선 대합실 (상단부)
         { id: 'base_b1_1', title: "중앙 화장실", category: "화장실", desc: "1~2번 출구 중간 B1 개찰구 인근", floor: "B1", realX3d: 4.0, realZ3d: -56.0, x: 171, y: 139 },
         { id: 'base_b1_2', title: "휴대폰 급속 충전소", category: "충전소", desc: "만남의 광장 안내센터 옆 기둥", floor: "B1", realX3d: -5.0, realZ3d: -60.0, x: 144, y: 130 },
         { id: 'base_b1_3', title: "GS25 편의점", category: "편의점", desc: "지하상가 통로 입구 24시", floor: "B1", realX3d: 25.0, realZ3d: -55.0, x: 234, y: 141 },
+
+        // 지하 1층 (B1) - 신분당선 통로 및 남측 대합실 (하단부)
+        { id: 'sbd_b1_toilet', title: "신분당선 대합실 화장실", category: "화장실", desc: "B1 환승게이트 남측 (3~6번 출구 방면)", floor: "B1", realX3d: -15.0, realZ3d: 50.0, x: 114, y: 368 },
+        { id: 'sbd_b1_ev_4', title: "4번 출구 엘리베이터", category: "엘리베이터", desc: "지상 ↔ B1 대합실 연결 (4번 출구 앞)", floor: "B1", realX3d: -8.4, realZ3d: 88.0, x: 134, y: 451 },
+        { id: 'sbd_b1_ev_5', title: "5번 출구 엘리베이터", category: "엘리베이터", desc: "지상 ↔ B1 대합실 연결 (5번 출구 앞)", floor: "B1", realX3d: -20.8, realZ3d: 89.6, x: 97, y: 454 },
+        { id: 'sbd_b1_lckr', title: "신분당선 물품보관함", category: "편의점", desc: "B1 남측 대합실 통로 (4·5번 출구 방면)", floor: "B1", realX3d: -11.0, realZ3d: 58.0, x: 126, y: 386 },
+        { id: 'sbd_b1_atm', title: "신분당선 ATM/충전기", category: "충전소", desc: "B1 환승게이트 앞 무인 금융·충전 코너", floor: "B1", realX3d: -18.0, realZ3d: 42.0, x: 105, y: 351 },
+        { id: 'sbd_b1_store', title: "스토리웨이 편의점", category: "편의점", desc: "B1 신분당선 환승통로 쇼핑존", floor: "B1", realX3d: -15.0, realZ3d: 15.0, x: 114, y: 292 },
+        { id: 'sbd_b1_rest_mid', title: "환승통로 쉼터 벤치", category: "휴식", desc: "2호선 ↔ 신분당선 환승통로 중간 쉼터", floor: "B1", realX3d: -14.0, realZ3d: -2.0, x: 117, y: 256 },
+        { id: 'sbd_b1_rest_3', title: "3번 출구 만남의 쉼터", category: "휴식", desc: "3번 출구 에스컬레이터 앞 대기 공간", floor: "B1", realX3d: -8.4, realZ3d: 74.0, x: 134, y: 420 },
+        { id: 'sbd_b1_rest_6', title: "6번 출구 휴식 벤치", category: "휴식", desc: "6번 출구 방향 통로 휴식 공간", floor: "B1", realX3d: -20.8, realZ3d: 60.0, x: 97, y: 390 },
         
-        // 지하 2층 (B2) - 2호선 승강장
+        // 지하 2층 (B2) - 2호선 승강장 (상단부)
         { id: 'base_b2_1', title: "승강장 엘리베이터", category: "엘리베이터", desc: "2호선 외선(역삼 방면) 승강기", floor: "B2", realX3d: 20.0, realZ3d: -60.0, y3d: null, x: 219, y: 130 },
         { id: 'base_b2_2', title: "쉬어가는 벤치", category: "휴식", desc: "2호선 승강장 중앙 대기 벤치", floor: "B2", realX3d: -5.0, realZ3d: -65.0, y3d: null, x: 144, y: 119 },
+
+        // 지하 2층 (B2) - 신분당선 환승통로 (하단부)
+        { id: 'sbd_b2_ev', title: "환승통로 연결 승강기", category: "엘리베이터", desc: "B1 ↔ B2 환승통로 연결 엘리베이터", floor: "B2", realX3d: -14.0, realZ3d: 10.0, x: 117, y: 282 },
+        { id: 'sbd_b2_rest_1', title: "환승통로 휴식 벤치", category: "휴식", desc: "신분당선 환승 통로 1구역 대기 벤치", floor: "B2", realX3d: -15.0, realZ3d: 35.0, x: 114, y: 336 },
+        { id: 'sbd_b2_rest_2', title: "환승통로 쉼터 벤치", category: "휴식", desc: "신분당선 환승 통로 2구역 대기 벤치", floor: "B2", realX3d: -15.0, realZ3d: 65.0, x: 114, y: 401 },
+        { id: 'sbd_b2_vnd', title: "음료 자동판매기", category: "편의점", desc: "B2 환승통로 중간 자판기 코너", floor: "B2", realX3d: -18.0, realZ3d: 50.0, x: 105, y: 368 },
+        { id: 'sbd_b2_rest_3', title: "신분당선 연결 쉼터", category: "휴식", desc: "B2 남측 신분당선 대합실 직전 쉼터", floor: "B2", realX3d: -12.0, realZ3d: 80.0, x: 123, y: 433 },
 
         // 지하 3층 (B3) - 신분당선 대합실 & 개찰구
         { id: 'sbd_b3_1', title: "신분당선 화장실", category: "화장실", desc: "B3 대합실 남측 (개찰구 외부 4·5번 출구 방면)", floor: "B3", realX3d: -15.0, realZ3d: 55.0, x: 114, y: 379 },
@@ -1820,13 +1838,13 @@
 
       // 층수에 따라 카메라 뷰포트 센터 자동 변경
       let targetX = 0.0;
-      let targetZ = -55.0; // B1, B2: 2호선 대합실 및 승강장 중심
-      let targetViewWidth = 90;
+      let targetZ = -10.0; // B1, B2: 상단(2호선)과 하단(신분당선) 전체를 한눈에 볼 수 있는 중심
+      let targetViewWidth = 100;
 
       if (activeFloor === "B3" || activeFloor === "B4") {
         targetX = -13.0;
         targetZ = 40.0;   // B3, B4: 신분당선 대합실 및 승강장 중심
-        targetViewWidth = 72;
+        targetViewWidth = 75;
       }
       const targetViewHeight = targetViewWidth / aspect;
 
@@ -2146,7 +2164,7 @@
         renderer.setSize(w, h);
         const asp = w / h;
         if (currentIndoorMode === "2D") {
-          const tw = 90;
+          const tw = (activeFloor === "B3" || activeFloor === "B4") ? 75 : 100;
           camera.left = -tw / 2; camera.right = tw / 2;
           camera.top = (tw / asp) / 2; camera.bottom = -(tw / asp) / 2;
         } else {
