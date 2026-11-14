@@ -1089,6 +1089,13 @@
 
   <script>
     /* ========================================================
+       0. 외부 서버 주소 (여기서만 관리)
+       - 공공데이터 API는 Cloudflare Worker 프록시를 거친다.
+         인증키는 Worker의 Secret(API_KEY)에만 있고 프론트에는 없다.
+    ======================================================== */
+    const PROXY_URL = "https://subnote-proxy.skdlxm1412.workers.dev";
+
+    /* ========================================================
        1. 토스트 알림 헬퍼
     ======================================================== */
     let toastTimer = null;
@@ -2752,10 +2759,8 @@
 
     // 5. 공공데이터포털(서울교통공사 편의시설위치정보) API 호출 및 지도 핀 자동 등록
     async function fetchAndGenerateApiPins(stationName = "강남") {
-      const API_KEY = "***REMOVED***";
-      
-      if (!API_KEY || API_KEY === "발급받은_인증키_입력") {
-        console.warn("[API 안내] 공공데이터포털 API 인증키를 입력해주세요. (fetchAndGenerateApiPins)");
+      if (!PROXY_URL) {
+        console.warn("[API 안내] PROXY_URL이 비어 있습니다. (fetchAndGenerateApiPins)");
         return;
       }
 
@@ -2775,7 +2780,7 @@
       try {
         const cleanStn = stationName.replace(/역$/, "");
         const fetchPromises = operations.map(async ({ op, category }) => {
-          const url = `https://apis.data.go.kr/B553766/facility/${op}?serviceKey=${encodeURIComponent(API_KEY)}&dataType=JSON&pageNo=1&numOfRows=100&stnNm=${encodeURIComponent(cleanStn)}`;
+          const url = `${PROXY_URL}/facility/${op}?dataType=JSON&pageNo=1&numOfRows=100&stnNm=${encodeURIComponent(cleanStn)}`;
           try {
             const res = await fetch(url);
             if (!res.ok) return [];

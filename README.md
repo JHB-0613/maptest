@@ -44,11 +44,18 @@
 9. `getFcTkatm`: 승차권자동발매기 (3대) 및 교통카드 키오스크 (3대)
 
 ### 3) API 키 설정 위치
-`index.html` 내 `fetchAndGenerateApiPins` 함수 상단:
+인증키는 프론트엔드 코드에 두지 않는다. 브라우저는 Cloudflare Worker 프록시(`subnote-proxy`)를 호출하고,
+Worker가 Secret으로 저장된 `API_KEY`를 붙여 공공데이터포털에 요청을 전달한다.
+
 ```javascript
-// index.html L2737
-const API_KEY = "***REMOVED***";
+// index.html <script> 상단
+const PROXY_URL = "https://subnote-proxy.skdlxm1412.workers.dev";
+
+// 호출 예: ${PROXY_URL}/facility/getFcRstrm?dataType=JSON&pageNo=1&numOfRows=100&stnNm=강남
 ```
+
+* 키 변경: Cloudflare 대시보드 → Workers & Pages → `subnote-proxy` → Settings → Variables and Secrets → `API_KEY` 값만 수정 (코드 수정 불필요)
+* 허용 Origin: `https://jhb-0613.github.io`, `http://localhost:8080` (Worker 코드에서 관리)
 
 ### 4) 데이터 변환 및 매핑 원리
 * **층수 감지 (`extractFloorFromItem`)**: `stnFlr`, `bgngFlr`, `endFlr` 및 위치 설명 텍스트에서 `B1`, `B2`, `B3`, `B4` 정규식 추출
