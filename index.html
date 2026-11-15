@@ -810,6 +810,18 @@
     .ai-reply-text.loading { color: #9ca3af; }
     .ai-route-list { margin: 10px 0 0; padding-left: 18px; line-height: 1.6; }
     .ai-pin-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+    .ai-sources { display: flex; flex-wrap: wrap; gap: 4px 10px; margin-top: 10px; font-size: 11px; }
+    .ai-sources:empty { display: none; }
+    .ai-sources-label { color: #9ca3af; font-weight: 700; }
+    .ai-sources a {
+      color: #326851;
+      text-decoration: underline;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .ai-search-suggestion { display: none; margin-top: 8px; max-width: 100%; overflow-x: auto; }
     .ai-pin-chip {
       border: 1px solid var(--primary-mint);
       background: #f0f7f4;
@@ -1078,6 +1090,8 @@
         <div class="ai-reply-text" id="ai-reply-text"></div>
         <ol class="ai-route-list" id="ai-route-list"></ol>
         <div class="ai-pin-chips" id="ai-pin-chips"></div>
+        <div class="ai-sources" id="ai-sources"></div>
+        <div class="ai-search-suggestion" id="ai-search-suggestion"></div>
       </div>
 
       <!-- 우측 하단 확장형 AI 캡슐바 -->
@@ -1151,10 +1165,10 @@
     const PROXY_URL = "https://subnote-proxy.skdlxm1412.workers.dev";
 
     // AI 대화 백엔드 (규격: schemas/ai-chat.v0.json)
-    // - 비워두면 브라우저 안의 목업(mockAiChat)이 규격에 맞는 가짜 응답을 만든다.
-    // - AI 서비스가 정해지면 백엔드 주소만 넣는다. 예: `${PROXY_URL}/ai/chat`
-    const AI_CHAT_URL = "";
-    const AI_SCHEMA_VERSION = "0.1";
+    // - Vercel 서울 리전 함수 (ai-backend/). AI 키는 Vercel 환경변수에만 있다.
+    // - 비워두면 브라우저 안의 목업(mockAiChat)이 규격에 맞는 가짜 응답을 만든다 (AI 없이 UI 개발할 때).
+    const AI_CHAT_URL = "https://subnote-ai.vercel.app/api/chat";
+    const AI_SCHEMA_VERSION = "0.2";
 
     /* ========================================================
        1. 토스트 알림 헬퍼
@@ -1851,10 +1865,18 @@
         steps: r.route.steps.filter(s => s && typeof s === "object")
       } : null;
       const actions = Array.isArray(r.actions) ? r.actions.filter(a => a && typeof a.type === "string") : [];
+      // 웹 검색 출처 (http/https 링크만)
+      const sources = (r.reply && Array.isArray(r.reply.sources) ? r.reply.sources : [])
+        .filter(s => s && typeof s.url === "string" && /^https?:\/\//.test(s.url))
+        .slice(0, 5)
+        .map(s => ({ title: String(s.title || s.url), url: s.url }));
+      const searchSuggestionHtml = (r.reply && typeof r.reply.searchSuggestionHtml === "string")
+        ? r.reply.searchSuggestionHtml : "";
       return {
         schemaVersion: String(r.schemaVersion || ""),
         intent: knownIntents.includes(r.intent) ? r.intent : "general",
-        reply: { text },
+        aboutStation: typeof r.aboutStation === "string" ? r.aboutStation : null,
+        reply: { text, sources, searchSuggestionHtml },
         route,
         actions
       };
@@ -1896,7 +1918,18 @@
       textEl.classList.add("loading");
       document.getElementById("ai-route-list").innerHTML = "";
       document.getElementById("ai-pin-chips").innerHTML = "";
+      document.getElementById("ai-sources").innerHTML = "";
+      renderSearchSuggestion("");
       panel.classList.add("show");
+    }
+
+    // Google 검색 제안 (검색 그라운딩 사용 시 약관상 표시 필요).
+    // Google이 준 HTML/CSS를 Shadow DOM에 넣어 앱 스타일과 섞이지 않게 한다.
+    function renderSearchSuggestion(html) {
+      const host = document.getElementById("ai-search-suggestion");
+      const root = host.shadowRoot || host.attachShadow({ mode: "open" });
+      root.innerHTML = html || "";
+      host.style.display = html ? "block" : "none";
     }
 
     function renderAiReply(res) {
@@ -1916,6 +1949,26 @@
           routeEl.appendChild(li);
         });
       }
+
+      // 웹 검색 출처 링크
+      const sourcesEl = document.getElementById("ai-sources");
+      sourcesEl.innerHTML = "";
+      if (res.reply.sources && res.reply.sources.length) {
+        const label = document.createElement("span");
+        label.className = "ai-sources-label";
+        label.textContent = "출처";
+        sourcesEl.appendChild(label);
+        res.reply.sources.forEach(s => {
+          const a = document.createElement("a");
+          a.href = s.url;
+          a.target = "_blank";
+          a.rel = "noopener noreferrer";
+          a.textContent = s.title;
+          a.onclick = (ev) => ev.stopPropagation();
+          sourcesEl.appendChild(a);
+        });
+      }
+      renderSearchSuggestion(res.reply.searchSuggestionHtml);
 
       // 응답에 나온 핀(행동 + 경로 단계)을 버튼으로 보여준다
       chipsEl.innerHTML = "";

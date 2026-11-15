@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "subnote/ai-chat.v0.json",
   "title": "sub note AI 대화 통신 규격 v0.x",
-  "description": "프론트(index.html) ↔ 백엔드(/ai/chat) 사이의 요청·응답 형식. 개발 중(0.x)이므로 바뀔 수 있다. 규칙: (1) 필드는 추가만 한다 (2) 받는 쪽은 모르는 필드·모르는 action type을 무시한다 (3) 응답의 필수 필드는 reply.text 뿐이다.",
+  "description": "프론트(index.html) ↔ 백엔드(ai-backend /api/chat) 사이의 요청·응답 형식. 현재 0.2 (0.1 + aboutStation, reply.sources, reply.searchSuggestionHtml). 개발 중(0.x)이므로 바뀔 수 있다. 규칙: (1) 필드는 추가만 한다 (2) 받는 쪽은 모르는 필드·모르는 action type을 무시한다 (3) 응답의 필수 필드는 reply.text 뿐이다.",
 
   "$defs": {
     "Pin": {
@@ -94,7 +94,11 @@
       "type": "object",
       "required": ["reply"],
       "properties": {
-        "schemaVersion": { "type": "string" },
+        "schemaVersion": { "type": "string", "examples": ["0.2"] },
+        "aboutStation": {
+          "type": ["string", "null"],
+          "description": "0.2 추가. 질문 대상 역 (예: 강남역, 잠실역). 강남역일 때만 actions·pinId가 채워진다."
+        },
         "intent": {
           "type": "string",
           "description": "route_plan | station_info | pin_locate | general. 모르는 값이면 general로 취급.",
@@ -103,7 +107,22 @@
         "reply": {
           "type": "object",
           "required": ["text"],
-          "properties": { "text": { "type": "string" } }
+          "properties": {
+            "text": { "type": "string" },
+            "sources": {
+              "type": "array",
+              "description": "0.2 추가. 웹 검색으로 답했을 때의 출처 (최대 5개). 링크는 Google 경유 주소일 수 있다.",
+              "items": {
+                "type": "object",
+                "required": ["url"],
+                "properties": { "title": { "type": "string" }, "url": { "type": "string", "pattern": "^https?://" } }
+              }
+            },
+            "searchSuggestionHtml": {
+              "type": "string",
+              "description": "0.2 추가. Google 검색 제안 HTML/CSS. 검색 그라운딩을 쓰면 Google 약관상 화면에 그대로 표시해야 한다 (프론트는 Shadow DOM에 넣는다)."
+            }
+          }
         },
         "route": {
           "type": ["object", "null"],

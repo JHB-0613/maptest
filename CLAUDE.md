@@ -36,6 +36,8 @@ Pins/               # 카테고리별 2D 아이콘(PNG) + 3D 핀 모델(GLB)
 models/gangnam/     # gangnam_B1~B4.glb 층별 실내 모델
 README.md           # API 연동·좌표계 상세 문서
 schemas/ai-chat.v0.json  # AI 대화 통신 규격 (JSON Schema)
+worker/subnote-proxy.js  # Cloudflare Worker 코드 사본 (공공데이터 중계만). 수정 후 대시보드에 붙여넣고 Deploy해야 반영됨
+ai-backend/              # AI 대화 백엔드 (Vercel 서울 리전). lib/ai-chat.js 로직, api/chat.js 진입점
 project_handover_document.md  # 인계서 (일부 내용이 실제 코드와 다름 – 아래 "주의" 참고)
 ```
 
@@ -118,16 +120,34 @@ project_handover_document.md  # 인계서 (일부 내용이 실제 코드와 다
   (다른 포트로 띄우면 CORS로 막힌다).
 - ⚠️ 예전 키는 git 기록에 남아 있다(공개 저장소). 재발급 시 Cloudflare의 `API_KEY` 값만 바꾸면 된다.
 
-## AI 대화 (프론트 완료, 실제 AI는 미연결)
+## AI 대화 (Gemini 연결됨)
 
-- 통신 규격: `schemas/ai-chat.v0.json` (JSON Schema, 현재 `schemaVersion` "0.1"). **규격을 바꾸면 이 파일을 먼저 고친다.**
+- 통신 규격: `schemas/ai-chat.v0.json` (JSON Schema, 현재 `schemaVersion` "0.2"). **규격을 바꾸면 이 파일을 먼저 고친다.**
   - 규칙: 필드는 추가만 / 받는 쪽은 모르는 필드·모르는 `actions[].type`을 무시 / 응답 필수 필드는 `reply.text`뿐.
   - 요청: `{ schemaVersion, message, history[], context: { currentStation, indoor: {activeFloor, mode} | null, pins[] } }`
     (pins는 좌표 없이 id/title/category/desc/floor만).
-  - 응답: `{ schemaVersion, intent, reply: {text}, route: {from,to,steps[]} | null, actions[] }`.
+  - 응답: `{ schemaVersion, aboutStation, intent, reply: {text, sources[]?, searchSuggestionHtml?}, route: {from,to,steps[]} | null, actions[] }`.
     `intent` = route_plan | station_info | pin_locate | general. 현재 프론트가 실행하는 action은 `focus_pin`(pinId, floor) 하나.
-- 백엔드 주소: `<script>` 맨 위 `AI_CHAT_URL`. **비어 있으면 `mockAiChat`(키워드 매칭 목업)이 응답한다.**
-  AI 서비스가 정해지면 백엔드(Worker `/ai/chat` 또는 FastAPI)를 만들고 이 상수만 바꾼다. AI 키는 백엔드에만 둔다.
+- 백엔드 주소: `<script>` 맨 위 `AI_CHAT_URL` = `https://subnote-ai.vercel.app/api/chat`.
+  **비우면 `mockAiChat`(키워드 매칭 목업)이 응답한다** (AI 없이 UI 개발할 때).
+- 백엔드: `ai-backend/` (Vercel 프로젝트 `subnote-ai`, 리전 **서울 `icn1`** 고정, `maxDuration` 60초).
+  - 로직은 `ai-backend/lib/ai-chat.js`, 진입점은 `ai-backend/api/chat.js`. 배포: `ai-backend`에서 `npx vercel deploy --prod --yes`.
+  - 환경변수(Vercel → Settings → Environment Variables, **추가·변경 후 재배포 필요**): `GEMINI_API_KEY`(사용 중),
+    `AI_PROVIDER`(gemini|openai, 선택), `GEMINI_MODEL`(기본 gemini-3.8-flash), `GEMINI_THINKING_LEVEL`(기본 low), `GEMINI_WEB_SEARCH`(off면 검색 끔),
+    `OPENAI_API_KEY` / `OPENAI_MODEL`(OpenAI 전환 시).
+  - 두 공급자 모두 JSON 스키마를 강제해 `{intent, replyText, route, actions}`를 받고, `toChatResponse`가 규격 응답으로 변환하며
+    없는 pinId를 지운다. 공급자를 바꿔도 프론트는 수정하지 않는다.
+  - ⚠️ **AI 호출을 Cloudflare Worker로 옮기지 않는다.** 한국 요청이 Cloudflare 홍콩(HKG)을 거치면 Gemini가
+    "User location is not supported"로 거절한다 (Placement Hint·AI Gateway로도 해결 안 됨. OpenAI도 홍콩 차단).
+  - thinking 수준을 높이면 경로 질문이 30초를 넘길 수 있다 (low 기준 약 2~4초).
+- **핀은 강남역 질문에만 쓴다.** 1단계 응답의 `aboutStation`이 강남역(강남구청 제외)이 아니면 서버가 actions·step.pinId를 버린다.
+- **다른 역/외부 정보는 웹 검색(2단계)으로 답한다.**
+  - 1단계: JSON 스키마 강제로 `{aboutStation, needsWebSearch, intent, replyText, route, actions}` 결정 (약 2초).
+  - 2단계: `needsWebSearch=true`일 때만 `searchAnswer`가 Google 검색 그라운딩(`tools: [{google_search:{}}]`, 형식 강제 없음)으로
+    답변 글을 다시 만들고 `reply.sources`(출처)·`reply.searchSuggestionHtml`(Google 검색 제안)을 붙인다. 실패하면 1단계 초안 유지.
+  - ⚠️ 검색 도구와 responseSchema를 한 요청에 같이 주면 Gemini가 **에러 없이 검색을 건너뛴다**. 둘을 합치지 않는다.
+  - 검색 제안(`searchSuggestionHtml`)은 Google 약관상 표시 필수 → 프론트 `renderSearchSuggestion`이 Shadow DOM에 넣는다.
+  - 검색 비용: Gemini 3+는 검색 쿼리당 과금 (월 5,000회 무료 후 1,000회당 $14). 검색 질문은 약 7~10초.
 - 흐름: `handleAiSubmit` → `buildAiRequest` → `requestAiChat` → `normalizeAiResponse` → `renderAiReply`(답변 패널 `#ai-reply-panel`) → `applyAiActions` → `focusAiPin`.
 - 다른 층 핀으로 포커스할 때는 `pendingFocusPin`에 예약하고 `loadFloorGlbModel` 로드 완료 후 `focusOnPin`한다
   (로드 콜백이 카메라를 초기화하기 때문).

@@ -1,0 +1,7 @@
+{
+  "name": "subnote-ai",
+  "private": true,
+  "type": "module",
+  "description": "sub note AI 대화 백엔드 (Vercel 서울 리전)",
+  "engines": { "node": ">=20" }
+}
