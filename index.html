@@ -777,6 +777,50 @@
       flex-shrink: 0;
     }
 
+    /* AI 답변 패널 (캡슐바 위) */
+    .ai-reply-panel {
+      position: absolute;
+      left: 14px;
+      right: 14px;
+      bottom: calc(78px + env(safe-area-inset-bottom, 0px));
+      max-height: 45%;
+      overflow-y: auto;
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      padding: 14px 16px;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.14);
+      z-index: 52;
+      display: none;
+      font-size: 13px;
+      color: #1f2937;
+    }
+    .ai-reply-panel.show { display: block; }
+    .ai-reply-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      font-size: 11px;
+      font-weight: 800;
+      color: #326851;
+    }
+    .ai-reply-close { border: none; background: none; font-size: 14px; cursor: pointer; color: #6b7280; }
+    .ai-reply-text { line-height: 1.55; white-space: pre-wrap; }
+    .ai-reply-text.loading { color: #9ca3af; }
+    .ai-route-list { margin: 10px 0 0; padding-left: 18px; line-height: 1.6; }
+    .ai-pin-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+    .ai-pin-chip {
+      border: 1px solid var(--primary-mint);
+      background: #f0f7f4;
+      color: #326851;
+      border-radius: 14px;
+      padding: 5px 10px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
     .pin-modal {
       position: absolute;
       bottom: calc(84px + env(safe-area-inset-bottom, 0px));
@@ -1025,6 +1069,17 @@
         </div>
       </div>
 
+      <!-- AI 답변 패널 -->
+      <div class="ai-reply-panel" id="ai-reply-panel">
+        <div class="ai-reply-head">
+          <span id="ai-reply-label">AI 어시스턴트</span>
+          <button class="ai-reply-close" onclick="closeAiReply()">✕</button>
+        </div>
+        <div class="ai-reply-text" id="ai-reply-text"></div>
+        <ol class="ai-route-list" id="ai-route-list"></ol>
+        <div class="ai-pin-chips" id="ai-pin-chips"></div>
+      </div>
+
       <!-- 우측 하단 확장형 AI 캡슐바 -->
       <div class="floating-ai-capsule" id="ai-capsule">
         <div class="ai-input-wrap">
@@ -1094,6 +1149,12 @@
          인증키는 Worker의 Secret(API_KEY)에만 있고 프론트에는 없다.
     ======================================================== */
     const PROXY_URL = "https://subnote-proxy.skdlxm1412.workers.dev";
+
+    // AI 대화 백엔드 (규격: schemas/ai-chat.v0.json)
+    // - 비워두면 브라우저 안의 목업(mockAiChat)이 규격에 맞는 가짜 응답을 만든다.
+    // - AI 서비스가 정해지면 백엔드 주소만 넣는다. 예: `${PROXY_URL}/ai/chat`
+    const AI_CHAT_URL = "";
+    const AI_SCHEMA_VERSION = "0.1";
 
     /* ========================================================
        1. 토스트 알림 헬퍼
@@ -1713,14 +1774,264 @@
       }
     }
 
-    function handleAiSubmit(e) {
-      if (e.key === 'Enter') {
-        const query = aiQueryInput.value.trim();
-        if (!query) return;
-        showToast(`AI 어시스턴트: "${query}" 시설 위치 검색 중...`);
-        aiQueryInput.value = "";
-        toggleAiCapsule();
+    /* ========================================================
+       AI 대화 (규격: schemas/ai-chat.v0.json)
+       흐름: buildAiRequest → requestAiChat(백엔드 또는 목업)
+             → normalizeAiResponse → renderAiReply → applyAiActions
+    ======================================================== */
+    const aiHistory = [];           // [{ role: "user"|"assistant", text }]
+    let pendingFocusPin = null;     // 층 전환 후 포커스할 핀 (loadFloorGlbModel에서 소비)
+    const AI_HISTORY_LIMIT = 10;
+    let aiRequestSeq = 0;           // 늦게 도착한 이전 응답 무시용
+
+    async function handleAiSubmit(e) {
+      if (e.key !== 'Enter' || e.isComposing) return;   // 한글 조합 중 Enter 무시
+      const query = aiQueryInput.value.trim();
+      if (!query) return;
+      aiQueryInput.value = "";
+      toggleAiCapsule();
+
+      const seq = ++aiRequestSeq;
+      showAiLoading();
+      try {
+        const request = buildAiRequest(query);
+        const raw = await requestAiChat(request);
+        if (seq !== aiRequestSeq) return;
+        const res = normalizeAiResponse(raw);
+        aiHistory.push({ role: "user", text: query }, { role: "assistant", text: res.reply.text });
+        while (aiHistory.length > AI_HISTORY_LIMIT) aiHistory.shift();
+        renderAiReply(res);
+        applyAiActions(res.actions);
+      } catch (err) {
+        if (seq !== aiRequestSeq) return;
+        console.warn("[AI] 요청 실패:", err);
+        renderAiReply({ reply: { text: "답변을 가져오지 못했습니다. 잠시 후 다시 시도해주세요." }, route: null, actions: [] });
       }
+    }
+
+    // 현재 앱 상태를 규격의 ChatRequest로 만든다
+    function buildAiRequest(message) {
+      const stationName = currentSelectedStation ? currentSelectedStation.name : null;
+      const inIndoor = !indoorView.classList.contains("hidden");
+      const pins = (stationName && STATION_PINS_DB[stationName]) || [];
+      return {
+        schemaVersion: AI_SCHEMA_VERSION,
+        message,
+        history: aiHistory.slice(),
+        context: {
+          currentStation: stationName,
+          indoor: inIndoor ? { activeFloor, mode: currentIndoorMode } : null,
+          pins: pins.map(p => ({
+            id: String(p.id), title: p.title, category: p.category, desc: p.desc || "", floor: p.floor
+          }))
+        }
+      };
+    }
+
+    async function requestAiChat(request) {
+      if (!AI_CHAT_URL) return mockAiChat(request);
+      const res = await fetch(AI_CHAT_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(request)
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.json();
+    }
+
+    // 응답을 안전한 형태로 정리한다 (모르는 필드·잘못된 값은 버린다)
+    function normalizeAiResponse(raw) {
+      const r = (raw && typeof raw === "object") ? raw : {};
+      const text = (r.reply && typeof r.reply.text === "string" && r.reply.text.trim())
+        ? r.reply.text : "답변 내용이 비어 있습니다.";
+      const knownIntents = ["route_plan", "station_info", "pin_locate", "general"];
+      const route = (r.route && Array.isArray(r.route.steps)) ? {
+        from: String(r.route.from || ""),
+        to: String(r.route.to || ""),
+        steps: r.route.steps.filter(s => s && typeof s === "object")
+      } : null;
+      const actions = Array.isArray(r.actions) ? r.actions.filter(a => a && typeof a.type === "string") : [];
+      return {
+        schemaVersion: String(r.schemaVersion || ""),
+        intent: knownIntents.includes(r.intent) ? r.intent : "general",
+        reply: { text },
+        route,
+        actions
+      };
+    }
+
+    function findPinById(pinId) {
+      const stationName = currentSelectedStation ? currentSelectedStation.name : null;
+      const pins = (stationName && STATION_PINS_DB[stationName]) || [];
+      return pins.find(p => String(p.id) === String(pinId)) || null;
+    }
+
+    // 지도 제어 명령 실행. 모르는 type이나 없는 핀은 조용히 건너뛴다.
+    function applyAiActions(actions) {
+      const focus = actions.find(a => a.type === "focus_pin" && findPinById(a.pinId));
+      if (focus) focusAiPin(focus.pinId);
+    }
+
+    function focusAiPin(pinId) {
+      const pin = findPinById(pinId);
+      if (!pin) return;
+      if (indoorView.classList.contains("hidden")) {
+        showToast(`'${pin.title}'은(는) ${pin.floor}층에 있습니다. 실내 지도에서 확인하세요.`);
+        return;
+      }
+      if (pin.floor && pin.floor !== activeFloor) {
+        // 층 모델 로드가 끝난 뒤 loadFloorGlbModel에서 포커스한다
+        if (isThreeInitialized) pendingFocusPin = pin;
+        const btn = Array.from(document.querySelectorAll(".floor-btn")).find(b => b.innerText.trim() === pin.floor);
+        selectFloor(pin.floor, btn);
+        return;
+      }
+      if (isThreeInitialized) focusOnPin(pin);
+    }
+
+    function showAiLoading() {
+      const panel = document.getElementById("ai-reply-panel");
+      const textEl = document.getElementById("ai-reply-text");
+      textEl.textContent = "생각하는 중...";
+      textEl.classList.add("loading");
+      document.getElementById("ai-route-list").innerHTML = "";
+      document.getElementById("ai-pin-chips").innerHTML = "";
+      panel.classList.add("show");
+    }
+
+    function renderAiReply(res) {
+      const textEl = document.getElementById("ai-reply-text");
+      const routeEl = document.getElementById("ai-route-list");
+      const chipsEl = document.getElementById("ai-pin-chips");
+      textEl.classList.remove("loading");
+      textEl.textContent = res.reply.text;
+      document.getElementById("ai-reply-label").textContent =
+        "AI 어시스턴트" + (AI_CHAT_URL ? "" : " (목업)");
+
+      routeEl.innerHTML = "";
+      if (res.route) {
+        res.route.steps.forEach(step => {
+          const li = document.createElement("li");
+          li.textContent = describeRouteStep(step);
+          routeEl.appendChild(li);
+        });
+      }
+
+      // 응답에 나온 핀(행동 + 경로 단계)을 버튼으로 보여준다
+      chipsEl.innerHTML = "";
+      const pinIds = new Set();
+      res.actions.forEach(a => { if (a.pinId) pinIds.add(String(a.pinId)); });   // type과 무관하게 pinId가 있으면 버튼
+      if (res.route) res.route.steps.forEach(s => { if (s.pinId) pinIds.add(String(s.pinId)); });
+      pinIds.forEach(id => {
+        const pin = findPinById(id);
+        if (!pin) return;
+        const chip = document.createElement("button");
+        chip.className = "ai-pin-chip";
+        chip.textContent = `📍 ${pin.floor} ${pin.title}`;
+        chip.onclick = (ev) => { ev.stopPropagation(); focusAiPin(pin.id); };
+        chipsEl.appendChild(chip);
+      });
+
+      document.getElementById("ai-reply-panel").classList.add("show");
+    }
+
+    // 경로 단계 한 줄 설명. text가 있으면 그대로, 없으면 kind로 만든다.
+    function describeRouteStep(s) {
+      if (typeof s.text === "string" && s.text) return s.text;
+      if (s.kind === "ride") return `${s.line || ""} ${s.from || ""} → ${s.to || ""}`.trim();
+      if (s.kind === "transfer") return `${s.from || ""}에서 ${s.line || ""} 환승`.trim();
+      if (s.kind === "walk") return `${s.from || ""} → ${s.to || ""} 도보`.trim();
+      if (s.kind === "stop") return `${s.near ? s.near + " 근처 " : ""}${s.place || ""} 들르기`.trim();
+      return "(알 수 없는 단계)";
+    }
+
+    function closeAiReply() {
+      aiRequestSeq++;   // 진행 중인 요청 응답은 무시
+      document.getElementById("ai-reply-panel").classList.remove("show");
+    }
+
+    /* --------------------------------------------------------
+       목업 응답 (AI_CHAT_URL이 비어 있을 때만 사용)
+       - 실제 AI가 아니라 키워드 매칭으로 규격에 맞는 응답을 만든다.
+       - 프론트 UI·지도 제어를 AI 없이 개발하기 위한 용도.
+    -------------------------------------------------------- */
+    const AI_MOCK_CATEGORY_WORDS = {
+      "화장실": ["화장실", "변기"],
+      "엘리베이터": ["엘리베이터", "승강기", "에스컬레이터", "휠체어", "유모차"],
+      "충전소": ["충전", "atm", "발매기", "교통카드", "키오스크"],
+      "편의점": ["편의점", "보관함", "락커", "사물함"],
+      "휴식": ["휴식", "쉴", "벤치", "수유"],
+      "쓰레기통": ["쓰레기"]
+    };
+
+    // 메시지에 나온 역 이름을 등장 순서대로 찾는다 (강남 vs 강남구청처럼 겹치면 긴 쪽 우선)
+    function findStationsInText(text) {
+      const hits = [];
+      STATIONS_LIST.forEach(s => {
+        const term = s.queryTerm;
+        if (!term || term.length < 2) return;
+        const idx = text.indexOf(term);
+        if (idx >= 0) hits.push({ name: term, idx, end: idx + term.length });
+      });
+      return hits
+        .filter(h => !hits.some(o => o !== h && o.idx <= h.idx && o.end >= h.end && (o.end - o.idx) > (h.end - h.idx)))
+        .sort((a, b) => a.idx - b.idx)
+        .map(h => h.name)
+        .filter((n, i, arr) => arr.indexOf(n) === i);
+    }
+
+    async function mockAiChat(req) {
+      await new Promise(r => setTimeout(r, 400));   // 네트워크 지연 흉내
+      const msg = req.message;
+      const lower = msg.toLowerCase();
+      const base = { schemaVersion: AI_SCHEMA_VERSION, route: null, actions: [] };
+
+      // 1) 경로 질문: 역 이름이 2개 이상 + 이동 표현
+      const stations = findStationsInText(msg);
+      if (stations.length >= 2 && /(가야|가려|가는|가고|갈|로 가|으로 가|까지)/.test(msg)) {
+        const [from, to] = [stations[0], stations[stations.length - 1]];
+        const stopMatch = msg.match(/([가-힣A-Za-z]+?)(?:을|를|에)?\s*(?:들르|들렀|들러|경유)/);
+        const steps = [{ kind: "ride", from, to, text: `${from} → ${to} 이동 (노선은 실제 AI 연결 후 계산)` }];
+        if (stopMatch) {
+          steps.splice(1, 0, { kind: "stop", place: stopMatch[1], near: null, pinId: null, text: `중간에 ${stopMatch[1]} 들르기` });
+        }
+        return {
+          ...base,
+          intent: "route_plan",
+          reply: { text: `[목업] ${from}에서 ${to}까지 가는 계획입니다.` + (stopMatch ? ` 중간에 ${stopMatch[1]}에 들르는 단계를 넣었습니다.` : "") },
+          route: { from, to, steps }
+        };
+      }
+
+      // 2) 시설 질문: 카테고리 단어 또는 핀 제목과 매칭
+      const pins = (req.context && req.context.pins) || [];
+      const floor = req.context && req.context.indoor ? req.context.indoor.activeFloor : null;
+      const wantCats = Object.entries(AI_MOCK_CATEGORY_WORDS)
+        .filter(([, words]) => words.some(w => lower.includes(w)))
+        .map(([cat]) => cat);
+      let matched = pins.filter(p =>
+        wantCats.includes(p.category) || (p.title && p.title.length >= 2 && msg.includes(p.title)));
+      if (matched.length) {
+        // 우선순위: 제목이 그대로 나온 핀 > 현재 층 핀 > 나머지
+        const score = p => (msg.includes(p.title) ? 2 : 0) + (p.floor === floor ? 1 : 0);
+        matched = matched.sort((a, b) => score(b) - score(a)).slice(0, 3);
+        const first = matched[0];
+        return {
+          ...base,
+          intent: "pin_locate",
+          reply: { text: `[목업] ${matched.map(p => `${p.floor} '${p.title}'`).join(", ")}에 있습니다. 첫 번째 위치로 이동합니다.` },
+          // 첫 핀만 focus_pin. 나머지는 아직 규격에 없는 type → 프론트가 무시하는지 확인하는 용도
+          actions: matched.map((p, i) => i === 0
+            ? { type: "focus_pin", pinId: p.id, floor: p.floor }
+            : { type: "suggest_pin", pinId: p.id })
+        };
+      }
+
+      return {
+        ...base,
+        intent: "general",
+        reply: { text: `[목업] "${msg}"에 대한 답변 자리입니다. AI 서비스가 연결되면 실제 답변이 표시됩니다.` }
+      };
     }
 
     function toggleSubpage(tab) {
@@ -2237,6 +2548,11 @@
           }
 
           syncPinsTo3D();
+
+          // 층 전환 전에 예약된 핀 포커스 (카메라 초기화 뒤에 적용해야 덮어써지지 않음)
+          if (pendingFocusPin && pendingFocusPin.floor === floor) focusOnPin(pendingFocusPin);
+          pendingFocusPin = null;
+
           if (renderer && scene && camera) renderer.render(scene, camera);
         },
         (xhr) => {

@@ -1,0 +1,160 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "subnote/ai-chat.v0.json",
+  "title": "sub note AI 대화 통신 규격 v0.x",
+  "description": "프론트(index.html) ↔ 백엔드(/ai/chat) 사이의 요청·응답 형식. 개발 중(0.x)이므로 바뀔 수 있다. 규칙: (1) 필드는 추가만 한다 (2) 받는 쪽은 모르는 필드·모르는 action type을 무시한다 (3) 응답의 필수 필드는 reply.text 뿐이다.",
+
+  "$defs": {
+    "Pin": {
+      "type": "object",
+      "description": "STATION_PINS_DB의 핀을 AI 컨텍스트용으로 줄인 것. 좌표는 보내지 않는다.",
+      "required": ["id", "title", "category", "floor"],
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "category": { "type": "string" },
+        "desc": { "type": "string" },
+        "floor": { "type": "string", "pattern": "^B[0-9]+$" }
+      }
+    },
+
+    "ChatRequest": {
+      "type": "object",
+      "required": ["schemaVersion", "message"],
+      "properties": {
+        "schemaVersion": { "type": "string", "examples": ["0.1"] },
+        "message": { "type": "string", "minLength": 1 },
+        "history": {
+          "type": "array",
+          "description": "이전 대화 (오래된 것부터). 길이 제한은 프론트가 정한다.",
+          "items": {
+            "type": "object",
+            "required": ["role", "text"],
+            "properties": {
+              "role": { "enum": ["user", "assistant"] },
+              "text": { "type": "string" }
+            }
+          }
+        },
+        "context": {
+          "type": "object",
+          "properties": {
+            "currentStation": { "type": ["string", "null"], "examples": ["강남역"] },
+            "indoor": {
+              "type": ["object", "null"],
+              "description": "실내 지도에 들어가 있을 때만 채운다.",
+              "properties": {
+                "activeFloor": { "type": "string" },
+                "mode": { "enum": ["2D", "3D"] }
+              }
+            },
+            "pins": { "type": "array", "items": { "$ref": "#/$defs/Pin" } }
+          }
+        }
+      }
+    },
+
+    "RouteStep": {
+      "type": "object",
+      "required": ["kind"],
+      "properties": {
+        "kind": { "enum": ["ride", "transfer", "walk", "stop"], "description": "모르는 kind는 text만 보여준다." },
+        "line": { "type": "string", "description": "ride/transfer: 노선 이름 (예: 2호선)" },
+        "from": { "type": "string" },
+        "to": { "type": "string" },
+        "place": { "type": "string", "description": "stop: 들를 곳 (예: 꽃집)" },
+        "near": { "type": "string", "description": "stop: 근처 역" },
+        "pinId": { "type": ["string", "null"], "description": "우리 DB 핀과 연결되면 그 id" },
+        "text": { "type": "string", "description": "사람이 읽는 한 줄 설명. 프론트는 kind를 몰라도 이걸 보여준다." }
+      }
+    },
+
+    "Action": {
+      "type": "object",
+      "required": ["type"],
+      "description": "지도 제어 명령. 프론트는 모르는 type을 무시한다.",
+      "oneOf": [
+        {
+          "properties": {
+            "type": { "const": "focus_pin" },
+            "pinId": { "type": "string" },
+            "floor": { "type": "string" }
+          },
+          "required": ["type", "pinId"]
+        },
+        {
+          "properties": {
+            "type": { "not": { "const": "focus_pin" } }
+          }
+        }
+      ]
+    },
+
+    "ChatResponse": {
+      "type": "object",
+      "required": ["reply"],
+      "properties": {
+        "schemaVersion": { "type": "string" },
+        "intent": {
+          "type": "string",
+          "description": "route_plan | station_info | pin_locate | general. 모르는 값이면 general로 취급.",
+          "examples": ["route_plan", "station_info", "pin_locate", "general"]
+        },
+        "reply": {
+          "type": "object",
+          "required": ["text"],
+          "properties": { "text": { "type": "string" } }
+        },
+        "route": {
+          "type": ["object", "null"],
+          "properties": {
+            "from": { "type": "string" },
+            "to": { "type": "string" },
+            "steps": { "type": "array", "items": { "$ref": "#/$defs/RouteStep" } }
+          }
+        },
+        "actions": { "type": "array", "items": { "$ref": "#/$defs/Action" } }
+      }
+    }
+  },
+
+  "examples": [
+    {
+      "request": {
+        "schemaVersion": "0.1",
+        "message": "강남역 화장실 어디 있어?",
+        "history": [],
+        "context": {
+          "currentStation": "강남역",
+          "indoor": { "activeFloor": "B1", "mode": "2D" },
+          "pins": [{ "id": "base_b1_1", "title": "중앙 화장실", "category": "화장실", "desc": "...", "floor": "B1" }]
+        }
+      },
+      "response": {
+        "schemaVersion": "0.1",
+        "intent": "pin_locate",
+        "reply": { "text": "B1 '중앙 화장실'이 가장 가깝습니다." },
+        "route": null,
+        "actions": [{ "type": "focus_pin", "pinId": "base_b1_1", "floor": "B1" }]
+      }
+    },
+    {
+      "request": { "schemaVersion": "0.1", "message": "건대입구역인데 판교 가는 길에 꽃집 들르고 싶어" },
+      "response": {
+        "schemaVersion": "0.1",
+        "intent": "route_plan",
+        "reply": { "text": "2호선으로 강남까지 가서 꽃집에 들른 뒤 신분당선으로 판교에 가세요." },
+        "route": {
+          "from": "건대입구",
+          "to": "판교",
+          "steps": [
+            { "kind": "ride", "line": "2호선", "from": "건대입구", "to": "강남", "text": "2호선 건대입구 → 강남" },
+            { "kind": "stop", "place": "꽃집", "near": "강남", "pinId": null, "text": "강남역 근처 꽃집 들르기" },
+            { "kind": "ride", "line": "신분당선", "from": "강남", "to": "판교", "text": "신분당선 강남 → 판교" }
+          ]
+        },
+        "actions": []
+      }
+    }
+  ]
+}

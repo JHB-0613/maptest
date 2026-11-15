@@ -35,6 +35,7 @@ logo/subnote.png    # 헤더 로고 겸 앱 아이콘
 Pins/               # 카테고리별 2D 아이콘(PNG) + 3D 핀 모델(GLB)
 models/gangnam/     # gangnam_B1~B4.glb 층별 실내 모델
 README.md           # API 연동·좌표계 상세 문서
+schemas/ai-chat.v0.json  # AI 대화 통신 규격 (JSON Schema)
 project_handover_document.md  # 인계서 (일부 내용이 실제 코드와 다름 – 아래 "주의" 참고)
 ```
 
@@ -117,13 +118,21 @@ project_handover_document.md  # 인계서 (일부 내용이 실제 코드와 다
   (다른 포트로 띄우면 CORS로 막힌다).
 - ⚠️ 예전 키는 git 기록에 남아 있다(공개 저장소). 재발급 시 Cloudflare의 `API_KEY` 값만 바꾸면 된다.
 
-## AI 에이전트 (미구현)
+## AI 대화 (프론트 완료, 실제 AI는 미연결)
 
-- `handleAiSubmit(e)`는 현재 Enter 시 토스트만 띄운다. 백엔드 호출은 없다.
-- 계획된 구조: 별도 백엔드(FastAPI)에 `{ 현재 역, activeFloor, 핀 목록 }` 컨텍스트를 보내고,
-  `{ message, action, targetFloor, targetPinId }` 형태의 JSON을 받아
-  `selectFloor(targetFloor)` → 해당 핀을 찾아 `focusOnPin(pin)` 순서로 지도를 제어한다.
-- 백엔드 URL은 하드코딩하지 말고 파일 상단 상수 하나로 모은다.
+- 통신 규격: `schemas/ai-chat.v0.json` (JSON Schema, 현재 `schemaVersion` "0.1"). **규격을 바꾸면 이 파일을 먼저 고친다.**
+  - 규칙: 필드는 추가만 / 받는 쪽은 모르는 필드·모르는 `actions[].type`을 무시 / 응답 필수 필드는 `reply.text`뿐.
+  - 요청: `{ schemaVersion, message, history[], context: { currentStation, indoor: {activeFloor, mode} | null, pins[] } }`
+    (pins는 좌표 없이 id/title/category/desc/floor만).
+  - 응답: `{ schemaVersion, intent, reply: {text}, route: {from,to,steps[]} | null, actions[] }`.
+    `intent` = route_plan | station_info | pin_locate | general. 현재 프론트가 실행하는 action은 `focus_pin`(pinId, floor) 하나.
+- 백엔드 주소: `<script>` 맨 위 `AI_CHAT_URL`. **비어 있으면 `mockAiChat`(키워드 매칭 목업)이 응답한다.**
+  AI 서비스가 정해지면 백엔드(Worker `/ai/chat` 또는 FastAPI)를 만들고 이 상수만 바꾼다. AI 키는 백엔드에만 둔다.
+- 흐름: `handleAiSubmit` → `buildAiRequest` → `requestAiChat` → `normalizeAiResponse` → `renderAiReply`(답변 패널 `#ai-reply-panel`) → `applyAiActions` → `focusAiPin`.
+- 다른 층 핀으로 포커스할 때는 `pendingFocusPin`에 예약하고 `loadFloorGlbModel` 로드 완료 후 `focusOnPin`한다
+  (로드 콜백이 카메라를 초기화하기 때문).
+- 백엔드는 AI가 낸 `pinId`가 요청 `context.pins`에 있는지 검증해야 한다 (프론트도 없는 핀은 무시한다).
+- AI 캡슐바는 현재 실내 화면에만 있다. 노선도 화면에서 경로 질문을 받으려면 UI 추가가 필요하다.
 
 ## 작업 규칙
 
