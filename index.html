@@ -671,6 +671,38 @@
       background: #e6f5ee;
       color: var(--primary-dark);
     }
+    .cat-item-btn.empty { opacity: 0.45; }
+    .cat-item-btn .cat-count { font-size: 9px; font-weight: 800; color: #94a3b8; }
+    .cat-item-btn.active .cat-count { color: var(--primary-dark); }
+    .cat-item-label { text-align: center; line-height: 1.2; padding: 0 2px; word-break: keep-all; }
+
+    /* 핀 찾기 단계 (층 → 상황 → 시설) */
+    .explore-step-title {
+      margin-top: 14px;
+      font-size: 12px;
+      font-weight: 800;
+      color: #1e293b;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .explore-step-hint { font-size: 10px; color: #94a3b8; font-weight: 600; }
+    .explore-chip-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .explore-chip {
+      border: 1px solid var(--border-light);
+      background: #ffffff;
+      color: #64748b;
+      border-radius: 16px;
+      padding: 6px 11px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .explore-chip.active { border-color: #a7d7c9; background: #e6f5ee; color: var(--primary-dark); }
+    .explore-chip .chip-count { margin-left: 4px; font-size: 10px; color: #94a3b8; }
+    .explore-chip.active .chip-count { color: var(--primary-dark); }
+    .explore-chip.emergency.active { border-color: #f1a9a6; background: #fdecea; color: #9b2c29; }
 
     .floating-tools-left {
       position: absolute;
@@ -1049,10 +1081,14 @@
         
         <input type="text" id="explore-search-input" class="pin-input" style="margin-top:14px;" placeholder="장소 또는 #해시태그 검색" oninput="onExploreSearch(this.value)">
 
-        <div style="margin-top:16px; font-size:12px; font-weight:800; display:flex; justify-content:space-between; align-items:center;">
-          <span style="color:#1e293b;">주변 시설</span>
-          <span style="font-size:10px; color:#94a3b8; font-weight:600;">필요한 장소를 한눈에</span>
-        </div>
+        <!-- 핀 찾기: 층 → 상황 → 시설 -->
+        <div class="explore-step-title"><span>층</span></div>
+        <div class="explore-chip-row" id="explore-floor-row"></div>
+
+        <div class="explore-step-title"><span>상황</span><span class="explore-step-hint">필요한 상황을 고르세요</span></div>
+        <div class="explore-chip-row" id="explore-group-row"></div>
+
+        <div class="explore-step-title" id="explore-category-title"><span>시설</span></div>
         <div class="category-grid" id="category-filter-grid"></div>
 
         <div style="margin-top:14px; font-size:12px; font-weight:800; display:flex; justify-content:space-between;">
@@ -1168,7 +1204,7 @@
     // - Vercel 서울 리전 함수 (ai-backend/). AI 키는 Vercel 환경변수에만 있다.
     // - 비워두면 브라우저 안의 목업(mockAiChat)이 규격에 맞는 가짜 응답을 만든다 (AI 없이 UI 개발할 때).
     const AI_CHAT_URL = "https://subnote-ai.vercel.app/api/chat";
-    const AI_SCHEMA_VERSION = "0.2";
+    const AI_SCHEMA_VERSION = "0.3";
 
     /* ========================================================
        1. 토스트 알림 헬퍼
@@ -1513,21 +1549,52 @@
     /* ========================================================
        3. 실내 핀 테마 & 2D/3D 그래픽 생성기
     ======================================================== */
-    const FIGMA_CATEGORIES = ['전체', '화장실', '충전소', '엘리베이터', '편의점', '휴식', '쓰레기통'];
-    
-    // 시안(MAP PINS 2D vs 3D) 색상 테마 및 아이콘 심볼 정의
-    const CATEGORY_THEMES = {
-      '전체': { color: '#66b69d', light: '#c0eddb', dark: '#3e876f', iconType: 'grid' },
-      '화장실': { color: '#9d8ac7', light: '#d9d0f0', dark: '#6e5a99', iconType: 'toilet' },
-      '충전소': { color: '#4ab994', light: '#b8eedc', dark: '#2b8465', iconType: 'charger' },
-      '엘리베이터': { color: '#4770a8', light: '#b9d2f2', dark: '#2d4d7a', iconType: 'elevator' },
-      '편의점': { color: '#bf8643', light: '#f2d8b1', dark: '#8a5c24', iconType: 'store' },
-      '휴식': { color: '#c76643', light: '#f2c8b8', dark: '#8a3c22', iconType: 'rest' },
-      '쓰레기통': { color: '#7a828e', light: '#d3d7de', dark: '#505661', iconType: 'trash' },
-      '기타': { color: '#63b99d', light: '#c6e8dc', dark: '#367b67', iconType: 'pin' }
+    // 상황별 그룹 → 시설 카테고리 (강남역 핀 탐색: 층 → 상황 → 시설 순으로 거른다)
+    // 순서가 곧 화면 표시 순서. 카테고리를 옮기거나 추가할 때는 여기만 고치면 된다.
+    const PIN_CATEGORY_GROUPS = [
+      { id: 'emergency', label: '비상시', emoji: '🚨', theme: { color: '#d9534f', light: '#f6cfcd', dark: '#9b2c29' },
+        categories: ['AED', '소화전', '비상전화', '휴대용 비상손전등', '구호용품 보관함', '비상용 모래함'] },
+      { id: 'move', label: '이동·탑승', emoji: '🚇', theme: { color: '#4770a8', light: '#b9d2f2', dark: '#2d4d7a' },
+        categories: ['출입구', '개찰구', '탑승구', '엘리베이터', '에스컬레이터', '계단'] },
+      { id: 'amenity', label: '편의시설', emoji: '🚻', theme: { color: '#9d8ac7', light: '#d9d0f0', dark: '#6e5a99' },
+        categories: ['화장실', '벤치', '쓰레기통', '충전기', '물품보관함', '공중전화'] },
+      { id: 'shop', label: '상가·음식', emoji: '🛍️', theme: { color: '#bf8643', light: '#f2d8b1', dark: '#8a5c24' },
+        categories: ['상가', '자판기'] },
+      { id: 'ticket', label: '표·금융', emoji: '🎫', theme: { color: '#2f9e8f', light: '#bfe9e2', dark: '#1d6b60' },
+        categories: ['표사는 곳', 'ATM기'] },
+      { id: 'etc', label: '기타', emoji: '📍', theme: { color: '#63b99d', light: '#c6e8dc', dark: '#367b67' },
+        categories: ['기타'] }
+    ];
+
+    const CATEGORY_EMOJI = {
+      'AED': '❤️‍🩹', '소화전': '🧯', '비상전화': '☎️', '휴대용 비상손전등': '🔦', '구호용품 보관함': '⛑️', '비상용 모래함': '🪣',
+      '출입구': '🚪', '개찰구': '🎟️', '탑승구': '🚆', '엘리베이터': '🛗', '에스컬레이터': '↗️', '계단': '🪜',
+      '화장실': '🚻', '벤치': '🪑', '쓰레기통': '🗑️', '충전기': '🔌', '물품보관함': '🧳', '공중전화': '📞',
+      '상가': '🏪', '자판기': '🥤', '표사는 곳': '🎫', 'ATM기': '🏧', '기타': '📍'
     };
 
-    let activeCategory = '전체';
+    // 예전 카테고리 이름 → 새 이름 (사용자 핀·외부 데이터 호환용)
+    const LEGACY_CATEGORY_MAP = { '충전소': '충전기', '편의점': '상가', '휴식': '벤치', 'AD': 'AED' };
+
+    const ALL_PIN_CATEGORIES = PIN_CATEGORY_GROUPS.flatMap(g => g.categories);
+
+    function normalizeCategory(cat) {
+      const c = LEGACY_CATEGORY_MAP[cat] || cat;
+      return ALL_PIN_CATEGORIES.includes(c) ? c : '기타';
+    }
+
+    function getCategoryGroup(cat) {
+      const c = normalizeCategory(cat);
+      return PIN_CATEGORY_GROUPS.find(g => g.categories.includes(c)) || PIN_CATEGORY_GROUPS[PIN_CATEGORY_GROUPS.length - 1];
+    }
+
+    // 3D 대체 핀 색상: 카테고리가 속한 상황 그룹의 색을 쓴다
+    function getCategoryTheme(cat) {
+      return getCategoryGroup(cat).theme;
+    }
+
+    let activeGroup = 'all';      // 'all' 또는 PIN_CATEGORY_GROUPS[].id
+    let activeCategory = '전체';  // '전체' 또는 카테고리 이름 (activeGroup 안에서)
     let currentIndoorMode = "2D";
     let activeFloor = "B1";
 
@@ -1558,45 +1625,45 @@
       "강남역": [
         // 지하 1층 (B1) - 2호선 대합실 (상단부)
         { id: 'base_b1_1', title: "중앙 화장실", category: "화장실", desc: "1~2번 출구 중간 B1 개찰구 인근", floor: "B1", realX3d: 4.0, realZ3d: -56.0, x: 171, y: 139 },
-        { id: 'base_b1_2', title: "휴대폰 급속 충전소", category: "충전소", desc: "만남의 광장 안내센터 옆 기둥", floor: "B1", realX3d: -5.0, realZ3d: -60.0, x: 144, y: 130 },
-        { id: 'base_b1_3', title: "GS25 편의점", category: "편의점", desc: "지하상가 통로 입구 24시", floor: "B1", realX3d: 25.0, realZ3d: -55.0, x: 234, y: 141 },
+        { id: 'base_b1_2', title: "휴대폰 급속 충전소", category: "충전기", desc: "만남의 광장 안내센터 옆 기둥", floor: "B1", realX3d: -5.0, realZ3d: -60.0, x: 144, y: 130 },
+        { id: 'base_b1_3', title: "GS25 편의점", category: "상가", desc: "지하상가 통로 입구 24시", floor: "B1", realX3d: 25.0, realZ3d: -55.0, x: 234, y: 141 },
 
         // 지하 1층 (B1) - 신분당선 통로 및 남측 대합실 (하단부)
         { id: 'sbd_b1_toilet', title: "신분당선 대합실 화장실", category: "화장실", desc: "B1 환승게이트 남측 (3~6번 출구 방면)", floor: "B1", realX3d: -15.0, realZ3d: 50.0, x: 114, y: 368 },
         { id: 'sbd_b1_ev_4', title: "4번 출구 엘리베이터", category: "엘리베이터", desc: "지상 ↔ B1 대합실 연결 (4번 출구 앞)", floor: "B1", realX3d: -8.4, realZ3d: 88.0, x: 134, y: 451 },
         { id: 'sbd_b1_ev_5', title: "5번 출구 엘리베이터", category: "엘리베이터", desc: "지상 ↔ B1 대합실 연결 (5번 출구 앞)", floor: "B1", realX3d: -20.8, realZ3d: 89.6, x: 97, y: 454 },
-        { id: 'sbd_b1_lckr', title: "신분당선 물품보관함", category: "편의점", desc: "B1 남측 대합실 통로 (4·5번 출구 방면)", floor: "B1", realX3d: -11.0, realZ3d: 58.0, x: 126, y: 386 },
-        { id: 'sbd_b1_atm', title: "신분당선 ATM/충전기", category: "충전소", desc: "B1 환승게이트 앞 무인 금융·충전 코너", floor: "B1", realX3d: -18.0, realZ3d: 42.0, x: 105, y: 351 },
-        { id: 'sbd_b1_store', title: "스토리웨이 편의점", category: "편의점", desc: "B1 신분당선 환승통로 쇼핑존", floor: "B1", realX3d: -15.0, realZ3d: 15.0, x: 114, y: 292 },
-        { id: 'sbd_b1_rest_mid', title: "환승통로 쉼터 벤치", category: "휴식", desc: "2호선 ↔ 신분당선 환승통로 중간 쉼터", floor: "B1", realX3d: -14.0, realZ3d: -2.0, x: 117, y: 256 },
-        { id: 'sbd_b1_rest_3', title: "3번 출구 만남의 쉼터", category: "휴식", desc: "3번 출구 에스컬레이터 앞 대기 공간", floor: "B1", realX3d: -8.4, realZ3d: 74.0, x: 134, y: 420 },
-        { id: 'sbd_b1_rest_6', title: "6번 출구 휴식 벤치", category: "휴식", desc: "6번 출구 방향 통로 휴식 공간", floor: "B1", realX3d: -20.8, realZ3d: 60.0, x: 97, y: 390 },
+        { id: 'sbd_b1_lckr', title: "신분당선 물품보관함", category: "물품보관함", desc: "B1 남측 대합실 통로 (4·5번 출구 방면)", floor: "B1", realX3d: -11.0, realZ3d: 58.0, x: 126, y: 386 },
+        { id: 'sbd_b1_atm', title: "신분당선 ATM/충전기", category: "ATM기", desc: "B1 환승게이트 앞 무인 금융·충전 코너", floor: "B1", realX3d: -18.0, realZ3d: 42.0, x: 105, y: 351 },
+        { id: 'sbd_b1_store', title: "스토리웨이 편의점", category: "상가", desc: "B1 신분당선 환승통로 쇼핑존", floor: "B1", realX3d: -15.0, realZ3d: 15.0, x: 114, y: 292 },
+        { id: 'sbd_b1_rest_mid', title: "환승통로 쉼터 벤치", category: "벤치", desc: "2호선 ↔ 신분당선 환승통로 중간 쉼터", floor: "B1", realX3d: -14.0, realZ3d: -2.0, x: 117, y: 256 },
+        { id: 'sbd_b1_rest_3', title: "3번 출구 만남의 쉼터", category: "벤치", desc: "3번 출구 에스컬레이터 앞 대기 공간", floor: "B1", realX3d: -8.4, realZ3d: 74.0, x: 134, y: 420 },
+        { id: 'sbd_b1_rest_6', title: "6번 출구 휴식 벤치", category: "벤치", desc: "6번 출구 방향 통로 휴식 공간", floor: "B1", realX3d: -20.8, realZ3d: 60.0, x: 97, y: 390 },
         
         // 지하 2층 (B2) - 2호선 승강장 (상단부)
         { id: 'base_b2_1', title: "승강장 엘리베이터", category: "엘리베이터", desc: "2호선 외선(역삼 방면) 승강기", floor: "B2", realX3d: 20.0, realZ3d: -60.0, y3d: null, x: 219, y: 130 },
-        { id: 'base_b2_2', title: "쉬어가는 벤치", category: "휴식", desc: "2호선 승강장 중앙 대기 벤치", floor: "B2", realX3d: -5.0, realZ3d: -65.0, y3d: null, x: 144, y: 119 },
+        { id: 'base_b2_2', title: "쉬어가는 벤치", category: "벤치", desc: "2호선 승강장 중앙 대기 벤치", floor: "B2", realX3d: -5.0, realZ3d: -65.0, y3d: null, x: 144, y: 119 },
 
         // 지하 2층 (B2) - 신분당선 환승통로 (하단부)
         { id: 'sbd_b2_ev', title: "환승통로 연결 승강기", category: "엘리베이터", desc: "B1 ↔ B2 환승통로 연결 엘리베이터", floor: "B2", realX3d: -14.0, realZ3d: 10.0, x: 117, y: 282 },
-        { id: 'sbd_b2_rest_1', title: "환승통로 휴식 벤치", category: "휴식", desc: "신분당선 환승 통로 1구역 대기 벤치", floor: "B2", realX3d: -15.0, realZ3d: 35.0, x: 114, y: 336 },
-        { id: 'sbd_b2_rest_2', title: "환승통로 쉼터 벤치", category: "휴식", desc: "신분당선 환승 통로 2구역 대기 벤치", floor: "B2", realX3d: -15.0, realZ3d: 65.0, x: 114, y: 401 },
-        { id: 'sbd_b2_vnd', title: "음료 자동판매기", category: "편의점", desc: "B2 환승통로 중간 자판기 코너", floor: "B2", realX3d: -18.0, realZ3d: 50.0, x: 105, y: 368 },
-        { id: 'sbd_b2_rest_3', title: "신분당선 연결 쉼터", category: "휴식", desc: "B2 남측 신분당선 대합실 직전 쉼터", floor: "B2", realX3d: -12.0, realZ3d: 80.0, x: 123, y: 433 },
+        { id: 'sbd_b2_rest_1', title: "환승통로 휴식 벤치", category: "벤치", desc: "신분당선 환승 통로 1구역 대기 벤치", floor: "B2", realX3d: -15.0, realZ3d: 35.0, x: 114, y: 336 },
+        { id: 'sbd_b2_rest_2', title: "환승통로 쉼터 벤치", category: "벤치", desc: "신분당선 환승 통로 2구역 대기 벤치", floor: "B2", realX3d: -15.0, realZ3d: 65.0, x: 114, y: 401 },
+        { id: 'sbd_b2_vnd', title: "음료 자동판매기", category: "자판기", desc: "B2 환승통로 중간 자판기 코너", floor: "B2", realX3d: -18.0, realZ3d: 50.0, x: 105, y: 368 },
+        { id: 'sbd_b2_rest_3', title: "신분당선 연결 쉼터", category: "벤치", desc: "B2 남측 신분당선 대합실 직전 쉼터", floor: "B2", realX3d: -12.0, realZ3d: 80.0, x: 123, y: 433 },
 
         // 지하 3층 (B3) - 신분당선 대합실 & 개찰구
         { id: 'sbd_b3_1', title: "신분당선 화장실", category: "화장실", desc: "B3 대합실 남측 (개찰구 외부 4·5번 출구 방면)", floor: "B3", realX3d: -15.0, realZ3d: 55.0, x: 114, y: 379 },
         { id: 'sbd_b3_2', title: "신분당선 승강기 (B3↔B4 하행)", category: "엘리베이터", desc: "B3 대합실 ↔ B4 양재/광교 방면 승강장 연결", floor: "B3", realX3d: -13.0, realZ3d: 20.0, x: 120, y: 303 },
         { id: 'sbd_b3_3', title: "신분당선 승강기 (B3↔B4 상행)", category: "엘리베이터", desc: "B3 대합실 ↔ B4 신사 방면 승강장 연결", floor: "B3", realX3d: -13.0, realZ3d: 60.0, x: 120, y: 390 },
         { id: 'sbd_b3_4', title: "신분당선 고객안내센터", category: "기타", desc: "B3 대합실 개찰구 옆 고객안내실", floor: "B3", realX3d: -12.0, realZ3d: 40.0, x: 123, y: 347 },
-        { id: 'sbd_b3_5', title: "교통카드 무인충전기", category: "충전소", desc: "B3 개찰구 앞 무인 발권·충전기", floor: "B3", realX3d: -18.0, realZ3d: 35.0, x: 105, y: 336 },
-        { id: 'sbd_b3_6', title: "신분당선 물품보관함", category: "편의점", desc: "B3 대합실 통로 무인 락커", floor: "B3", realX3d: -20.0, realZ3d: 48.0, x: 99, y: 364 },
+        { id: 'sbd_b3_5', title: "교통카드 무인충전기", category: "표사는 곳", desc: "B3 개찰구 앞 무인 발권·충전기", floor: "B3", realX3d: -18.0, realZ3d: 35.0, x: 105, y: 336 },
+        { id: 'sbd_b3_6', title: "신분당선 물품보관함", category: "물품보관함", desc: "B3 대합실 통로 무인 락커", floor: "B3", realX3d: -20.0, realZ3d: 48.0, x: 99, y: 364 },
 
         // 지하 4층 (B4) - 신분당선 승강장
         { id: 'sbd_b4_1', title: "승강장 엘리베이터 (하행)", category: "엘리베이터", desc: "B4 승강장 ↔ B3 대합실 연결 (양재/광교 방면)", floor: "B4", realX3d: -13.0, realZ3d: 20.0, x: 120, y: 303 },
         { id: 'sbd_b4_2', title: "승강장 엘리베이터 (상행)", category: "엘리베이터", desc: "B4 승강장 ↔ B3 대합실 연결 (신사 방면)", floor: "B4", realX3d: -13.0, realZ3d: 60.0, x: 120, y: 390 },
-        { id: 'sbd_b4_3', title: "휠체어 급속 충전소", category: "충전소", desc: "B4 승강장 중앙 고객 대기실 인근", floor: "B4", realX3d: -16.0, realZ3d: 45.0, x: 111, y: 358 },
-        { id: 'sbd_b4_4', title: "승강장 고객 쉼터 벤치", category: "휴식", desc: "B4 승강장 열차 대기 고객 쉼터", floor: "B4", realX3d: -10.0, realZ3d: 35.0, x: 129, y: 336 },
-        { id: 'sbd_b4_5', title: "음료 자동판매기", category: "편의점", desc: "B4 승강장 중앙 자판기 코너", floor: "B4", realX3d: -16.0, realZ3d: 55.0, x: 111, y: 379 }
+        { id: 'sbd_b4_3', title: "휠체어 급속 충전소", category: "충전기", desc: "B4 승강장 중앙 고객 대기실 인근", floor: "B4", realX3d: -16.0, realZ3d: 45.0, x: 111, y: 358 },
+        { id: 'sbd_b4_4', title: "승강장 고객 쉼터 벤치", category: "벤치", desc: "B4 승강장 열차 대기 고객 쉼터", floor: "B4", realX3d: -10.0, realZ3d: 35.0, x: 129, y: 336 },
+        { id: 'sbd_b4_5', title: "음료 자동판매기", category: "자판기", desc: "B4 승강장 중앙 자판기 코너", floor: "B4", realX3d: -16.0, realZ3d: 55.0, x: 111, y: 379 }
       ]
     };
 
@@ -1606,43 +1673,105 @@
     const categoryGrid = document.getElementById("category-filter-grid");
     const pinCatSelect = document.getElementById("pin-category-select");
 
+    // 핀 등록 모달의 카테고리 선택지 (상황 그룹별 optgroup). 필터 칩은 renderExploreFilters가 그린다.
     function initCategoryFilters() {
-      categoryGrid.innerHTML = "";
       pinCatSelect.innerHTML = "";
-
-      FIGMA_CATEGORIES.forEach(cat => {
-        const btn = document.createElement("button");
-        btn.className = `cat-item-btn ${cat === activeCategory ? 'active' : ''}`;
-        btn.innerHTML = `<span>${getCategoryEmoji(cat)}</span><span>${cat}</span>`;
-        btn.onclick = () => {
-          activeCategory = cat;
-          document.querySelectorAll(".cat-item-btn").forEach(b => b.classList.remove("active"));
-          btn.classList.add("active");
-          renderExplorePinsList();
-          syncPinsTo3D();
-        };
-        categoryGrid.appendChild(btn);
-
-        if (cat !== '전체') {
+      PIN_CATEGORY_GROUPS.forEach(g => {
+        const og = document.createElement("optgroup");
+        og.label = `${g.emoji} ${g.label}`;
+        g.categories.forEach(cat => {
           const opt = document.createElement("option");
           opt.value = cat;
           opt.innerText = `${getCategoryEmoji(cat)} ${cat}`;
-          pinCatSelect.appendChild(opt);
-        }
+          og.appendChild(opt);
+        });
+        pinCatSelect.appendChild(og);
       });
+      activeGroup = 'all';
+      activeCategory = '전체';
     }
 
     function getCategoryEmoji(cat) {
-      switch(cat) {
-        case '전체': return '🗂️';
-        case '화장실': return '🚻';
-        case '충전소': return '⚡';
-        case '엘리베이터': return '🛗';
-        case '편의점': return '🏪';
-        case '휴식': return '☕';
-        case '쓰레기통': return '🗑️';
-        default: return '📍';
-      }
+      if (cat === '전체') return '🗂️';
+      return CATEGORY_EMOJI[normalizeCategory(cat)] || '📍';
+    }
+
+    // 현재 필터(상황 그룹 + 시설)에 맞는 핀인지
+    function pinMatchesFilter(pin) {
+      const cat = normalizeCategory(pin.category);
+      if (activeGroup !== 'all' && getCategoryGroup(cat).id !== activeGroup) return false;
+      if (activeCategory !== '전체' && cat !== activeCategory) return false;
+      return true;
+    }
+
+    function getStationPins() {
+      const stName = currentSelectedStation ? currentSelectedStation.name : "강남역";
+      return STATION_PINS_DB[stName] || [];
+    }
+
+    function setExploreGroup(groupId) {
+      activeGroup = groupId;
+      activeCategory = '전체';
+      onExploreFilterChanged();
+    }
+
+    function setExploreCategory(cat) {
+      activeCategory = cat;
+      onExploreFilterChanged();
+    }
+
+    function onExploreFilterChanged() {
+      renderExplorePinsList(document.getElementById("explore-search-input").value.trim());
+      syncPinsTo3D();
+    }
+
+    // 층 → 상황 → 시설 칩을 현재 층의 핀 개수와 함께 다시 그린다
+    function renderExploreFilters() {
+      const floorPins = getStationPins().filter(p => p.floor === activeFloor);
+      const countBy = (fn) => floorPins.filter(fn).length;
+
+      // 1) 층: 지도 층 버튼과 같은 동작 (selectFloor)
+      const floorRow = document.getElementById("explore-floor-row");
+      floorRow.innerHTML = "";
+      Array.from(document.querySelectorAll(".floor-btn")).forEach(fb => {
+        const floor = fb.innerText.trim();
+        const chip = document.createElement("button");
+        chip.className = `explore-chip ${floor === activeFloor ? 'active' : ''}`;
+        chip.innerHTML = `${floor}<span class="chip-count">${getStationPins().filter(p => p.floor === floor).length}</span>`;
+        chip.onclick = () => selectFloor(floor, fb);
+        floorRow.appendChild(chip);
+      });
+
+      // 2) 상황
+      const groupRow = document.getElementById("explore-group-row");
+      groupRow.innerHTML = "";
+      [{ id: 'all', label: '전체', emoji: '🗂️' }, ...PIN_CATEGORY_GROUPS].forEach(g => {
+        const n = g.id === 'all' ? floorPins.length : countBy(p => getCategoryGroup(p.category).id === g.id);
+        const chip = document.createElement("button");
+        chip.className = `explore-chip ${g.id} ${g.id === activeGroup ? 'active' : ''}`;
+        chip.innerHTML = `${g.emoji} ${g.label}<span class="chip-count">${n}</span>`;
+        chip.onclick = () => setExploreGroup(g.id);
+        groupRow.appendChild(chip);
+      });
+
+      // 3) 시설: 상황을 고른 뒤에만 보인다
+      const group = PIN_CATEGORY_GROUPS.find(g => g.id === activeGroup);
+      document.getElementById("explore-category-title").style.display = group ? "flex" : "none";
+      categoryGrid.style.display = group ? "grid" : "none";
+      categoryGrid.innerHTML = "";
+      if (!group) return;
+      ['전체', ...group.categories].forEach(cat => {
+        const n = cat === '전체'
+          ? countBy(p => getCategoryGroup(p.category).id === group.id)
+          : countBy(p => normalizeCategory(p.category) === cat);
+        const btn = document.createElement("button");
+        btn.className = `cat-item-btn ${cat === activeCategory ? 'active' : ''} ${n === 0 ? 'empty' : ''}`;
+        btn.innerHTML = `<span>${cat === '전체' ? group.emoji : getCategoryEmoji(cat)}</span>`
+          + `<span class="cat-item-label">${cat === '전체' ? group.label + ' 전체' : cat}</span>`
+          + `<span class="cat-count">${n}</span>`;
+        btn.onclick = () => setExploreCategory(cat);
+        categoryGrid.appendChild(btn);
+      });
     }
 
     function enterIndoorView() {
@@ -1713,17 +1842,21 @@
     }
 
     function renderExplorePinsList(filterQuery = "") {
+      renderExploreFilters();
       const listEl = document.getElementById("explore-pins-list");
       listEl.innerHTML = "";
 
-      const stName = currentSelectedStation ? currentSelectedStation.name : "강남역";
-      const allPins = (STATION_PINS_DB[stName] || []).filter(p => p.floor === activeFloor);
+      const allPins = getStationPins().filter(p => p.floor === activeFloor);
+      const q = filterQuery.toLowerCase();
 
+      // 층 → 상황 → 시설 필터 + 검색어. 상황 그룹 순서대로 정렬
+      const groupOrder = (p) => PIN_CATEGORY_GROUPS.indexOf(getCategoryGroup(p.category));
       const filtered = allPins.filter(p => {
-        const matchCat = (activeCategory === '전체' || p.category === activeCategory);
-        const matchQuery = !filterQuery || p.title.toLowerCase().includes(filterQuery.toLowerCase()) || (p.desc && p.desc.toLowerCase().includes(filterQuery.toLowerCase()));
-        return matchCat && matchQuery;
-      });
+        const matchQuery = !q || p.title.toLowerCase().includes(q)
+          || (p.desc && p.desc.toLowerCase().includes(q))
+          || normalizeCategory(p.category).toLowerCase().includes(q);
+        return pinMatchesFilter(p) && matchQuery;
+      }).sort((a, b) => groupOrder(a) - groupOrder(b));
 
       document.getElementById("explore-pins-count").innerText = `${filtered.length}개`;
 
@@ -1738,7 +1871,7 @@
         item.innerHTML = `
           <div>
             <div style="font-size:12px; font-weight:800; color:#1e293b;">${pin.title}</div>
-            <div style="font-size:10px; color:#808691; margin-top:3px;">#${pin.category} · ${pin.floor}</div>
+            <div style="font-size:10px; color:#808691; margin-top:3px;">${getCategoryEmoji(pin.category)} ${getCategoryGroup(pin.category).label} · #${normalizeCategory(pin.category)} · ${pin.floor}</div>
           </div>
           <span style="font-size:13px; color:#367b67; font-weight:800;">›</span>
         `;
@@ -1827,7 +1960,8 @@
     function buildAiRequest(message) {
       const stationName = currentSelectedStation ? currentSelectedStation.name : null;
       const inIndoor = !indoorView.classList.contains("hidden");
-      const pins = (stationName && STATION_PINS_DB[stationName]) || [];
+      // 핀은 강남역 데이터만 있다. 어느 화면에서 묻든 강남역 질문에 쓸 수 있게 항상 보낸다.
+      const pins = STATION_PINS_DB["강남역"] || [];
       return {
         schemaVersion: AI_SCHEMA_VERSION,
         message,
@@ -1835,8 +1969,11 @@
         context: {
           currentStation: stationName,
           indoor: inIndoor ? { activeFloor, mode: currentIndoorMode } : null,
+          // 층 → 상황 → 시설 분류 체계 (AI가 질문을 상황·시설로 바꿔 핀을 찾는 데 쓴다)
+          categoryGroups: PIN_CATEGORY_GROUPS.map(g => ({ id: g.id, label: g.label, categories: g.categories })),
           pins: pins.map(p => ({
-            id: String(p.id), title: p.title, category: p.category, desc: p.desc || "", floor: p.floor
+            id: String(p.id), title: p.title, category: normalizeCategory(p.category),
+            group: getCategoryGroup(p.category).id, desc: p.desc || "", floor: p.floor
           }))
         }
       };
@@ -1883,15 +2020,36 @@
     }
 
     function findPinById(pinId) {
-      const stationName = currentSelectedStation ? currentSelectedStation.name : null;
-      const pins = (stationName && STATION_PINS_DB[stationName]) || [];
+      const pins = STATION_PINS_DB["강남역"] || [];   // AI가 다루는 핀은 강남역 데이터뿐
       return pins.find(p => String(p.id) === String(pinId)) || null;
     }
 
     // 지도 제어 명령 실행. 모르는 type이나 없는 핀은 조용히 건너뛴다.
     function applyAiActions(actions) {
       const focus = actions.find(a => a.type === "focus_pin" && findPinById(a.pinId));
+      const show = actions.find(a => a.type === "show_category" && isValidAiCategoryAction(a));
+      // show_category: 지도·탐색 패널을 그 상황/시설만 보이게 거른다.
+      // 포커스할 핀이 그 필터에 안 들어가면(다른 시설) 필터는 건너뛴다 — 핀이 숨겨지지 않게
+      if (show && indoorView.classList.contains("hidden") === false) {
+        const focusPin = focus ? findPinById(focus.pinId) : null;
+        const fits = !focusPin || (getCategoryGroup(focusPin.category).id === show.group
+          && (!show.category || normalizeCategory(focusPin.category) === show.category));
+        if (fits) applyAiCategoryFilter(show);
+      }
       if (focus) focusAiPin(focus.pinId);
+    }
+
+    function isValidAiCategoryAction(a) {
+      const g = PIN_CATEGORY_GROUPS.find(x => x.id === a.group);
+      return !!g && (!a.category || g.categories.includes(a.category));
+    }
+
+    function applyAiCategoryFilter(a) {
+      activeGroup = a.group;
+      activeCategory = a.category || '전체';
+      onExploreFilterChanged();
+      const g = PIN_CATEGORY_GROUPS.find(x => x.id === a.group);
+      showToast(`지도에 ${g.emoji} ${a.category || g.label}만 표시 중 · 탐색(🔍)에서 '전체'로 되돌릴 수 있어요`);
     }
 
     function focusAiPin(pinId) {
@@ -1985,6 +2143,21 @@
         chipsEl.appendChild(chip);
       });
 
+      // show_category: 같은 시설 모아보기 버튼 (실내 지도에서만 동작)
+      res.actions.filter(a => a.type === "show_category" && isValidAiCategoryAction(a)).slice(0, 1).forEach(a => {
+        const g = PIN_CATEGORY_GROUPS.find(x => x.id === a.group);
+        const chip = document.createElement("button");
+        chip.className = "ai-pin-chip";
+        chip.textContent = `🔎 ${g.label}${a.category ? " › " + a.category : ""} 모아보기`;
+        chip.onclick = (ev) => {
+          ev.stopPropagation();
+          if (indoorView.classList.contains("hidden")) { showToast("강남역 실내 지도에서 볼 수 있어요."); return; }
+          applyAiCategoryFilter(a);
+          toggleExplorePanel(true);
+        };
+        chipsEl.appendChild(chip);
+      });
+
       document.getElementById("ai-reply-panel").classList.add("show");
     }
 
@@ -2010,11 +2183,19 @@
     -------------------------------------------------------- */
     const AI_MOCK_CATEGORY_WORDS = {
       "화장실": ["화장실", "변기"],
-      "엘리베이터": ["엘리베이터", "승강기", "에스컬레이터", "휠체어", "유모차"],
-      "충전소": ["충전", "atm", "발매기", "교통카드", "키오스크"],
-      "편의점": ["편의점", "보관함", "락커", "사물함"],
-      "휴식": ["휴식", "쉴", "벤치", "수유"],
-      "쓰레기통": ["쓰레기"]
+      "엘리베이터": ["엘리베이터", "승강기", "휠체어", "유모차"],
+      "에스컬레이터": ["에스컬레이터"],
+      "충전기": ["충전"],
+      "ATM기": ["atm", "현금"],
+      "표사는 곳": ["발매기", "교통카드", "키오스크", "표"],
+      "상가": ["편의점", "가게", "상가"],
+      "자판기": ["자판기", "음료", "물"],
+      "물품보관함": ["보관함", "락커", "사물함", "짐"],
+      "벤치": ["휴식", "쉴", "벤치", "앉"],
+      "쓰레기통": ["쓰레기"],
+      "AED": ["aed", "심장", "제세동"],
+      "소화전": ["소화", "불"],
+      "비상전화": ["비상전화", "비상 전화"]
     };
 
     // 메시지에 나온 역 이름을 등장 순서대로 찾는다 (강남 vs 강남구청처럼 겹치면 긴 쪽 우선)
@@ -2063,7 +2244,7 @@
         .filter(([, words]) => words.some(w => lower.includes(w)))
         .map(([cat]) => cat);
       let matched = pins.filter(p =>
-        wantCats.includes(p.category) || (p.title && p.title.length >= 2 && msg.includes(p.title)));
+        wantCats.includes(normalizeCategory(p.category)) || (p.title && p.title.length >= 2 && msg.includes(p.title)));
       if (matched.length) {
         // 우선순위: 제목이 그대로 나온 핀 > 현재 층 핀 > 나머지
         const score = p => (msg.includes(p.title) ? 2 : 0) + (p.floor === floor ? 1 : 0);
@@ -2666,7 +2847,7 @@
       const pins = (STATION_PINS_DB[stName] || []).filter(p => p.floor === activeFloor);
 
       pins.forEach(pin => {
-        if (activeCategory !== '전체' && pin.category !== activeCategory) return;
+        if (!pinMatchesFilter(pin)) return;   // 탐색 패널의 상황·시설 필터와 같은 기준
 
         let x3d, z3d;
         if (pin.realX3d !== undefined && pin.realZ3d !== undefined) {
@@ -2694,25 +2875,24 @@
       update2DPinsScaling();
     }
 
-    // Pins 폴더 내부 파일 경로 매핑
+    // Pins 폴더 내부 파일 경로 매핑 (전용 아이콘이 있는 카테고리만. 나머지는 이모지 배지를 그린다)
     const PIN_2D_IMAGE_MAP = {
       '화장실': 'Pins/Restroom.png',
-      '충전소': 'Pins/Charging.png',
+      '충전기': 'Pins/Charging.png',
       '엘리베이터': 'Pins/Elevator.png',
-      '편의점': 'Pins/Store.png',
-      '휴식': 'Pins/RestArea.png',
-      '쓰레기통': 'Pins/Trash.png',
-      '기타': 'Pins/Restroom.png'
+      '상가': 'Pins/Store.png',
+      '벤치': 'Pins/RestArea.png',
+      '쓰레기통': 'Pins/Trash.png'
     };
 
-    // 3D GLB 핀 모델 전체 매핑
+    // 3D GLB 핀 모델 매핑 (없는 카테고리는 createFallbackGeometryPin으로 그룹 색 핀)
     const PIN_3D_MODEL_MAP = {
       '쓰레기통': 'Pins/trashcan_3d.glb',
       '엘리베이터': 'Pins/elevator_3d.glb',
       '화장실': 'Pins/restroom_3d.glb',
-      '충전소': 'Pins/charging_3d.glb',
-      '편의점': 'Pins/store_3d.glb',
-      '휴식': 'Pins/restarea_3d.glb'
+      '충전기': 'Pins/charging_3d.glb',
+      '상가': 'Pins/store_3d.glb',
+      '벤치': 'Pins/restarea_3d.glb'
     };
 
     // 로드된 3D 핀 모델 캐시
@@ -2722,12 +2902,40 @@
     const pinTextureCache = {};
 
     function getPinTexture(category) {
-      const fileName = PIN_2D_IMAGE_MAP[category] || 'Pins/Restroom.png';
+      const cat = normalizeCategory(category);
+      const fileName = PIN_2D_IMAGE_MAP[cat];
+      if (!fileName) return getEmojiPinTexture(cat);
       if (!pinTextureCache[fileName]) {
         pinTextureCache[fileName] = textureLoader.load(fileName);
         pinTextureCache[fileName].minFilter = THREE.LinearFilter;
       }
       return pinTextureCache[fileName];
+    }
+
+    // 전용 PNG가 없는 카테고리: 상황 그룹 색 원 + 이모지를 캔버스로 그려 텍스처로 쓴다
+    function getEmojiPinTexture(cat) {
+      const key = "emoji:" + cat;
+      if (pinTextureCache[key]) return pinTextureCache[key];
+      const size = 128;
+      const canvas = document.createElement("canvas");
+      canvas.width = canvas.height = size;
+      const ctx = canvas.getContext("2d");
+      const theme = getCategoryTheme(cat);
+      ctx.beginPath();
+      ctx.arc(size / 2, size / 2, size / 2 - 6, 0, Math.PI * 2);
+      ctx.fillStyle = "#ffffff";
+      ctx.fill();
+      ctx.lineWidth = 10;
+      ctx.strokeStyle = theme.color;
+      ctx.stroke();
+      ctx.font = "64px 'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(getCategoryEmoji(cat), size / 2, size / 2 + 4);
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.minFilter = THREE.LinearFilter;
+      pinTextureCache[key] = tex;
+      return tex;
     }
 
     // 2. 2D 모드: 원본 PNG 텍스처를 적용한 탑뷰 바닥면 밀착 핀
@@ -2755,7 +2963,7 @@
 
     // 3. 3D 모드: GLB 핀 모델 및 지오메트리 핀 렌더링
     function create3DIsometricPin(pinData) {
-      const glbPath = PIN_3D_MODEL_MAP[pinData.category];
+      const glbPath = PIN_3D_MODEL_MAP[normalizeCategory(pinData.category)];
 
       // GLB 3D 모델이 지정된 카테고리인 경우 (쓰레기통, 엘리베이터 등)
       if (glbPath) {
@@ -2831,7 +3039,7 @@
     // 기본 지오메트리 핀 렌더 함수 (대체용)
     function createFallbackGeometryPin(pinData) {
       const group = new THREE.Group();
-      const theme = CATEGORY_THEMES[pinData.category] || CATEGORY_THEMES['기타'];
+      const theme = getCategoryTheme(pinData.category);
       const colorHex = theme.color;
 
       const ringGeo = new THREE.RingGeometry(0.8, 1.25, 24);
@@ -3068,15 +3276,18 @@
       '신분당': { x: -14.0, z: 30.0 }
     };
 
-    // 2. 시설 명칭 및 오퍼레이션을 기존 카테고리(엘리베이터, 화장실, 충전소 등)로 분류
+    // 2. 시설 명칭 및 오퍼레이션을 PIN_CATEGORY_GROUPS의 카테고리로 분류
     function mapFacilityToCategory(fcltNm, defaultCategory) {
-      if (defaultCategory) return defaultCategory;
+      if (defaultCategory) return normalizeCategory(defaultCategory);
       if (!fcltNm) return "기타";
-      if (fcltNm.includes("엘리베이터") || fcltNm.includes("EV") || fcltNm.includes("에스컬레이터")) return "엘리베이터";
+      if (fcltNm.includes("에스컬레이터")) return "에스컬레이터";
+      if (fcltNm.includes("엘리베이터") || fcltNm.includes("EV") || fcltNm.includes("승강기")) return "엘리베이터";
       if (fcltNm.includes("화장실")) return "화장실";
-      if (fcltNm.includes("충전") || fcltNm.includes("ATM")) return "충전소";
-      if (fcltNm.includes("보관함") || fcltNm.includes("자판기")) return "편의점";
-      if (fcltNm.includes("수유실") || fcltNm.includes("휴식")) return "휴식";
+      if (fcltNm.includes("ATM")) return "ATM기";
+      if (fcltNm.includes("발매기") || fcltNm.includes("교통카드")) return "표사는 곳";
+      if (fcltNm.includes("충전")) return "충전기";
+      if (fcltNm.includes("보관함") || fcltNm.includes("락커")) return "물품보관함";
+      if (fcltNm.includes("자판기")) return "자판기";
       if (fcltNm.includes("쓰레기")) return "쓰레기통";
       return "기타";
     }
@@ -3136,14 +3347,14 @@
       // 서울교통공사_편의시설위치정보 (서비스 ID: 15143841) 공식 오퍼레이션 전체 목록
       const operations = [
         { op: 'getFcElvtr', category: '엘리베이터' },
-        { op: 'getFcEsctr', category: '엘리베이터' },   // 에스컬레이터
+        { op: 'getFcEsctr', category: '에스컬레이터' },
         { op: 'getFcRstrm', category: '화장실' },       // 화장실
-        { op: 'getFcAtm', category: '충전소' },         // ATM
-        { op: 'getFcLckr', category: '편의점' },         // 물품보관함
-        { op: 'getFcNrsrm', category: '휴식' },          // 수유실
+        { op: 'getFcAtm', category: 'ATM기' },
+        { op: 'getFcLckr', category: '물품보관함' },
+        { op: 'getFcNrsrm', category: '기타' },          // 수유실 (목록에 없는 시설)
         { op: 'getFcCstct', category: '기타' },          // 고객안전실
         { op: 'getFcAtdspnr', category: '기타' },       // 무인민원발급기
-        { op: 'getFcTkatm', category: '충전소' }        // 승차권자동발매기 & 교통카드 키오스크 (6대)
+        { op: 'getFcTkatm', category: '표사는 곳' }     // 승차권자동발매기 & 교통카드 키오스크
       ];
 
       try {

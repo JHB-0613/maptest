@@ -53,10 +53,10 @@ project_handover_document.md  # 인계서 (일부 내용이 실제 코드와 다
 | --- | --- |
 | 공통 | `showToast`, `getLineBadgeClass`, `formatLineName` |
 | 메인 노선도 | `MAP_SIZE`, `STATIONS_LIST`, `initStations`, `selectStation`, `onMainSearchInput`, `updateTransform`, `panToStation`, `handleMapClick` (CSS transform 기반 pan/zoom, 핀치줌) |
-| 실내 상태 | `FIGMA_CATEGORIES`, `CATEGORY_THEMES`, `activeCategory`, `currentIndoorMode`("2D"/"3D"), `activeFloor`("B1"~"B4") |
+| 실내 상태 | `PIN_CATEGORY_GROUPS`, `CATEGORY_EMOJI`, `normalizeCategory`, `getCategoryGroup`, `activeGroup`, `activeCategory`, `currentIndoorMode`("2D"/"3D"), `activeFloor`("B1"~"B4") |
 | 좌표 변환 | `MODEL_BBOX`, `coord2Dto3D`, `coord3Dto2D` |
 | 핀 DB | `STATION_PINS_DB` |
-| 실내 UI | `enterIndoorView`, `exitIndoorView`, `renderExplorePinsList`, `toggleAiCapsule`, `handleAiSubmit`, `toggleSubpage` |
+| 실내 UI | `enterIndoorView`, `exitIndoorView`, `renderExploreFilters`, `pinMatchesFilter`, `renderExplorePinsList`, `toggleAiCapsule`, `handleAiSubmit`, `toggleSubpage` |
 | 카메라 | `setIndoorMode`, `setCameraToTopDownView`, `syncCameraToIsometricView`, `transitionCamera`(rAF 애니메이션, 연타 시 `cancelAnimationFrame`으로 인터럽트), `clampTopDownPan`, `update2DPinsScaling` |
 | Three.js | `initThreeScene`, `loadFloorGlbModel`, `selectFloor`, `getSurfaceHeightAt`(Raycaster로 바닥 높이) |
 | 핀 렌더링 | `syncPinsTo3D`, `PIN_3D_MODEL_MAP`, `getPinTexture`, `create2DTopViewPin`, `create3DIsometricPin`, `createFallbackGeometryPin`, `focusOnPin`, `setup3DInteraction` |
@@ -74,7 +74,7 @@ project_handover_document.md  # 인계서 (일부 내용이 실제 코드와 다
 {
   id: 'base_b1_1',        // 접두사로 출처 구분 (아래 참고)
   title: "중앙 화장실",
-  category: "화장실",      // FIGMA_CATEGORIES 중 하나 (API 핀은 '기타'도 가능)
+  category: "화장실",      // PIN_CATEGORY_GROUPS의 카테고리 중 하나 (없으면 '기타')
   desc: "상세 위치 설명",
   floor: "B1",            // "B1" ~ "B4"
   realX3d: 4.0,           // Three.js 월드 X (동서)
@@ -91,12 +91,28 @@ project_handover_document.md  # 인계서 (일부 내용이 실제 코드와 다
   - 숫자(`Date.now()`) : 사용자가 직접 만든 핀
 - 사용자 핀은 메모리에만 있고 **저장(localStorage/서버)되지 않는다.** 새로고침하면 사라진다.
 
-### 카테고리 ↔ 3D 핀 모델
+### 카테고리 (층 → 상황 → 시설)
 
-`PIN_3D_MODEL_MAP`에 6개 카테고리가 모두 등록돼 있다:
-쓰레기통·엘리베이터·화장실·충전소·편의점·휴식 → `Pins/*_3d.glb`.
-매핑이 없는 카테고리(예: '기타')는 `createFallbackGeometryPin`으로 기본 도형을 그린다.
-3D 핀은 `Box3`로 최하단을 바닥에 맞추고 크기를 정규화한 뒤 `pin3DModelCache`에 캐시한다.
+강남역 핀 탐색 패널은 **층 → 상황 그룹 → 시설 카테고리** 순으로 거른다. 정의는 `PIN_CATEGORY_GROUPS` 하나에 모여 있다.
+
+| 상황 그룹 | 카테고리 |
+| --- | --- |
+| 🚨 비상시 | AED, 소화전, 비상전화, 휴대용 비상손전등, 구호용품 보관함, 비상용 모래함 |
+| 🚇 이동·탑승 | 출입구, 개찰구, 탑승구, 엘리베이터, 에스컬레이터, 계단 |
+| 🚻 편의시설 | 화장실, 벤치, 쓰레기통, 충전기, 물품보관함, 공중전화 |
+| 🛍️ 상가·음식 | 상가, 자판기 |
+| 🎫 표·금융 | 표사는 곳, ATM기 |
+| 📍 기타 | 기타 (고객안전실·수유실·무인민원발급기 등 목록에 없는 시설) |
+
+- 카테고리 비교는 항상 `normalizeCategory()`를 거친다. 예전 이름(충전소→충전기, 편의점→상가, 휴식→벤치, AD→AED)은
+  `LEGACY_CATEGORY_MAP`으로 바뀌고, 목록에 없는 이름은 '기타'가 된다.
+- 지도에 보이는 핀도 탐색 패널 필터(`pinMatchesFilter`)를 따른다 (`syncPinsTo3D`).
+- 아이콘: 전용 PNG/GLB는 화장실·충전기·엘리베이터·상가·벤치·쓰레기통 6개뿐 (`PIN_2D_IMAGE_MAP`, `PIN_3D_MODEL_MAP`).
+  나머지는 2D에서 `getEmojiPinTexture`(그룹 색 원 + 이모지 캔버스), 3D에서 `createFallbackGeometryPin`(그룹 색)으로 그린다.
+  전용 아이콘을 추가하면 두 맵에 카테고리 이름으로 등록만 하면 된다.
+- 3D 핀은 `Box3`로 최하단을 바닥에 맞추고 크기를 정규화한 뒤 `pin3DModelCache`에 캐시한다.
+- 공공데이터 오퍼레이션 → 카테고리: 엘리베이터·에스컬레이터·화장실·ATM기·물품보관함·표사는 곳(승차권발매기),
+  수유실·고객안전실·무인민원발급기는 '기타'.
 
 ## 좌표계
 
@@ -122,12 +138,15 @@ project_handover_document.md  # 인계서 (일부 내용이 실제 코드와 다
 
 ## AI 대화 (Gemini 연결됨)
 
-- 통신 규격: `schemas/ai-chat.v0.json` (JSON Schema, 현재 `schemaVersion` "0.2"). **규격을 바꾸면 이 파일을 먼저 고친다.**
+- 통신 규격: `schemas/ai-chat.v0.json` (JSON Schema, 현재 `schemaVersion` "0.3"). **규격을 바꾸면 이 파일을 먼저 고친다.**
   - 규칙: 필드는 추가만 / 받는 쪽은 모르는 필드·모르는 `actions[].type`을 무시 / 응답 필수 필드는 `reply.text`뿐.
-  - 요청: `{ schemaVersion, message, history[], context: { currentStation, indoor: {activeFloor, mode} | null, pins[] } }`
-    (pins는 좌표 없이 id/title/category/desc/floor만).
+  - 요청: `{ schemaVersion, message, history[], context: { currentStation, indoor: {activeFloor, mode} | null, categoryGroups[], pins[] } }`
+    (pins는 **화면과 무관하게 항상 강남역 핀**, 좌표 없이 id/title/category/group/desc/floor만. categoryGroups는 `PIN_CATEGORY_GROUPS`).
   - 응답: `{ schemaVersion, aboutStation, intent, reply: {text, sources[]?, searchSuggestionHtml?}, route: {from,to,steps[]} | null, actions[] }`.
-    `intent` = route_plan | station_info | pin_locate | general. 현재 프론트가 실행하는 action은 `focus_pin`(pinId, floor) 하나.
+    `intent` = route_plan | station_info | pin_locate | general.
+  - actions: `focus_pin`(pinId, floor) — 핀으로 이동, `show_category`(group, category|null) — 지도·탐색 패널을 그 상황/시설로 거름.
+    서버는 각각 최대 1개만 보내고, show_category의 category가 비면 focus_pin 핀의 시설로 채운다.
+    프론트(`applyAiActions`)는 focus 핀이 필터에 안 맞으면 필터를 건너뛴다.
 - 백엔드 주소: `<script>` 맨 위 `AI_CHAT_URL` = `https://subnote-ai.vercel.app/api/chat`.
   **비우면 `mockAiChat`(키워드 매칭 목업)이 응답한다** (AI 없이 UI 개발할 때).
 - 백엔드: `ai-backend/` (Vercel 프로젝트 `subnote-ai`, 리전 **서울 `icn1`** 고정, `maxDuration` 60초).
@@ -140,7 +159,16 @@ project_handover_document.md  # 인계서 (일부 내용이 실제 코드와 다
   - ⚠️ **AI 호출을 Cloudflare Worker로 옮기지 않는다.** 한국 요청이 Cloudflare 홍콩(HKG)을 거치면 Gemini가
     "User location is not supported"로 거절한다 (Placement Hint·AI Gateway로도 해결 안 됨. OpenAI도 홍콩 차단).
   - thinking 수준을 높이면 경로 질문이 30초를 넘길 수 있다 (low 기준 약 2~4초).
+- **처리 경로는 두 가지다 (`aboutStation`으로 갈린다).**
+  - 강남역 질문 → 분류 체계 + 핀 데이터에서 찾는다 (웹 검색은 핀에 없는 비(非)비상 정보일 때만).
+  - 다른 역 질문 → 분류 체계·핀을 쓰지 않고 웹 검색으로 답한다. 시설·역 정보 질문(`intent` station_info/pin_locate)은
+    AI가 `needsWebSearch`를 빼먹어도 서버가 강제로 검색한다 (예전에 "신논현역 AED"를 추측으로 답한 사례).
 - **핀은 강남역 질문에만 쓴다.** 1단계 응답의 `aboutStation`이 강남역(강남구청 제외)이 아니면 서버가 actions·step.pinId를 버린다.
+- **강남역 시설 찾기는 분류 체계(층 → 상황 → 시설)를 따른다.** 지침(`buildSystemPrompt`)에 분류 체계와
+  `formatPinsByCategory`로 정리한 핀 목록(핀 없는 시설은 "등록된 핀 없음")을 넣고, AI가 질문을 상황·시설로 바꿔
+  (예: 쓰러짐 → 비상시>AED, 목마름 → 상가·음식) 현재 층 우선으로 핀을 고른다. 비상시는 119·역무원 안내를 먼저, 웹 검색 없이.
+  분류를 바꾸면 앱의 `PIN_CATEGORY_GROUPS`만 고치면 된다 (요청에 실려 가므로 백엔드 수정 불필요).
+  지침이 길어져 강남역 질문은 약 5~6초 걸린다.
 - **다른 역/외부 정보는 웹 검색(2단계)으로 답한다.**
   - 1단계: JSON 스키마 강제로 `{aboutStation, needsWebSearch, intent, replyText, route, actions}` 결정 (약 2초).
   - 2단계: `needsWebSearch=true`일 때만 `searchAnswer`가 Google 검색 그라운딩(`tools: [{google_search:{}}]`, 형식 강제 없음)으로

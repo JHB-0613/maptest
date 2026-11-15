@@ -18,7 +18,7 @@
  */
 
 export const ALLOWED_ORIGINS = ["https://jhb-0613.github.io", "http://localhost:8080"];
-const SCHEMA_VERSION = "0.2";
+const SCHEMA_VERSION = "0.3";
 const DEFAULT_OPENAI_MODEL = "gpt-4o-mini";
 const DEFAULT_GEMINI_MODEL = "gemini-3.8-flash";
 const GEMINI_BASE_URL = "https://generativelanguage.googleapis.com";
@@ -91,6 +91,14 @@ export async function handleChatRequest(request, env) {
     return json(fallback(e.userMessage || "AI 응답을 처리하지 못했습니다. 잠시 후 다시 시도해주세요."), 200, cors);
   }
 
+  // 안전장치: 강남역이 아닌 특정 역의 시설·역 정보 질문은 AI가 검색을 빼먹어도 검색한다 (추측 답변 방지).
+  // 강남역은 핀 데이터로 답하고, 경로 계획·일반 질문(예: 응급 대처 안내)은 AI 판단을 따른다.
+  if (webSearch && out.needsWebSearch !== true && out.aboutStation && !isGangnam(out.aboutStation)
+      && (out.intent === "station_info" || out.intent === "pin_locate")) {
+    console.log("AI force web search", out.aboutStation, out.intent);
+    out.needsWebSearch = true;
+  }
+
   // 2단계: 검색이 필요하다고 판단했으면 Google 검색으로 답변 글을 다시 만든다.
   // (형식 강제와 검색 도구를 한 번에 주면 Gemini가 검색을 건너뛰어서 나눈다.) 실패하면 1단계 답변을 그대로 쓴다.
   if (webSearch && out.needsWebSearch === true) {
@@ -106,7 +114,7 @@ export async function handleChatRequest(request, env) {
     }
   }
 
-  return json(toChatResponse(out, pins), 200, cors);
+  return json(toChatResponse(out, pins, readCategoryGroups(ctx)), 200, cors);
 }
 
 // 2단계: Google 검색 그라운딩으로 일반 글 답변을 받는다 (형식 강제 없음)
@@ -116,6 +124,7 @@ async function searchAnswer(env, ctx, turns, draft) {
     "너는 서울 지하철 안내 앱 'sub note'의 도우미다. 사용자의 마지막 질문에 Google 검색으로 최신 정보를 확인해 답한다.",
     "한국어 존댓말로 2~4문장, 핵심만 쓴다. 마크다운·목록 기호·URL·각주 번호는 쓰지 않는다.",
     "확인되지 않은 내용은 단정하지 말고, 바뀔 수 있는 정보(운영 시간 등)는 방문 전 확인을 권한다.",
+    "생명·안전이 걸린 상황이면 첫 문장에 119 신고와 역무원 호출을 안내한다.",
     draft.aboutStation ? `질문 대상: ${draft.aboutStation}` : "",
     draft.route ? "경로 안내는 별도로 화면에 표시되므로, 경로 단계는 간단히만 언급한다." : "",
   ].filter(Boolean).join("\n");
@@ -254,12 +263,42 @@ function userError(msg) {
   return e;
 }
 
+// 앱이 보낸 분류 체계 (층 → 상황 그룹 → 시설). 형식이 이상하면 빈 배열
+function readCategoryGroups(ctx) {
+  const groups = Array.isArray(ctx.categoryGroups) ? ctx.categoryGroups : [];
+  return groups
+    .filter(g => g && typeof g.id === "string" && typeof g.label === "string" && Array.isArray(g.categories))
+    .slice(0, 20)
+    .map(g => ({ id: g.id, label: g.label, categories: g.categories.filter(c => typeof c === "string").slice(0, 40) }));
+}
+
+// 핀 목록을 상황 그룹 → 시설 → 핀(층) 순서로 정리한 글. 핀이 없는 시설도 "등록된 핀 없음"으로 적는다.
+function formatPinsByCategory(groups, pins) {
+  const line = p => `    - id=${p.id} | ${p.floor} | ${p.title}${p.desc ? " | " + p.desc : ""}`;
+  if (!groups.length) {
+    return pins.map(p => `- id=${p.id} | ${p.floor} | ${p.category} | ${p.title}${p.desc ? " | " + p.desc : ""}`).join("\n");
+  }
+  const out = [];
+  const used = new Set();
+  for (const g of groups) {
+    out.push(`[${g.label}] (group=${g.id})`);
+    for (const c of g.categories) {
+      const list = pins.filter(p => p.category === c);
+      list.forEach(p => used.add(p));
+      out.push(list.length ? `  · ${c} (${list.length}개)` : `  · ${c}: 등록된 핀 없음`);
+      list.sort((a, b) => String(a.floor).localeCompare(String(b.floor))).forEach(p => out.push(line(p)));
+    }
+  }
+  const rest = pins.filter(p => !used.has(p));
+  if (rest.length) { out.push("[분류 없음]"); rest.forEach(p => out.push(line(p))); }
+  return out.join("\n");
+}
+
 function buildSystemPrompt(ctx, pins, webSearch) {
   const station = ctx.currentStation || "(선택 안 함)";
   const indoor = ctx.indoor ? `실내 지도 ${ctx.indoor.activeFloor}층, ${ctx.indoor.mode} 화면` : "노선도 화면";
-  const pinLines = pins
-    .map(p => `- id=${p.id} | ${p.floor} | ${p.category} | ${p.title}${p.desc ? " | " + p.desc : ""}`)
-    .join("\n");
+  const groups = readCategoryGroups(ctx);
+  const taxonomy = groups.map(g => `- ${g.label} (group=${g.id}): ${g.categories.join(", ")}`).join("\n");
   // 웹 검색은 이 단계에서 직접 하지 않는다. needsWebSearch=true면 서버가 2단계(searchAnswer)에서 검색해 답변 글을 바꾼다.
   const research = webSearch
     ? "needsWebSearch를 true로 하고, replyText에는 아는 범위의 짧은 초안을 쓴다(검색 후 서버가 교체한다)."
@@ -271,14 +310,33 @@ function buildSystemPrompt(ctx, pins, webSearch) {
     "[질문 대상 역 판단]",
     "- 먼저 질문이 어느 역에 대한 것인지 판단해 aboutStation에 역 이름(예: '강남역', '잠실역')을 쓴다. 특정 역이 아니면 null.",
     "- 사용자가 지금 강남역 실내 지도를 보고 있어도, 질문이 다른 역(예: '잠실역 가는 중')에 관한 것이면 그 역이 대상이다.",
+    "- 사용자가 강남역 실내 지도를 보면서 역 이름 없이 시설을 물으면(예: '화장실 어디야?') 강남역 질문이다.",
     "",
-    "[강남역 질문]",
-    "- 아래 [강남역 시설 데이터]를 가장 우선하는 근거로 쓴다. 데이터의 세부 위치 설명을 활용해 일반적으로 잘 알려지지 않은 구체적인 정보까지 알려준다.",
-    "- 데이터에 해당 시설이 있으면 intent=pin_locate(또는 station_info)로 하고, 가장 알맞은 핀 하나를 actions에 focus_pin으로 넣는다.",
-    `- 데이터에 없는 시설이면 그렇다고 말한 뒤, ${research} 이때는 actions를 비운다.`,
+    "[처리 경로는 두 가지다. aboutStation으로 먼저 고른다]",
+    "- A. 강남역 질문 → 아래 분류 체계와 [강남역 시설 데이터]의 핀에서 찾는다.",
+    "- B. 다른 역 질문 → 분류 체계·핀·A의 절차를 전혀 쓰지 않는다. 웹 검색으로 답한다(아래 [다른 역 질문]).",
     "",
-    "[다른 역 질문 / 일반 질문]",
-    `- [강남역 시설 데이터]와 핀은 절대 쓰지 않는다. actions는 빈 배열이다. ${research}`,
+    "[A. 강남역 시설 분류 체계: 층 → 상황 → 시설] (강남역 질문에만 사용)",
+    taxonomy || "(분류 정보 없음)",
+    "",
+    "[A. 강남역 시설 찾기 절차] (강남역 질문에만 적용)",
+    "1) 상황·시설로 바꾸기: 질문 속 필요를 위 분류의 상황 그룹과 시설로 바꾼다. 시설 이름을 직접 말하지 않아도 추론한다.",
+    "   예) 사람이 쓰러짐·심정지 → 비상시>AED / 불·연기 → 비상시>소화전 / 정전·어두움 → 비상시>휴대용 비상손전등 /",
+    "       다침·응급처치 → 비상시>구호용품 보관함 / 위급 신고 → 비상시>비상전화 / 목마름·음료 → 상가·음식>자판기 또는 상가 /",
+    "       짐 맡기기 → 편의시설>물품보관함 / 휴대폰 배터리 → 편의시설>충전기 / 쉬고 싶음 → 편의시설>벤치 /",
+    "       휠체어·유모차·큰 짐 → 이동·탑승>엘리베이터 / 표·교통카드 충전 → 표·금융>표사는 곳 / 현금 → 표·금융>ATM기",
+    "2) 층으로 거르기: 사용자가 층을 말했으면 그 층, 아니면 지금 보고 있는 층의 핀을 먼저 고르고, 없으면 가까운 층(B1↔B2↔B3↔B4)에서 고른다.",
+    "3) 답하기: 가장 알맞은 핀 하나를 actions에 focus_pin(pinId)으로 넣고, 답변에 층과 세부 위치 설명을 구체적으로 쓴다. intent=pin_locate.",
+    "   같은 시설 핀이 2개 이상이면 actions에 show_category(group, category)도 넣어 지도에 그 시설을 모두 보여준다.",
+    "4) 해당 시설 핀이 없으면: '아직 앱에 등록되지 않았다'고 말하고, 같은 상황 그룹의 다른 시설 핀이 있으면 대안으로 안내한다(focus_pin).",
+    `   비상 상황이 아니면 ${research}`,
+    "5) 강남역 비상시 질문: 생명·안전이 걸리면 119 신고와 가까운 역무원·비상전화 이용을 가장 먼저 짧게 안내한 뒤 핀 위치를 알려준다. 속도가 중요하므로 needsWebSearch=false.",
+    "",
+    "[B. 다른 역 질문 / 일반 질문]",
+    "- 강남역 분류 체계·데이터·핀은 절대 쓰지 않는다. actions는 빈 배열이다.",
+    "- 다른 역의 시설 위치·출구·주변 가게·운영 정보 질문은 비상시 시설(AED 등)이라도 항상 needsWebSearch=true. 추측으로 위치를 말하지 않는다.",
+    "- 생명·안전이 걸린 상황이면 replyText 첫 문장에 119 신고와 역무원 호출을 안내한다.",
+    `- 그 밖의 정보도 ${research}`,
     "- 특정 가게·시설 위치, 운영 시간처럼 바뀔 수 있는 정보는 확인한 범위에서 말하고, 확실하지 않으면 그렇다고 밝힌다.",
     "",
     "[경로 계획]",
@@ -288,17 +346,18 @@ function buildSystemPrompt(ctx, pins, webSearch) {
     "",
     "[웹 검색 필요 여부 needsWebSearch]",
     "- true: 강남역 데이터로 답할 수 없는 사실 정보가 필요할 때 (다른 역의 시설·출구·주변 가게, 운영 시간, 요금, 최근 운행 소식 등).",
-    "- false: 강남역 데이터로 답하는 질문, 단순한 경로 계획, 인사나 간단한 일반 질문.",
+    "- false: 강남역 데이터로 답하는 질문, 강남역 비상시 질문, 단순한 경로 계획, 인사나 간단한 일반 질문.",
     "",
     "[출력 규칙]",
-    "- pinId는 반드시 [강남역 시설 데이터]의 id 중 하나를 그대로 쓴다. 없는 id를 만들지 않는다.",
+    "- actions 항목: focus_pin은 pinId만, show_category는 group(분류 체계의 group 값)과 category(시설 이름, 그룹 전체면 null)만 채우고 나머지는 null.",
+    "- pinId는 반드시 [강남역 시설 데이터]의 id를 그대로 쓴다. 없는 id를 만들지 않는다.",
     "- 경로 질문이 아니면 route는 null, 지도 이동이 필요 없으면 actions는 빈 배열로 둔다.",
-    "- step에서 해당 없는 필드는 null로 둔다. replyText에는 URL이나 각주 번호를 넣지 않는다.",
+    "- step에서 해당 없는 필드는 null로 둔다. replyText에는 URL이나 각주 번호, 핀 id를 넣지 않는다.",
     "",
     `[현재 상태] 선택한 역: ${station}, 화면: ${indoor}`,
     "",
-    "[강남역 시설 데이터] (강남역 질문에만 사용. id | 층 | 카테고리 | 이름 | 설명)",
-    pinLines || "(없음)",
+    "[강남역 시설 데이터] (강남역 질문에만 사용. 상황 > 시설 > id | 층 | 이름 | 설명)",
+    formatPinsByCategory(groups, pins) || "(없음)",
   ].join("\n");
 }
 
@@ -351,10 +410,10 @@ const OPENAI_REPLY_SCHEMA = {
       items: {
         type: "object",
         additionalProperties: false,
-        required: ["type", "pinId"],
+        required: ["type", "pinId", "group", "category"],
         properties: {
-          type: { type: "string", enum: ["focus_pin"] },
-          pinId: { type: "string" },
+          type: { type: "string", enum: ["focus_pin", "show_category"] },
+          pinId: nullableStr, group: nullableStr, category: nullableStr,
         },
       },
     },
@@ -397,10 +456,10 @@ const GEMINI_REPLY_SCHEMA = {
       type: "ARRAY",
       items: {
         type: "OBJECT",
-        required: ["type", "pinId"],
+        required: ["type"],
         properties: {
-          type: { type: "STRING", enum: ["focus_pin"] },
-          pinId: { type: "STRING" },
+          type: { type: "STRING", enum: ["focus_pin", "show_category"] },
+          pinId: gStr, group: gStr, category: gStr,
         },
       },
     },
@@ -409,7 +468,7 @@ const GEMINI_REPLY_SCHEMA = {
 
 // AI 출력 → 규격(ChatResponse)으로 변환. 없는 pinId는 지우고, floor는 우리 데이터에서 채운다.
 // 강남역이 아닌 질문이면 핀(actions, step.pinId)을 모두 버린다.
-function toChatResponse(out, allPins) {
+function toChatResponse(out, allPins, groups = []) {
   const pins = isGangnam(out.aboutStation) ? allPins : [];
   const byId = new Map(pins.map(p => [String(p.id), p]));
   const route = (out.route && typeof out.route === "object") ? {
@@ -422,9 +481,24 @@ function toChatResponse(out, allPins) {
       return step;
     }),
   } : null;
-  const actions = (Array.isArray(out.actions) ? out.actions : [])
+  const rawActions = Array.isArray(out.actions) ? out.actions : [];
+  const actions = rawActions
     .filter(a => a && a.type === "focus_pin" && byId.has(String(a.pinId)))
+    .slice(0, 1)
     .map(a => ({ type: "focus_pin", pinId: String(a.pinId), floor: byId.get(String(a.pinId)).floor }));
+  // show_category: 강남역 질문이고, 앱이 보낸 분류 체계에 있는 그룹/시설일 때만 (최대 1개)
+  if (pins.length) {
+    const show = rawActions.find(a => a && a.type === "show_category" && groups.some(g =>
+      g.id === a.group && (!a.category || g.categories.includes(a.category))));
+    if (show) {
+      // AI가 그룹만 주고 시설을 비웠으면, 안내하는 핀의 시설로 좁힌다 (같은 그룹일 때만)
+      let category = show.category || null;
+      const focusPin = actions.length ? byId.get(actions[0].pinId) : null;
+      const group = groups.find(g => g.id === show.group);
+      if (!category && focusPin && group.categories.includes(focusPin.category)) category = focusPin.category;
+      actions.push({ type: "show_category", group: show.group, category });
+    }
+  }
 
   const reply = { text: typeof out.replyText === "string" && out.replyText ? out.replyText : "답변이 비어 있습니다." };
   if (Array.isArray(out._sources) && out._sources.length) reply.sources = out._sources;
