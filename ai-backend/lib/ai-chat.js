@@ -18,7 +18,7 @@
  */
 
 export const ALLOWED_ORIGINS = ["https://jhb-0613.github.io", "http://localhost:8080"];
-const SCHEMA_VERSION = "0.3";
+const SCHEMA_VERSION = "0.4";
 const DEFAULT_OPENAI_MODEL = "gpt-4o-mini";
 const DEFAULT_GEMINI_MODEL = "gemini-3.8-flash";
 const GEMINI_BASE_URL = "https://generativelanguage.googleapis.com";
@@ -105,7 +105,10 @@ export async function handleChatRequest(request, env) {
     try {
       const found = await searchAnswer(env, ctx, turns, out);
       if (found.text) {
-        out.replyText = found.text;
+        // 검색 답변은 마크다운 일부(목록·표·굵게)로 받아 블록으로 바꾼다. 요약 글은 서식을 뺀 첫 문단.
+        const blocks = markdownToBlocks(found.text);
+        out.blocks = blocks;
+        out.replyText = summarizeBlocks(blocks) || stripMarkdown(found.text);
         out._sources = found.sources;
         out._searchSuggestionHtml = found.searchSuggestionHtml;
       }
@@ -117,16 +120,149 @@ export async function handleChatRequest(request, env) {
   return json(toChatResponse(out, pins, readCategoryGroups(ctx)), 200, cors);
 }
 
+/* ---------------- 답변 블록 (규격 0.4) ---------------- */
+
+const MAX_BLOCKS = 6;
+const MAX_ITEMS = 8;
+const MAX_ROWS = 8;
+const MAX_COLS = 4;
+const clip = (v, n = 300) => (typeof v === "string" ? v.trim().slice(0, n) : "");
+
+// 인라인 마크다운 정리: 링크는 글자만, 각주 [1] 삭제, **굵게**는 남긴다 (앱이 안전하게 렌더)
+function cleanInline(s) {
+  return String(s)
+    .replace(/\[([^\]]+)\]\((?:https?:)?[^)]*\)/g, "$1")
+    .replace(/\s*\[\d+(?:,\s*\d+)*\]/g, "")
+    .replace(/`([^`]*)`/g, "$1")
+    .replace(/(^|[^*])\*(?!\*)([^*]+)\*(?!\*)/g, "$1$2")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function stripMarkdown(s) {
+  const noBold = String(s).replace(/\*\*/g, "");
+  return cleanInline(noBold.replace(/^\s*(?:#+\s+|>\s?|[-*•]\s+|\d+[.)]\s+)/gm, "").replace(/\|/g, " "));
+}
+
+// 검색 답변(마크다운 일부) → 블록. 표·번호 목록·글머리 목록·'> ' 주의·문단만 인식한다.
+function markdownToBlocks(md) {
+  const lines = String(md).replace(/\r/g, "").split("\n");
+  const blocks = [];
+  let para = [];
+  const flushPara = () => {
+    const text = cleanInline(para.join(" "));
+    if (text) blocks.push({ type: "paragraph", text });
+    para = [];
+  };
+  const splitRow = (l) => l.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map(c => cleanInline(c));
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (!line.trim()) { flushPara(); continue; }
+    // 표: | a | b | 다음 줄이 |---|
+    if (/^\s*\|.*\|\s*$/.test(line) && i + 1 < lines.length && /^\s*\|?\s*:?-{2,}/.test(lines[i + 1])) {
+      flushPara();
+      const columns = splitRow(line);
+      const rows = [];
+      i += 2;
+      while (i < lines.length && /^\s*\|.*\|\s*$/.test(lines[i])) { rows.push(splitRow(lines[i])); i++; }
+      i--;
+      blocks.push({ type: "table", columns, rows });
+      continue;
+    }
+    const ol = line.match(/^\s*\d+[.)]\s+(.*)$/);
+    const ul = line.match(/^\s*[-*•]\s+(.*)$/);
+    if (ol || ul) {
+      flushPara();
+      const type = ol ? "steps" : "bullets";
+      const last = blocks[blocks.length - 1];
+      const item = cleanInline((ol || ul)[1]);
+      if (last && last.type === type) last.items.push(item); else blocks.push({ type, items: [item] });
+      continue;
+    }
+    const q = line.match(/^\s*>\s?(.*)$/);
+    if (q) { flushPara(); blocks.push({ type: "callout", tone: "warning", text: cleanInline(q[1]) }); continue; }
+    const h = line.match(/^\s*#{1,6}\s+(.*)$/);
+    if (h) { flushPara(); para.push(`**${h[1]}**`); flushPara(); continue; }
+    para.push(line);
+  }
+  flushPara();
+  return blocks;
+}
+
+// 블록에서 대화 기록·호환용 한두 문장 요약을 뽑는다 (서식 제거)
+function summarizeBlocks(blocks) {
+  const first = blocks.find(b => b.type === "paragraph" || b.type === "callout");
+  return first ? stripMarkdown(first.text).slice(0, 300) : "";
+}
+
+// AI가 만든 블록을 검사·정리한다. pins 블록은 강남역 질문의 실제 핀만 남긴다.
+function sanitizeBlocks(raw, byId) {
+  if (!Array.isArray(raw)) return [];
+  const out = [];
+  for (const b of raw) {
+    if (!b || !BLOCK_TYPES.includes(b.type) || out.length >= MAX_BLOCKS) continue;
+    const title = clip(b.title, 60) || undefined;
+    if (b.type === "paragraph") {
+      const text = cleanInline(clip(b.text, 600));
+      if (text) out.push({ type: "paragraph", text });
+    } else if (b.type === "callout") {
+      const text = cleanInline(clip(b.text, 300));
+      const tone = ["info", "warning", "emergency"].includes(b.tone) ? b.tone : "info";
+      if (text) out.push({ type: "callout", tone, text, title });
+    } else if (b.type === "steps" || b.type === "bullets") {
+      const items = (Array.isArray(b.items) ? b.items : []).map(x => cleanInline(clip(x, 200))).filter(Boolean).slice(0, MAX_ITEMS);
+      if (items.length) out.push({ type: b.type, title, items });
+    } else if (b.type === "table") {
+      const columns = (Array.isArray(b.columns) ? b.columns : []).map(x => cleanInline(clip(x, 40))).slice(0, MAX_COLS);
+      const rows = (Array.isArray(b.rows) ? b.rows : [])
+        .filter(Array.isArray)
+        .slice(0, MAX_ROWS)
+        .map(r => columns.map((_, i) => cleanInline(clip(r[i], 120))));
+      if (columns.length >= 2 && rows.length) out.push({ type: "table", title, columns, rows });
+    } else if (b.type === "pins") {
+      const pinIds = [...new Set((Array.isArray(b.pinIds) ? b.pinIds : []).map(String))].filter(id => byId.has(id)).slice(0, 6);
+      if (pinIds.length) out.push({ type: "pins", title, pinIds });
+    }
+  }
+  return out;
+}
+
+// 강남역 핀을 안내(focus_pin)하는데 핀 카드 블록이 없으면 자동으로 붙인다.
+// 안내 핀 + 같은 시설의 다른 핀(같은 층 우선), 최대 4개. 블록이 아예 없으면 요약 문단부터 만든다.
+function ensurePinCards(blocks, actions, pins, summary) {
+  const focus = actions.find(a => a.type === "focus_pin");
+  if (!focus || blocks.some(b => b.type === "pins")) return blocks;
+  const fp = pins.find(p => String(p.id) === focus.pinId);
+  if (!fp) return blocks;
+  // '기타'는 서로 다른 시설(고객안전실·수유실 등)을 모은 분류라 같은 시설로 묶지 않는다
+  const same = fp.category === "기타" ? [] : pins
+    .filter(p => p.category === fp.category && String(p.id) !== focus.pinId)
+    .sort((a, b) => (a.floor === fp.floor ? 0 : 1) - (b.floor === fp.floor ? 0 : 1));
+  const card = { type: "pins", pinIds: [focus.pinId, ...same.slice(0, 3).map(p => String(p.id))] };
+  const result = blocks.length ? blocks.slice() : (summary ? [{ type: "paragraph", text: summary }] : []);
+  // 맨 앞의 요약 문단·주의 상자 바로 뒤에 넣는다
+  let at = 0;
+  while (at < result.length && (result[at].type === "paragraph" || result[at].type === "callout") && at < 2) at++;
+  result.splice(at, 0, card);
+  return result.slice(0, MAX_BLOCKS);
+}
+
 // 2단계: Google 검색 그라운딩으로 일반 글 답변을 받는다 (형식 강제 없음)
 async function searchAnswer(env, ctx, turns, draft) {
   const model = env.GEMINI_MODEL || DEFAULT_GEMINI_MODEL;
   const system = [
     "너는 서울 지하철 안내 앱 'sub note'의 도우미다. 사용자의 마지막 질문에 Google 검색으로 최신 정보를 확인해 답한다.",
-    "한국어 존댓말로 2~4문장, 핵심만 쓴다. 마크다운·목록 기호·URL·각주 번호는 쓰지 않는다.",
+    "한국어 존댓말로, 모바일 화면에서 한눈에 읽히게 쓴다. URL·각주 번호·제목(#)은 쓰지 않는다.",
+    "형식: 첫 줄은 핵심을 1~2문장으로 요약한다. 그 아래는 내용에 맞게 다음 서식만 쓴다.",
+    "- 순서가 있는 방법·동선은 '1. ' 번호 목록 (최대 6개)",
+    "- 여러 장소·선택지는 '- ' 글머리 목록 (최대 6개), 각 항목은 한 줄로",
+    "- 2개 이상을 같은 기준(위치·운영시간·요금 등)으로 비교할 때만 마크다운 표 (열 4개, 행 6개 이하)",
+    "- 꼭 알아야 할 주의 사항은 '> ' 로 시작하는 한 줄",
+    "- 중요한 단어는 **굵게**. 그 밖의 마크다운은 쓰지 않는다. 전체 분량은 짧게 유지한다.",
     "확인되지 않은 내용은 단정하지 말고, 바뀔 수 있는 정보(운영 시간 등)는 방문 전 확인을 권한다.",
-    "생명·안전이 걸린 상황이면 첫 문장에 119 신고와 역무원 호출을 안내한다.",
+    "생명·안전이 걸린 상황이면 첫 줄에 119 신고와 역무원 호출을 안내한다.",
     draft.aboutStation ? `질문 대상: ${draft.aboutStation}` : "",
-    draft.route ? "경로 안내는 별도로 화면에 표시되므로, 경로 단계는 간단히만 언급한다." : "",
+    draft.route ? "경로 단계는 화면에 따로 표시되므로 번호 목록으로 다시 쓰지 말고, 들를 곳 정보와 주의 사항 위주로 쓴다." : "",
   ].filter(Boolean).join("\n");
 
   let t = turns;
@@ -348,6 +484,19 @@ function buildSystemPrompt(ctx, pins, webSearch) {
     "- true: 강남역 데이터로 답할 수 없는 사실 정보가 필요할 때 (다른 역의 시설·출구·주변 가게, 운영 시간, 요금, 최근 운행 소식 등).",
     "- false: 강남역 데이터로 답하는 질문, 강남역 비상시 질문, 단순한 경로 계획, 인사나 간단한 일반 질문.",
     "",
+    "[답변 형식: replyText + blocks]",
+    "- replyText: 핵심을 1~2문장으로 요약한 일반 글 (서식 없이). 화면에는 blocks가 있으면 blocks를 보여준다.",
+    "- blocks: 모바일 화면에서 한눈에 읽히도록 내용을 나눠 담는다. 최대 5개, 짧게. 내용에 맞는 것만 쓴다.",
+    "  · paragraph(text): 요약·설명 한두 문장. 보통 맨 앞에 하나.",
+    "  · steps(title, items): 순서가 있는 방법·동선 (예: '개찰구 통과 → 왼쪽 통로 → 엘리베이터'). 항목은 한 줄씩.",
+    "  · bullets(title, items): 순서 없는 여러 선택지·특징.",
+    "  · table(title, columns, rows): 2개 이상을 같은 기준(층·위치·특징 등)으로 비교할 때. 열 4개·행 6개 이하. rows의 각 행은 columns 순서대로.",
+    "  · callout(tone, text): 꼭 알아야 할 한 줄. tone=emergency(생명·안전, 119 안내), warning(주의), info(참고).",
+    "  · pins(title, pinIds): 강남역 질문에서 안내하는 핀들을 카드(아이콘·층·위치)로 보여준다. 여러 후보면 가까운 순으로 최대 4개.",
+    "- 강남역 시설 질문 예: [paragraph 요약] → [pins 후보] → 필요하면 [steps 가는 방법]. 비상시는 [callout emergency]를 맨 앞에.",
+    "- 경로 계획은 route에 담으면 화면이 따로 단계별로 그리므로, blocks에 같은 단계를 반복하지 않는다(요약 paragraph와 주의 callout 정도만).",
+    "- 각 블록에서 쓰지 않는 필드는 null. 중요한 단어만 **굵게** 표시할 수 있다. 다른 마크다운은 쓰지 않는다.",
+    "",
     "[출력 규칙]",
     "- actions 항목: focus_pin은 pinId만, show_category는 group(분류 체계의 group 값)과 category(시설 이름, 그룹 전체면 null)만 채우고 나머지는 null.",
     "- pinId는 반드시 [강남역 시설 데이터]의 id를 그대로 쓴다. 없는 id를 만들지 않는다.",
@@ -368,11 +517,29 @@ function isGangnam(aboutStation) {
 
 // OpenAI strict 모드용 응답 스키마 (모든 필드 required, 없으면 null)
 const nullableStr = { type: ["string", "null"] };
+const nullableStrArr = { anyOf: [{ type: "array", items: { type: "string" } }, { type: "null" }] };
+// 답변 블록 종류 (규격 0.4). 앱은 모르는 type을 무시한다.
+const BLOCK_TYPES = ["paragraph", "steps", "bullets", "table", "callout", "pins"];
 const OPENAI_REPLY_SCHEMA = {
   type: "object",
   additionalProperties: false,
-  required: ["aboutStation", "needsWebSearch", "intent", "replyText", "route", "actions"],
+  required: ["aboutStation", "needsWebSearch", "intent", "replyText", "blocks", "route", "actions"],
   properties: {
+    blocks: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["type", "title", "text", "tone", "items", "columns", "rows", "pinIds"],
+        properties: {
+          type: { type: "string", enum: BLOCK_TYPES },
+          title: nullableStr, text: nullableStr,
+          tone: { anyOf: [{ type: "string", enum: ["info", "warning", "emergency"] }, { type: "null" }] },
+          items: nullableStrArr, columns: nullableStrArr, pinIds: nullableStrArr,
+          rows: { anyOf: [{ type: "array", items: { type: "array", items: { type: "string" } } }, { type: "null" }] },
+        },
+      },
+    },
     aboutStation: nullableStr,
     needsWebSearch: { type: "boolean" },
     intent: { type: "string", enum: ["route_plan", "station_info", "pin_locate", "general"] },
@@ -424,9 +591,25 @@ const OPENAI_REPLY_SCHEMA = {
 const gStr = { type: "STRING", nullable: true };
 const GEMINI_REPLY_SCHEMA = {
   type: "OBJECT",
-  required: ["aboutStation", "needsWebSearch", "intent", "replyText", "route", "actions"],
-  propertyOrdering: ["aboutStation", "needsWebSearch", "intent", "replyText", "route", "actions"],
+  required: ["aboutStation", "needsWebSearch", "intent", "replyText", "blocks", "route", "actions"],
+  propertyOrdering: ["aboutStation", "needsWebSearch", "intent", "replyText", "blocks", "route", "actions"],
   properties: {
+    blocks: {
+      type: "ARRAY",
+      items: {
+        type: "OBJECT",
+        required: ["type"],
+        properties: {
+          type: { type: "STRING", enum: BLOCK_TYPES },
+          title: gStr, text: gStr,
+          tone: { type: "STRING", enum: ["info", "warning", "emergency"], nullable: true },
+          items: { type: "ARRAY", items: { type: "STRING" }, nullable: true },
+          columns: { type: "ARRAY", items: { type: "STRING" }, nullable: true },
+          rows: { type: "ARRAY", items: { type: "ARRAY", items: { type: "STRING" } }, nullable: true },
+          pinIds: { type: "ARRAY", items: { type: "STRING" }, nullable: true },
+        },
+      },
+    },
     aboutStation: gStr,
     needsWebSearch: { type: "BOOLEAN" },
     intent: { type: "STRING", enum: ["route_plan", "station_info", "pin_locate", "general"] },
@@ -500,7 +683,19 @@ function toChatResponse(out, allPins, groups = []) {
     }
   }
 
-  const reply = { text: typeof out.replyText === "string" && out.replyText ? out.replyText : "답변이 비어 있습니다." };
+  const reply = { text: typeof out.replyText === "string" && out.replyText ? stripMarkdown(out.replyText) : "답변이 비어 있습니다." };
+  let blocks = sanitizeBlocks(out.blocks, byId);
+  // 경로가 있으면 화면이 route를 단계별로 따로 그리므로, 같은 내용의 번호 목록 블록은 뺀다
+  if (route && route.steps.length) blocks = blocks.filter(b => b.type !== "steps");
+  blocks = ensurePinCards(blocks, actions, pins, reply.text);
+  // 119 안내가 있는데 비상 상자가 없으면, 첫 문단을 비상 상자로 바꿔 눈에 띄게 한다
+  if (/119/.test(reply.text) && !blocks.some(b => b.type === "callout" && b.tone === "emergency")) {
+    const i = blocks.findIndex(b => b.type === "paragraph" && /119/.test(b.text));
+    if (i >= 0) blocks[i] = { type: "callout", tone: "emergency", text: blocks[i].text };
+    else blocks.unshift({ type: "callout", tone: "emergency", text: reply.text });
+    blocks = blocks.slice(0, MAX_BLOCKS);
+  }
+  if (blocks.length) reply.blocks = blocks;
   if (Array.isArray(out._sources) && out._sources.length) reply.sources = out._sources;
   if (typeof out._searchSuggestionHtml === "string" && out._searchSuggestionHtml) reply.searchSuggestionHtml = out._searchSuggestionHtml;
 

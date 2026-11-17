@@ -80,9 +80,15 @@ project_handover_document.md  # 인계서 (일부 내용이 실제 코드와 다
   realX3d: 4.0,           // Three.js 월드 X (동서)
   realZ3d: -56.0,         // Three.js 월드 Z (남북)
   x: 171, y: 120,         // 2D 좌표 (360×520 기준, coord3Dto2D로 계산)
-  y3d: null               // 선택. 없으면 getSurfaceHeightAt으로 바닥 스냅
+  y3d: null,              // 선택. 없으면 getSurfaceHeightAt으로 바닥 스냅
+  photo: "data:image/jpeg;base64,..."  // 선택. 핀 사진 (아래 참고)
 }
 ```
+
+- `photo`(선택): 핀 등록·수정 모달의 사진 칸에서 고르면 `resizeImageFile`이 긴 변 1024px JPEG(품질 0.8)로 줄여
+  data URL로 담는다. 미리 넣는 사진은 파일 경로(예: `photos/gangnam/<id>.jpg`)를 적어도 된다.
+  표시 위치: 핀 모달 미리보기, 탐색 목록 썸네일, AI 답변 핀 카드(사진이 있으면 아이콘 대신 사진).
+  **AI 요청에는 사진을 보내지 않는다** (`buildAiRequest`가 필요한 필드만 고름). 다른 사용자 핀 정보처럼 메모리에만 있다.
 
 - id 접두사 규칙:
   - `base_...` : 하드코딩된 기본 핀 (2호선 구역)
@@ -138,12 +144,20 @@ project_handover_document.md  # 인계서 (일부 내용이 실제 코드와 다
 
 ## AI 대화 (Gemini 연결됨)
 
-- 통신 규격: `schemas/ai-chat.v0.json` (JSON Schema, 현재 `schemaVersion` "0.3"). **규격을 바꾸면 이 파일을 먼저 고친다.**
+- 통신 규격: `schemas/ai-chat.v0.json` (JSON Schema, 현재 `schemaVersion` "0.4"). **규격을 바꾸면 이 파일을 먼저 고친다.**
   - 규칙: 필드는 추가만 / 받는 쪽은 모르는 필드·모르는 `actions[].type`을 무시 / 응답 필수 필드는 `reply.text`뿐.
   - 요청: `{ schemaVersion, message, history[], context: { currentStation, indoor: {activeFloor, mode} | null, categoryGroups[], pins[] } }`
     (pins는 **화면과 무관하게 항상 강남역 핀**, 좌표 없이 id/title/category/group/desc/floor만. categoryGroups는 `PIN_CATEGORY_GROUPS`).
-  - 응답: `{ schemaVersion, aboutStation, intent, reply: {text, sources[]?, searchSuggestionHtml?}, route: {from,to,steps[]} | null, actions[] }`.
+  - 응답: `{ schemaVersion, aboutStation, intent, reply: {text, blocks[]?, sources[]?, searchSuggestionHtml?}, route: {from,to,steps[]} | null, actions[] }`.
     `intent` = route_plan | station_info | pin_locate | general.
+  - **답변 블록(`reply.blocks`, 0.4)**: paragraph / steps(번호 목록) / bullets / table / callout(info·warning·emergency) / pins(핀 카드).
+    앱은 블록이 있으면 `renderAiBlocks`로 그리고 `reply.text`(1~2문장 요약, 서식 없음)는 숨긴다. 글은 전부 textContent로 넣고
+    `**굵게**`만 `<strong>`으로 바꾼다 (`appendInlineText`) — **innerHTML로 AI 글을 넣지 않는다.**
+  - 블록 출처: 1단계는 스키마 강제로 AI가 직접, 2단계(웹 검색)는 마크다운 일부로 받아 `markdownToBlocks`로 변환.
+    서버 보정: `sanitizeBlocks`(개수·길이 제한, 없는 핀 제거), 경로가 있으면 steps 블록 제거(화면이 route를 따로 그림),
+    `ensurePinCards`(강남역 핀 안내인데 카드가 없으면 같은 시설 핀을 같은 층 우선 최대 4개, '기타'는 안내 핀만),
+    119 안내가 있으면 emergency 상자로.
+  - route는 `renderRouteSteps`가 종류별 아이콘 + 노선 배지(`getLineBadgeClass`) + 세로 연결선으로 그린다.
   - actions: `focus_pin`(pinId, floor) — 핀으로 이동, `show_category`(group, category|null) — 지도·탐색 패널을 그 상황/시설로 거름.
     서버는 각각 최대 1개만 보내고, show_category의 category가 비면 focus_pin 핀의 시설로 채운다.
     프론트(`applyAiActions`)는 focus 핀이 필터에 안 맞으면 필터를 건너뛴다.

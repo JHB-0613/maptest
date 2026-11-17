@@ -815,7 +815,7 @@
       left: 14px;
       right: 14px;
       bottom: calc(78px + env(safe-area-inset-bottom, 0px));
-      max-height: 45%;
+      max-height: 58%;
       overflow-y: auto;
       background: #ffffff;
       border: 1px solid var(--border-color);
@@ -840,7 +840,63 @@
     .ai-reply-close { border: none; background: none; font-size: 14px; cursor: pointer; color: #6b7280; }
     .ai-reply-text { line-height: 1.55; white-space: pre-wrap; }
     .ai-reply-text.loading { color: #9ca3af; }
-    .ai-route-list { margin: 10px 0 0; padding-left: 18px; line-height: 1.6; }
+    .ai-reply-text:empty { display: none; }
+
+    /* AI 답변 블록 (규격 0.4: paragraph / steps / bullets / table / callout / pins) */
+    .ai-blocks { display: flex; flex-direction: column; gap: 10px; }
+    .ai-blocks:empty { display: none; }
+    .ai-block-title { font-size: 11px; font-weight: 800; color: #475569; margin-bottom: 5px; }
+    .ai-p { line-height: 1.55; margin: 0; }
+    .ai-blocks strong { color: #0f172a; font-weight: 800; }
+    .ai-steps { list-style: none; margin: 0; padding: 0; counter-reset: aistep; display: flex; flex-direction: column; gap: 6px; }
+    .ai-steps li { counter-increment: aistep; display: flex; gap: 8px; align-items: flex-start; line-height: 1.45; }
+    .ai-steps li::before {
+      content: counter(aistep);
+      flex-shrink: 0;
+      width: 20px; height: 20px; border-radius: 50%;
+      background: var(--primary-mint); color: #ffffff;
+      font-size: 11px; font-weight: 800;
+      display: flex; align-items: center; justify-content: center;
+      margin-top: 1px;
+    }
+    .ai-bullets { margin: 0; padding-left: 18px; line-height: 1.5; display: flex; flex-direction: column; gap: 3px; }
+    .ai-table-wrap { overflow-x: auto; border: 1px solid #edf0f2; border-radius: 12px; }
+    .ai-table { border-collapse: collapse; width: 100%; font-size: 12px; }
+    .ai-table th { background: #f0f7f4; color: #326851; font-weight: 800; text-align: left; white-space: nowrap; }
+    .ai-table th, .ai-table td { padding: 7px 9px; border-bottom: 1px solid #edf0f2; vertical-align: top; }
+    .ai-table tr:last-child td { border-bottom: none; }
+    .ai-callout { display: flex; gap: 8px; align-items: flex-start; padding: 9px 11px; border-radius: 12px; line-height: 1.45; font-size: 12px; }
+    .ai-callout.info { background: #eef6ff; color: #1e3a5f; }
+    .ai-callout.warning { background: #fff7e6; color: #7a4b00; }
+    .ai-callout.emergency { background: #fdecea; color: #8a1f1b; font-weight: 700; }
+    .ai-pin-cards { display: flex; flex-direction: column; gap: 6px; }
+    .ai-pin-card {
+      display: flex; gap: 10px; align-items: center;
+      padding: 8px 10px; border: 1px solid #edf0f2; border-radius: 12px;
+      background: #ffffff; cursor: pointer; text-align: left; width: 100%; font: inherit;
+    }
+    .ai-pin-card:active { background: #f0f7f4; }
+    .ai-pin-card img { width: 34px; height: 34px; object-fit: contain; flex-shrink: 0; }
+    .ai-pin-card img.pc-photo { width: 56px; height: 56px; object-fit: cover; border-radius: 10px; }
+    .ai-pin-card .pc-title { font-size: 12px; font-weight: 800; color: #1e293b; }
+    .ai-pin-card .pc-meta { font-size: 10px; color: #64748b; margin-top: 2px; }
+    .ai-pin-card .pc-desc { font-size: 11px; color: #475569; margin-top: 2px; }
+    .ai-pin-card .pc-go { margin-left: auto; color: #367b67; font-weight: 800; }
+
+    /* 경로 단계 (route) */
+    .ai-route-list { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 0; }
+    .ai-route-list:empty { display: none; }
+    .ai-route-list li { display: flex; gap: 9px; align-items: flex-start; position: relative; padding-bottom: 10px; line-height: 1.45; }
+    .ai-route-list li:last-child { padding-bottom: 0; }
+    .ai-route-list li:not(:last-child)::after {
+      content: ""; position: absolute; left: 11px; top: 24px; bottom: 0; width: 2px; background: #d6e9e1;
+    }
+    .ai-route-list .rt-icon {
+      flex-shrink: 0; width: 24px; height: 24px; border-radius: 50%;
+      background: #f0f7f4; display: flex; align-items: center; justify-content: center; font-size: 13px;
+    }
+    .ai-route-list .rt-body { padding-top: 2px; }
+    .ai-route-list .badge { font-size: 10px; padding: 1px 6px; margin-right: 4px; vertical-align: 1px; }
     .ai-pin-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
     .ai-sources { display: flex; flex-wrap: wrap; gap: 4px 10px; margin-top: 10px; font-size: 11px; }
     .ai-sources:empty { display: none; }
@@ -892,6 +948,25 @@
       user-select: text;
     }
     .pin-textarea { height: 60px; resize: none; }
+
+    /* 핀 사진 칸 */
+    .pin-modal { max-height: calc(100% - 140px); overflow-y: auto; }
+    .pin-photo-field { display: flex; gap: 10px; align-items: center; }
+    .pin-photo-preview {
+      width: 72px; height: 72px; flex-shrink: 0;
+      border-radius: 12px; border: 1px dashed #c9d3d3; background: #f7f9f9;
+      display: flex; align-items: center; justify-content: center;
+      color: #9aa5a5; font-size: 22px; overflow: hidden; cursor: pointer;
+    }
+    .pin-photo-preview img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .pin-photo-actions { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 0; }
+    .pin-photo-btn {
+      border: 1px solid #dfe5e5; background: #ffffff; color: #367b67;
+      border-radius: 10px; padding: 7px 10px; font-size: 12px; font-weight: 800; cursor: pointer; text-align: left;
+    }
+    .pin-photo-btn.remove { color: #dc2626; }
+    .pin-photo-hint { font-size: 10px; color: #94a3b8; }
+    .pin-photo-view { width: 100%; max-height: 180px; object-fit: cover; border-radius: 14px; display: block; }
 
     .pin-btn-group {
       display: flex;
@@ -1124,6 +1199,7 @@
           <button class="ai-reply-close" onclick="closeAiReply()">✕</button>
         </div>
         <div class="ai-reply-text" id="ai-reply-text"></div>
+        <div class="ai-blocks" id="ai-reply-blocks"></div>
         <ol class="ai-route-list" id="ai-route-list"></ol>
         <div class="ai-pin-chips" id="ai-pin-chips"></div>
         <div class="ai-sources" id="ai-sources"></div>
@@ -1147,6 +1223,17 @@
         <input type="text" class="pin-input" id="pin-title-input" placeholder="장소 이름 (예: 물품보관함, 만남의 장소)">
         <select class="pin-select" id="pin-category-select"></select>
         <textarea class="pin-textarea" id="pin-desc-input" placeholder="장소 설명이나 메모를 남겨주세요."></textarea>
+
+        <!-- 사진 (선택). 고르면 자동으로 줄여서 핀에 담는다 -->
+        <div class="pin-photo-field">
+          <div class="pin-photo-preview" id="pin-photo-preview" onclick="pickPinPhoto()" title="사진 선택">📷</div>
+          <div class="pin-photo-actions">
+            <button type="button" class="pin-photo-btn" id="btn-pin-photo-pick" onclick="pickPinPhoto()">📷 사진 추가</button>
+            <button type="button" class="pin-photo-btn remove" id="btn-pin-photo-remove" style="display:none;" onclick="setPinPhotoDraft(null)">사진 삭제</button>
+            <span class="pin-photo-hint">선택 사항 · 시설이 잘 보이게 찍어주세요</span>
+          </div>
+          <input type="file" id="pin-photo-input" accept="image/*" style="display:none;" onchange="onPinPhotoSelected(this)">
+        </div>
 
         <div class="pin-btn-group">
           <button class="btn-pin-action btn-pin-save" id="btn-save-pin" onclick="saveCurrentPin()">핑 저장하기</button>
@@ -1204,7 +1291,7 @@
     // - Vercel 서울 리전 함수 (ai-backend/). AI 키는 Vercel 환경변수에만 있다.
     // - 비워두면 브라우저 안의 목업(mockAiChat)이 규격에 맞는 가짜 응답을 만든다 (AI 없이 UI 개발할 때).
     const AI_CHAT_URL = "https://subnote-ai.vercel.app/api/chat";
-    const AI_SCHEMA_VERSION = "0.3";
+    const AI_SCHEMA_VERSION = "0.4";
 
     /* ========================================================
        1. 토스트 알림 헬퍼
@@ -1875,6 +1962,15 @@
           </div>
           <span style="font-size:13px; color:#367b67; font-weight:800;">›</span>
         `;
+        // 사진이 있는 핀은 왼쪽에 작은 썸네일
+        if (pin.photo) {
+          const thumb = document.createElement("img");
+          thumb.src = pin.photo;
+          thumb.alt = `${pin.title} 사진`;
+          thumb.style.cssText = "width:36px; height:36px; object-fit:cover; border-radius:8px; flex-shrink:0; margin-right:10px;";
+          item.insertBefore(thumb, item.firstChild);
+          item.children[1].style.flex = "1";
+        }
         item.onclick = () => {
           toggleExplorePanel(false);
           focusOnPin(pin);
@@ -2009,14 +2105,131 @@
         .map(s => ({ title: String(s.title || s.url), url: s.url }));
       const searchSuggestionHtml = (r.reply && typeof r.reply.searchSuggestionHtml === "string")
         ? r.reply.searchSuggestionHtml : "";
+      // 답변 블록 (0.4). 모르는 type·형식이 틀린 블록은 버린다. 실제 그리기는 renderAiBlocks가 textContent로만 한다.
+      const blocks = (r.reply && Array.isArray(r.reply.blocks) ? r.reply.blocks : [])
+        .filter(b => b && typeof b.type === "string" && AI_BLOCK_TYPES.includes(b.type))
+        .slice(0, 8);
       return {
         schemaVersion: String(r.schemaVersion || ""),
         intent: knownIntents.includes(r.intent) ? r.intent : "general",
         aboutStation: typeof r.aboutStation === "string" ? r.aboutStation : null,
-        reply: { text, sources, searchSuggestionHtml },
+        reply: { text, blocks, sources, searchSuggestionHtml },
         route,
         actions
       };
+    }
+
+    const AI_BLOCK_TYPES = ["paragraph", "steps", "bullets", "table", "callout", "pins"];
+
+    // 글 안의 **굵게**만 <strong>으로, 나머지는 모두 textContent로 넣는다 (HTML 주입 없음)
+    function appendInlineText(el, text) {
+      String(text || "").split(/(\*\*[^*]+\*\*)/g).forEach(part => {
+        if (!part) return;
+        const m = part.match(/^\*\*([^*]+)\*\*$/);
+        if (m) {
+          const strong = document.createElement("strong");
+          strong.textContent = m[1];
+          el.appendChild(strong);
+        } else {
+          el.appendChild(document.createTextNode(part));
+        }
+      });
+      return el;
+    }
+
+    function makeEl(tag, className, text) {
+      const el = document.createElement(tag);
+      if (className) el.className = className;
+      if (text !== undefined) appendInlineText(el, text);
+      return el;
+    }
+
+    // 핀 카드용 아이콘 이미지: 전용 PNG가 있으면 그 파일, 없으면 그룹 색 이모지 배지(캔버스)
+    function getPinIconUrl(category) {
+      const cat = normalizeCategory(category);
+      if (PIN_2D_IMAGE_MAP[cat]) return PIN_2D_IMAGE_MAP[cat];
+      const tex = getEmojiPinTexture(cat);
+      return tex.image && tex.image.toDataURL ? tex.image.toDataURL() : "";
+    }
+
+    function renderAiBlocks(container, blocks) {
+      container.innerHTML = "";
+      blocks.forEach(b => {
+        const wrap = makeEl("div", "ai-block ai-block-" + b.type);
+        if (typeof b.title === "string" && b.title && b.type !== "callout") wrap.appendChild(makeEl("div", "ai-block-title", b.title));
+
+        if (b.type === "paragraph" && b.text) {
+          wrap.appendChild(makeEl("p", "ai-p", b.text));
+        } else if ((b.type === "steps" || b.type === "bullets") && Array.isArray(b.items)) {
+          const list = makeEl(b.type === "steps" ? "ol" : "ul", b.type === "steps" ? "ai-steps" : "ai-bullets");
+          b.items.forEach(it => list.appendChild(makeEl("li", "", it)));
+          wrap.appendChild(list);
+        } else if (b.type === "table" && Array.isArray(b.columns) && Array.isArray(b.rows)) {
+          const tw = makeEl("div", "ai-table-wrap");
+          const table = makeEl("table", "ai-table");
+          const trh = document.createElement("tr");
+          b.columns.forEach(c => trh.appendChild(makeEl("th", "", c)));
+          table.appendChild(trh);
+          b.rows.forEach(row => {
+            if (!Array.isArray(row)) return;
+            const tr = document.createElement("tr");
+            b.columns.forEach((_, i) => tr.appendChild(makeEl("td", "", row[i] || "")));
+            table.appendChild(tr);
+          });
+          tw.appendChild(table);
+          wrap.appendChild(tw);
+        } else if (b.type === "callout" && b.text) {
+          const tone = ["info", "warning", "emergency"].includes(b.tone) ? b.tone : "info";
+          const box = makeEl("div", "ai-callout " + tone);
+          box.appendChild(makeEl("span", "", tone === "emergency" ? "🚨" : tone === "warning" ? "⚠️" : "💡"));
+          box.appendChild(makeEl("span", "", b.text));
+          wrap.appendChild(box);
+        } else if (b.type === "pins" && Array.isArray(b.pinIds)) {
+          const cards = makeEl("div", "ai-pin-cards");
+          b.pinIds.forEach(id => {
+            const pin = findPinById(id);
+            if (!pin) return;
+            const card = makeEl("button", "ai-pin-card");
+            // 사진이 있으면 사진 썸네일, 없으면 시설 아이콘
+            const img = document.createElement("img");
+            img.alt = pin.photo ? `${pin.title} 사진` : normalizeCategory(pin.category);
+            img.src = pin.photo || getPinIconUrl(pin.category);
+            if (pin.photo) img.className = "pc-photo";
+            card.appendChild(img);
+            const body = makeEl("div", "");
+            body.appendChild(makeEl("div", "pc-title", pin.title));
+            body.appendChild(makeEl("div", "pc-meta", `${pin.floor} · ${getCategoryGroup(pin.category).label} › ${normalizeCategory(pin.category)}`));
+            if (pin.desc) body.appendChild(makeEl("div", "pc-desc", pin.desc));
+            card.appendChild(body);
+            card.appendChild(makeEl("span", "pc-go", "›"));
+            card.onclick = (ev) => { ev.stopPropagation(); focusAiPin(pin.id); };
+            cards.appendChild(card);
+          });
+          if (!cards.children.length) return;
+          wrap.appendChild(cards);
+        } else {
+          return;   // 비었거나 모르는 블록
+        }
+        container.appendChild(wrap);
+      });
+    }
+
+    // 경로 단계: 종류별 아이콘 + 노선 배지 + 설명, 세로 연결선
+    function renderRouteSteps(routeEl, route) {
+      routeEl.innerHTML = "";
+      if (!route) return;
+      const icons = { ride: "🚇", transfer: "🔁", walk: "🚶", stop: "📍" };
+      route.steps.forEach(step => {
+        const li = document.createElement("li");
+        li.appendChild(makeEl("span", "rt-icon", icons[step.kind] || "•"));
+        const body = makeEl("div", "rt-body");
+        if (typeof step.line === "string" && step.line && (step.kind === "ride" || step.kind === "transfer")) {
+          body.appendChild(makeEl("span", `badge ${getLineBadgeClass(step.line)}`, formatLineName(step.line)));
+        }
+        appendInlineText(body, describeRouteStep(step));
+        li.appendChild(body);
+        routeEl.appendChild(li);
+      });
     }
 
     function findPinById(pinId) {
@@ -2074,6 +2287,7 @@
       const textEl = document.getElementById("ai-reply-text");
       textEl.textContent = "생각하는 중...";
       textEl.classList.add("loading");
+      document.getElementById("ai-reply-blocks").innerHTML = "";
       document.getElementById("ai-route-list").innerHTML = "";
       document.getElementById("ai-pin-chips").innerHTML = "";
       document.getElementById("ai-sources").innerHTML = "";
@@ -2095,18 +2309,15 @@
       const routeEl = document.getElementById("ai-route-list");
       const chipsEl = document.getElementById("ai-pin-chips");
       textEl.classList.remove("loading");
-      textEl.textContent = res.reply.text;
       document.getElementById("ai-reply-label").textContent =
         "AI 어시스턴트" + (AI_CHAT_URL ? "" : " (목업)");
 
-      routeEl.innerHTML = "";
-      if (res.route) {
-        res.route.steps.forEach(step => {
-          const li = document.createElement("li");
-          li.textContent = describeRouteStep(step);
-          routeEl.appendChild(li);
-        });
-      }
+      // 블록이 있으면 블록으로, 없으면 기존처럼 요약 글(reply.text)만 보여준다
+      const blocksEl = document.getElementById("ai-reply-blocks");
+      renderAiBlocks(blocksEl, res.reply.blocks || []);
+      textEl.textContent = blocksEl.children.length ? "" : res.reply.text;
+
+      renderRouteSteps(routeEl, res.route);
 
       // 웹 검색 출처 링크
       const sourcesEl = document.getElementById("ai-sources");
@@ -2128,14 +2339,15 @@
       }
       renderSearchSuggestion(res.reply.searchSuggestionHtml);
 
-      // 응답에 나온 핀(행동 + 경로 단계)을 버튼으로 보여준다
+      // 응답에 나온 핀(행동 + 경로 단계)을 버튼으로 보여준다. 핀 카드 블록에 이미 있는 핀은 빼서 중복을 막는다
       chipsEl.innerHTML = "";
+      const shownInCards = new Set((res.reply.blocks || []).filter(b => b.type === "pins").flatMap(b => b.pinIds || []).map(String));
       const pinIds = new Set();
       res.actions.forEach(a => { if (a.pinId) pinIds.add(String(a.pinId)); });   // type과 무관하게 pinId가 있으면 버튼
       if (res.route) res.route.steps.forEach(s => { if (s.pinId) pinIds.add(String(s.pinId)); });
       pinIds.forEach(id => {
         const pin = findPinById(id);
-        if (!pin) return;
+        if (!pin || shownInCards.has(String(id))) return;
         const chip = document.createElement("button");
         chip.className = "ai-pin-chip";
         chip.textContent = `📍 ${pin.floor} ${pin.title}`;
@@ -3159,6 +3371,73 @@
       });
     }
 
+    /* --------------------------------------------------------
+       핀 사진: 고른 사진을 긴 변 PIN_PHOTO_MAX_PX로 줄여 JPEG data URL로 pin.photo에 담는다.
+       - 아직 서버 저장이 없으므로 다른 핀 정보처럼 메모리에만 있다 (새로고침하면 사라짐).
+       - 미리 넣는 사진은 pin.photo에 파일 경로(예: 'photos/gangnam/xxx.jpg')를 적어도 된다.
+       - AI 요청에는 사진을 보내지 않는다 (buildAiRequest가 필요한 필드만 고른다).
+    -------------------------------------------------------- */
+    const PIN_PHOTO_MAX_PX = 1024;
+    const PIN_PHOTO_QUALITY = 0.8;
+    let pinPhotoDraft = null;   // 모달에서 편집 중인 사진 (data URL 또는 경로, 없으면 null)
+
+    function pickPinPhoto() {
+      document.getElementById("pin-photo-input").click();
+    }
+
+    function setPinPhotoDraft(src) {
+      pinPhotoDraft = src || null;
+      const preview = document.getElementById("pin-photo-preview");
+      preview.innerHTML = "";
+      if (pinPhotoDraft) {
+        const img = document.createElement("img");
+        img.src = pinPhotoDraft;
+        img.alt = "핀 사진";
+        preview.appendChild(img);
+      } else {
+        preview.textContent = "📷";
+      }
+      document.getElementById("btn-pin-photo-pick").textContent = pinPhotoDraft ? "📷 사진 바꾸기" : "📷 사진 추가";
+      document.getElementById("btn-pin-photo-remove").style.display = pinPhotoDraft ? "block" : "none";
+    }
+
+    function onPinPhotoSelected(input) {
+      const file = input.files && input.files[0];
+      input.value = "";   // 같은 파일을 다시 골라도 change가 나도록
+      if (!file) return;
+      if (!file.type.startsWith("image/")) { showToast("사진 파일만 넣을 수 있어요."); return; }
+      resizeImageFile(file, PIN_PHOTO_MAX_PX, PIN_PHOTO_QUALITY)
+        .then(dataUrl => setPinPhotoDraft(dataUrl))
+        .catch(err => {
+          console.warn("[핀 사진] 읽기 실패:", err);
+          showToast("사진을 불러오지 못했어요. 다른 사진으로 시도해 주세요.");
+        });
+    }
+
+    // 사진을 긴 변 maxPx 이하로 줄여 JPEG data URL로 만든다 (휴대폰 원본 수 MB → 보통 100~300KB)
+    function resizeImageFile(file, maxPx, quality) {
+      return new Promise((resolve, reject) => {
+        const url = URL.createObjectURL(file);
+        const img = new Image();
+        img.onload = () => {
+          const scale = Math.min(1, maxPx / Math.max(img.naturalWidth, img.naturalHeight));
+          const w = Math.max(1, Math.round(img.naturalWidth * scale));
+          const h = Math.max(1, Math.round(img.naturalHeight * scale));
+          const canvas = document.createElement("canvas");
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext("2d");
+          ctx.fillStyle = "#ffffff";   // 투명 PNG도 JPEG로 바꿀 때 검게 되지 않게
+          ctx.fillRect(0, 0, w, h);
+          ctx.drawImage(img, 0, 0, w, h);
+          URL.revokeObjectURL(url);
+          resolve(canvas.toDataURL("image/jpeg", quality));
+        };
+        img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("이미지 디코딩 실패")); };
+        img.src = url;
+      });
+    }
+
     function openCreatePinModal(x, y, y3d = 0, realX3d = null, realZ3d = null) {
       currentEditingPin = null;
       tempClickCoord = { x, y, y3d, realX3d, realZ3d };
@@ -3166,7 +3445,8 @@
       document.getElementById("pin-modal-title").innerText = `📍 [${activeFloor}] 새로운 장소 핑 등록`;
       pinTitleInput.value = "";
       pinDescInput.value = "";
-      
+      setPinPhotoDraft(null);
+
       btnSavePin.innerText = "핑 저장하기";
       btnSavePin.style.display = "block";
       btnDeletePin.style.display = "none";
@@ -3178,7 +3458,8 @@
       document.getElementById("pin-modal-title").innerText = `📍 [${pin.floor}] 핀 정보 및 수정`;
       pinTitleInput.value = pin.title;
       pinDescInput.value = pin.desc || "";
-      pinCatSelect.value = pin.category;
+      pinCatSelect.value = normalizeCategory(pin.category);
+      setPinPhotoDraft(pin.photo || null);
 
       btnSavePin.innerText = "수정 완료";
       btnSavePin.style.display = "block";
@@ -3203,6 +3484,7 @@
           targetPin.title = title;
           targetPin.category = pinCatSelect.value;
           targetPin.desc = pinDescInput.value.trim();
+          if (pinPhotoDraft) targetPin.photo = pinPhotoDraft; else delete targetPin.photo;
           showToast(`'${title}' 핀이 성공적으로 수정되었습니다.`);
         }
       } else {
@@ -3216,7 +3498,8 @@
           y: tempClickCoord.y,
           y3d: tempClickCoord.y3d || 0,
           realX3d: tempClickCoord.realX3d,
-          realZ3d: tempClickCoord.realZ3d
+          realZ3d: tempClickCoord.realZ3d,
+          ...(pinPhotoDraft ? { photo: pinPhotoDraft } : {})
         });
         showToast(`'${title}' 핀이 새로 등록되었습니다.`);
       }
