@@ -41,9 +41,11 @@ ai-backend/              # AI 대화 백엔드 (Vercel 서울 리전). lib/ai-ch
 project_handover_document.md  # 인계서 (일부 내용이 실제 코드와 다름 – 아래 "주의" 참고)
 ```
 
-## 외부 의존성 (CDN, index.html L15–18)
+## 외부 의존성 (CDN, index.html `<head>`의 Three.js 스크립트)
 
-- Three.js **r128** (`three.min.js`) + `examples/js`의 `OrbitControls`, `GLTFLoader`, `OBJLoader`(로드만 하고 미사용).
+- Three.js **r128** (`three.min.js`) + `examples/js`의 `OrbitControls`, `GLTFLoader`.
+  각 `<script>`에 `integrity`(sha384, SRI)·`crossorigin`·`referrerpolicy`가 있다. **CDN 주소·버전을 바꾸면 해시를 다시 계산해야 한다**
+  (`openssl dgst -sha384 -binary 파일 | openssl base64 -A`). 해시가 안 맞으면 스크립트가 차단돼 3D가 통째로 안 뜬다.
 - r128 기준 API를 쓴다: `renderer.outputEncoding = THREE.sRGBEncoding` 등. 버전을 올리면
   `outputColorSpace`, ES 모듈 import 방식 등 깨지는 부분이 많으니 **임의로 업그레이드하지 않는다.**
 

@@ -11,11 +11,17 @@
   <link rel="manifest" href="./manifest.json">
   <link rel="apple-touch-icon" href="./logo/subnote.png">
   <title>sub note - 서울 지하철 스마트 실내 내비게이션 & 3D 맵</title>
-  <!-- Three.js CDN -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+  <!-- Three.js CDN (r128 고정). integrity는 CDN 파일이 바뀌면 실행을 막는다. 버전을 바꾸면 해시도 새로 계산해야 한다 -->
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"
+    integrity="sha384-CI3ELBVUz9XQO+97x6nwMDPosPR5XvsxW2ua7N1Xeygeh1IxtgqtCkGfQY9WWdHu"
+    crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"
+    integrity="sha384-wagZhIFgY4hD+7awjQjR4e2E294y6J2HSnd8eTNc15ZubTeQeVRZwhQJ+W6hnBsf"
+    crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"
+    integrity="sha384-fljlqkjWlmSFjkESkQvm77heIZpoWmXEOzlCA7kOpGUH+95Zk0yGfQieWM2q136E"
+    crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
   <style>
     :root {
@@ -921,21 +927,39 @@
       cursor: pointer;
     }
 
+    /* 핀 모달 = 네이티브 <dialog> (showModal). 최상위 레이어에 뜨므로 위치를 화면(뷰포트) 기준으로 잡는다.
+       목업 프레임(.phone-container: 최대 412×870, 화면 가운데) 안 아래쪽에 예전과 같은 자리로 맞춘다 */
     .pin-modal {
-      position: absolute;
-      bottom: calc(84px + env(safe-area-inset-bottom, 0px));
-      left: 16px;
-      right: 16px;
+      --frame-w: min(100vw, 412px);
+      --frame-h: min(100dvh, 870px);
+      position: fixed;
+      inset: auto auto calc((100dvh - var(--frame-h)) / 2 + 84px + env(safe-area-inset-bottom, 0px)) 50%;
+      translate: -50% 0;
+      margin: 0;
+      width: calc(var(--frame-w) - 32px);
+      max-width: none;
       background: #ffffff;
+      color: inherit;
       border-radius: 24px;
       padding: 20px;
-      z-index: 80;
-      display: none;
       box-shadow: 0 16px 40px rgba(0, 0, 0, 0.15);
       flex-direction: column;
       gap: 10px;
       border: 1px solid var(--border-color);
       animation: slideUp 0.3s ease;
+    }
+    /* display는 열렸을 때만 준다 (항상 주면 닫힌 상태를 덮어쓴다) */
+    .pin-modal[open] { display: flex; }
+    /* 모달 안·배경을 스크롤해도 뒤 화면이 스크롤되지 않게 */
+    .pin-modal:modal { overscroll-behavior: contain; }
+    .pin-modal::backdrop {
+      background: rgba(15, 23, 42, 0.18);
+      overflow: hidden;
+      overscroll-behavior: contain;
+    }
+    @media (max-width: 480px) {
+      /* 실제 모바일: 프레임이 화면 전체이므로 좌우 16px 여백만 */
+      .pin-modal { --frame-w: 100vw; --frame-h: 100dvh; }
     }
 
     .pin-input, .pin-textarea, .pin-select {
@@ -950,7 +974,7 @@
     .pin-textarea { height: 60px; resize: none; }
 
     /* 핀 사진 칸 */
-    .pin-modal { max-height: calc(100% - 140px); overflow-y: auto; }
+    .pin-modal { max-height: calc(var(--frame-h) - 140px); overflow-y: auto; }
     .pin-photo-field { display: flex; gap: 10px; align-items: center; }
     .pin-photo-preview {
       width: 72px; height: 72px; flex-shrink: 0;
@@ -1215,10 +1239,10 @@
       </div>
 
       <!-- 핑 등록/조회/수정 모달 -->
-      <div class="pin-modal" id="pin-modal">
+      <dialog class="pin-modal" id="pin-modal" closedby="any" aria-labelledby="pin-modal-title">
         <div style="display:flex; justify-content:space-between; align-items:center;">
-          <b id="pin-modal-title" style="font-size:15px;">새로운 장소 핑 등록</b>
-          <button style="border:none; background:none; font-size:16px; cursor:pointer;" onclick="closePinModal()">✕</button>
+          <h2 id="pin-modal-title" style="font-size:15px; font-weight:700;">새로운 장소 핑 등록</h2>
+          <button type="button" aria-label="닫기" style="border:none; background:none; font-size:16px; cursor:pointer;" onclick="closePinModal()">✕</button>
         </div>
         <input type="text" class="pin-input" id="pin-title-input" placeholder="장소 이름 (예: 물품보관함, 만남의 장소)">
         <select class="pin-select" id="pin-category-select"></select>
@@ -1239,7 +1263,7 @@
           <button class="btn-pin-action btn-pin-save" id="btn-save-pin" onclick="saveCurrentPin()">핑 저장하기</button>
           <button class="btn-pin-action btn-pin-delete" id="btn-delete-pin" style="display:none;" onclick="deleteCurrentPin()">삭제</button>
         </div>
-      </div>
+      </dialog>
     </div>
 
     <!-- 3. 공통 커뮤니티 / MEMO / 마이페이지 오버레이 -->
@@ -1379,7 +1403,7 @@
       document.getElementById("card-station-name").innerText = stationObj.name;
       document.getElementById("card-station-eng").innerText = stationObj.eng;
       const badgeContainer = document.getElementById("card-station-badges");
-      badgeContainer.innerHTML = "";
+      badgeContainer.replaceChildren();
 
       (stationObj.lines || []).forEach(line => {
         const span = document.createElement("span");
@@ -1435,7 +1459,7 @@
       }
 
       mainClearSearch.style.display = "block";
-      mainSuggestions.innerHTML = "";
+      mainSuggestions.replaceChildren();
 
       const matched = STATIONS_LIST.filter(st => st.queryTerm.toLowerCase().includes(q) || st.name.toLowerCase().includes(q));
 
@@ -1762,7 +1786,7 @@
 
     // 핀 등록 모달의 카테고리 선택지 (상황 그룹별 optgroup). 필터 칩은 renderExploreFilters가 그린다.
     function initCategoryFilters() {
-      pinCatSelect.innerHTML = "";
+      pinCatSelect.replaceChildren();
       PIN_CATEGORY_GROUPS.forEach(g => {
         const og = document.createElement("optgroup");
         og.label = `${g.emoji} ${g.label}`;
@@ -1819,7 +1843,7 @@
 
       // 1) 층: 지도 층 버튼과 같은 동작 (selectFloor)
       const floorRow = document.getElementById("explore-floor-row");
-      floorRow.innerHTML = "";
+      floorRow.replaceChildren();
       Array.from(document.querySelectorAll(".floor-btn")).forEach(fb => {
         const floor = fb.innerText.trim();
         const chip = document.createElement("button");
@@ -1831,7 +1855,7 @@
 
       // 2) 상황
       const groupRow = document.getElementById("explore-group-row");
-      groupRow.innerHTML = "";
+      groupRow.replaceChildren();
       [{ id: 'all', label: '전체', emoji: '🗂️' }, ...PIN_CATEGORY_GROUPS].forEach(g => {
         const n = g.id === 'all' ? floorPins.length : countBy(p => getCategoryGroup(p.category).id === g.id);
         const chip = document.createElement("button");
@@ -1845,7 +1869,7 @@
       const group = PIN_CATEGORY_GROUPS.find(g => g.id === activeGroup);
       document.getElementById("explore-category-title").style.display = group ? "flex" : "none";
       categoryGrid.style.display = group ? "grid" : "none";
-      categoryGrid.innerHTML = "";
+      categoryGrid.replaceChildren();
       if (!group) return;
       ['전체', ...group.categories].forEach(cat => {
         const n = cat === '전체'
@@ -1867,7 +1891,7 @@
         return;
       }
 
-      floorList.innerHTML = "";
+      floorList.replaceChildren();
       // 강남역 지하 4층까지 지원
       const floors = ["B1", "B2", "B3", "B4"];
       const defaultFloor = "B1";
@@ -1931,7 +1955,7 @@
     function renderExplorePinsList(filterQuery = "") {
       renderExploreFilters();
       const listEl = document.getElementById("explore-pins-list");
-      listEl.innerHTML = "";
+      listEl.replaceChildren();
 
       const allPins = getStationPins().filter(p => p.floor === activeFloor);
       const q = filterQuery.toLowerCase();
@@ -1955,13 +1979,15 @@
       filtered.forEach(pin => {
         const item = document.createElement("div");
         item.style.cssText = "padding:10px 14px; background:#ffffff; border:1px solid #edf0f2; border-radius:14px; display:flex; justify-content:space-between; align-items:center; cursor:pointer; box-shadow:0 2px 6px rgba(0,0,0,0.02);";
-        item.innerHTML = `
-          <div>
-            <div style="font-size:12px; font-weight:800; color:#1e293b;">${pin.title}</div>
-            <div style="font-size:10px; color:#808691; margin-top:3px;">${getCategoryEmoji(pin.category)} ${getCategoryGroup(pin.category).label} · #${normalizeCategory(pin.category)} · ${pin.floor}</div>
-          </div>
-          <span style="font-size:13px; color:#367b67; font-weight:800;">›</span>
-        `;
+        // 핀 제목은 사용자·공공데이터 입력이므로 innerHTML이 아닌 textContent로 넣는다 (HTML로 해석되지 않게)
+        item.append(
+          styledEl("div", "", [
+            styledEl("div", "font-size:12px; font-weight:800; color:#1e293b;", pin.title),
+            styledEl("div", "font-size:10px; color:#808691; margin-top:3px;",
+              `${getCategoryEmoji(pin.category)} ${getCategoryGroup(pin.category).label} · #${normalizeCategory(pin.category)} · ${pin.floor}`)
+          ]),
+          styledEl("span", "font-size:13px; color:#367b67; font-weight:800;", "›")
+        );
         // 사진이 있는 핀은 왼쪽에 작은 썸네일
         if (pin.photo) {
           const thumb = document.createElement("img");
@@ -2137,6 +2163,16 @@
       return el;
     }
 
+    // 인라인 스타일 요소 만들기. children이 문자열이면 textContent로(HTML 해석 안 함), 배열이면 자식 노드로 붙인다
+    function styledEl(tag, cssText, children) {
+      const el = document.createElement(tag);
+      if (cssText) el.style.cssText = cssText;
+      if (Array.isArray(children)) el.append(...children);
+      else if (children !== undefined && children !== null) el.textContent = String(children);
+      return el;
+    }
+    const SUBPAGE_CARD_CSS = "background:#ffffff; border:1px solid #edf0f2; border-radius:18px; padding:16px 18px; box-shadow:0 4px 12px rgba(0,0,0,0.02);";
+
     function makeEl(tag, className, text) {
       const el = document.createElement(tag);
       if (className) el.className = className;
@@ -2153,7 +2189,7 @@
     }
 
     function renderAiBlocks(container, blocks) {
-      container.innerHTML = "";
+      container.replaceChildren();
       blocks.forEach(b => {
         const wrap = makeEl("div", "ai-block ai-block-" + b.type);
         if (typeof b.title === "string" && b.title && b.type !== "callout") wrap.appendChild(makeEl("div", "ai-block-title", b.title));
@@ -2216,7 +2252,7 @@
 
     // 경로 단계: 종류별 아이콘 + 노선 배지 + 설명, 세로 연결선
     function renderRouteSteps(routeEl, route) {
-      routeEl.innerHTML = "";
+      routeEl.replaceChildren();
       if (!route) return;
       const icons = { ride: "🚇", transfer: "🔁", walk: "🚶", stop: "📍" };
       route.steps.forEach(step => {
@@ -2287,10 +2323,10 @@
       const textEl = document.getElementById("ai-reply-text");
       textEl.textContent = "생각하는 중...";
       textEl.classList.add("loading");
-      document.getElementById("ai-reply-blocks").innerHTML = "";
-      document.getElementById("ai-route-list").innerHTML = "";
-      document.getElementById("ai-pin-chips").innerHTML = "";
-      document.getElementById("ai-sources").innerHTML = "";
+      document.getElementById("ai-reply-blocks").replaceChildren();
+      document.getElementById("ai-route-list").replaceChildren();
+      document.getElementById("ai-pin-chips").replaceChildren();
+      document.getElementById("ai-sources").replaceChildren();
       renderSearchSuggestion("");
       panel.classList.add("show");
     }
@@ -2321,7 +2357,7 @@
 
       // 웹 검색 출처 링크
       const sourcesEl = document.getElementById("ai-sources");
-      sourcesEl.innerHTML = "";
+      sourcesEl.replaceChildren();
       if (res.reply.sources && res.reply.sources.length) {
         const label = document.createElement("span");
         label.className = "ai-sources-label";
@@ -2340,7 +2376,7 @@
       renderSearchSuggestion(res.reply.searchSuggestionHtml);
 
       // 응답에 나온 핀(행동 + 경로 단계)을 버튼으로 보여준다. 핀 카드 블록에 이미 있는 핀은 빼서 중복을 막는다
-      chipsEl.innerHTML = "";
+      chipsEl.replaceChildren();
       const shownInCards = new Set((res.reply.blocks || []).filter(b => b.type === "pins").flatMap(b => b.pinIds || []).map(String));
       const pinIds = new Set();
       res.actions.forEach(a => { if (a.pinId) pinIds.add(String(a.pinId)); });   // type과 무관하게 pinId가 있으면 버튼
@@ -2511,26 +2547,22 @@
         const list = document.getElementById("community-card-list");
         const stName = currentSelectedStation ? currentSelectedStation.name : "강남역";
         const pins = STATION_PINS_DB[stName] || [];
-        list.innerHTML = pins.map(p => `
-          <div style="background:#ffffff; border:1px solid #edf0f2; border-radius:18px; padding:16px 18px; box-shadow:0 4px 12px rgba(0,0,0,0.02);">
-            <b style="font-size:14px; color:#0f172a;">${p.title}</b>
-            <p style="font-size:12px; color:#64748b; margin-top:4px; line-height:1.4;">${p.desc || '등록된 메모나 팁이 없습니다.'}</p>
-            <div style="font-size:11px; color:#367b67; font-weight:700; margin-top:8px;">#${p.category} · ${p.floor}</div>
-          </div>
-        `).join('');
+        list.replaceChildren(...pins.map(p => styledEl("div", SUBPAGE_CARD_CSS, [
+          styledEl("b", "font-size:14px; color:#0f172a;", p.title),
+          styledEl("p", "font-size:12px; color:#64748b; margin-top:4px; line-height:1.4;", p.desc || '등록된 메모나 팁이 없습니다.'),
+          styledEl("div", "font-size:11px; color:#367b67; font-weight:700; margin-top:8px;", `#${p.category} · ${p.floor}`)
+        ])));
       } else if (tab === 'memo') {
         const list = document.getElementById("memo-card-list");
         const stName = currentSelectedStation ? currentSelectedStation.name : "강남역";
         const pins = STATION_PINS_DB[stName] || [];
-        list.innerHTML = pins.map(p => `
-          <div style="background:#ffffff; border:1px solid #edf0f2; border-radius:18px; padding:16px 18px; box-shadow:0 4px 12px rgba(0,0,0,0.02);">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-              <b style="font-size:14px; color:#0f172a;">${p.title}</b>
-              <span style="font-size:10px; color:#367b67; font-weight:800; background:#e6f5ee; padding:2px 7px; border-radius:6px;">${p.floor}</span>
-            </div>
-            <p style="font-size:12px; color:#64748b; margin-top:6px; line-height:1.4;">${p.desc || '작성된 메모가 없습니다.'}</p>
-          </div>
-        `).join('');
+        list.replaceChildren(...pins.map(p => styledEl("div", SUBPAGE_CARD_CSS, [
+          styledEl("div", "display:flex; justify-content:space-between; align-items:center;", [
+            styledEl("b", "font-size:14px; color:#0f172a;", p.title),
+            styledEl("span", "font-size:10px; color:#367b67; font-weight:800; background:#e6f5ee; padding:2px 7px; border-radius:6px;", p.floor)
+          ]),
+          styledEl("p", "font-size:12px; color:#64748b; margin-top:6px; line-height:1.4;", p.desc || '작성된 메모가 없습니다.')
+        ])));
       }
     }
 
@@ -3340,7 +3372,9 @@
         startClientX = e.clientX; startClientY = e.clientY;
       });
 
-      renderer.domElement.addEventListener("pointerup", (e) => {
+      // pointerup이 아니라 click에서 창을 연다. 핀 창(<dialog closedby="any">)은 '창 밖을 누르면 닫기'를
+      // pointerup 시점에 판단하므로, pointerup 안에서 열면 같은 탭에 열리자마자 바로 닫힌다
+      renderer.domElement.addEventListener("click", (e) => {
         if (!isDown) return;
         isDown = false;
         if (Math.hypot(e.clientX - startClientX, e.clientY - startClientY) > 6) return;
@@ -3388,7 +3422,7 @@
     function setPinPhotoDraft(src) {
       pinPhotoDraft = src || null;
       const preview = document.getElementById("pin-photo-preview");
-      preview.innerHTML = "";
+      preview.replaceChildren();
       if (pinPhotoDraft) {
         const img = document.createElement("img");
         img.src = pinPhotoDraft;
@@ -3450,7 +3484,25 @@
       btnSavePin.innerText = "핑 저장하기";
       btnSavePin.style.display = "block";
       btnDeletePin.style.display = "none";
-      pinModal.style.display = "flex";
+      openPinDialog();
+    }
+
+    // 네이티브 모달로 연다: 뒤 화면 비활성화, 포커스 가두기, Esc·뒤로가기 닫기, 닫으면 포커스 복귀를 브라우저가 처리
+    function openPinDialog() {
+      if (!pinModal.open) pinModal.showModal();
+    }
+
+    // 창 밖(배경)을 누르면 닫기: closedby="any"가 처리한다. Safari 등 closedby 미지원 브라우저만 직접 처리.
+    // event.target으로 판단하면 dialog 자체 여백을 눌러도 닫히므로, 누른 좌표가 창 사각형 밖인지로 판단한다.
+    // 누를 때와 뗄 때 모두 밖이어야 닫는다 (입력칸에서 글자를 드래그하다 밖에서 놓은 경우 닫히지 않게)
+    if (!('closedBy' in HTMLDialogElement.prototype)) {
+      const isOutsidePinModal = (e) => {
+        const r = pinModal.getBoundingClientRect();
+        return e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom;
+      };
+      let pressedOutside = false;
+      pinModal.addEventListener('pointerdown', (e) => { pressedOutside = isOutsidePinModal(e); });
+      pinModal.addEventListener('pointerup', (e) => { if (pressedOutside && isOutsidePinModal(e)) closePinModal(); });
     }
 
     function openViewPinModal(pin) {
@@ -3464,11 +3516,11 @@
       btnSavePin.innerText = "수정 완료";
       btnSavePin.style.display = "block";
       btnDeletePin.style.display = "block";
-      pinModal.style.display = "flex";
+      openPinDialog();
     }
 
     function closePinModal() {
-      pinModal.style.display = "none";
+      if (pinModal.open) pinModal.close();
     }
 
     function saveCurrentPin() {
