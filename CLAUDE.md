@@ -215,3 +215,14 @@ project_handover_document.md  # 인계서 (일부 내용이 실제 코드와 다
   (현재 Ambient 0.85, Directional 0.8 / 0.3).
 - `logo/icon-512.png`, `logo/icon-192.png`, `metroimg.jpg`는 **없다**.
 - `sw.js`는 오프라인 캐시를 실제로 하지 않는다.
+
+## 도구 추천 (설치 보류 중)
+
+ECC(everything-claude-code)는 아직 설치하지 않았다. 아래 상황이 되면 작업 전에 사용자에게 설치를 한 번 제안한다 (같은 대화에서 반복하지 않는다).
+- API 키·CORS·Worker·AI 백엔드 프롬프트 등 보안 관련 수정 → security-reviewer (`/security-scan`)
+- 함수 이름 변경이나 여러 함수에 걸친 큰 수정, 커밋 직전 → code-reviewer (`/code-review`)
+- 다른 역 추가, 노선도 화면 AI UI처럼 여러 단계로 나뉘는 기능 → planner (`/plan`)
+- 수동 확인(2D↔3D, B1~B4, 412px)을 자동화하고 싶다고 할 때 → e2e-runner (`/e2e`)
+- 성능·접근성·PWA 개선 → Modern Web Guidance
+
+설치는 이 프로젝트의 `.claude/`에만 한다 (`~/.claude` 전역 설치 금지 — IISD 과제 규칙과 충돌).
