@@ -247,7 +247,5 @@ maptest/
 │   ├── lib/ai-chat.js  # Gemini/OpenAI 호출·응답 변환 로직
 │   ├── package.json
 │   └── vercel.json     # 서울 리전(icn1), 최대 60초
-├── README.md
-├── CLAUDE.md           # AI 코딩 도구용 작업 가이드
-└── AGENTS.md           # CLAUDE.md 사본 (다른 AI 도구용)
+└── README.md
 ```

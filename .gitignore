@@ -1,2 +1,6 @@
 # Claude Code 개인 설정 (커밋하지 않음)
 .claude/settings.local.json
+
+# AI 코딩 도구용 가이드 (로컬 전용, 업로드하지 않음)
+CLAUDE.md
+AGENTS.md
