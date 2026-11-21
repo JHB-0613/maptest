@@ -26,7 +26,7 @@ npx serve .
 ## 파일 구조
 
 ```text
-index.html          # 앱 전체 (약 2,900줄): <style> L20–869, 마크업, <script> L1090–2875
+index.html          # 앱 전체 (약 3,800줄): <style> L26–1056, 마크업, <script> L1306–3795
 manifest.json       # PWA 매니페스트 (아이콘은 logo/subnote.png 하나를 192/512에 공용 사용)
 sw.js               # 서비스 워커 – 네트워크 우선, 실패 시 caches.match (실제로 캐시에 넣는 코드는 없음)
 stations.json       # 노선도 역 메타데이터 (좌표, 노선, queryTerm)
@@ -38,7 +38,9 @@ README.md           # API 연동·좌표계 상세 문서
 schemas/ai-chat.v0.json  # AI 대화 통신 규격 (JSON Schema)
 worker/subnote-proxy.js  # Cloudflare Worker 코드 사본 (공공데이터 중계만). 수정 후 대시보드에 붙여넣고 Deploy해야 반영됨
 ai-backend/              # AI 대화 백엔드 (Vercel 서울 리전). lib/ai-chat.js 로직, api/chat.js 진입점
-project_handover_document.md  # 인계서 (일부 내용이 실제 코드와 다름 – 아래 "주의" 참고)
+AGENTS.md           # CLAUDE.md 사본 (다른 AI 도구용). CLAUDE.md를 고치면 같이 고친다
+.gitignore          # .claude/settings.local.json(개인 설정)만 제외
+.claude/            # Claude Code 프로젝트 설정 (launch.json 등)
 ```
 
 ## 외부 의존성 (CDN, index.html `<head>`의 Three.js 스크립트)
@@ -58,11 +60,11 @@ project_handover_document.md  # 인계서 (일부 내용이 실제 코드와 다
 | 실내 상태 | `PIN_CATEGORY_GROUPS`, `CATEGORY_EMOJI`, `normalizeCategory`, `getCategoryGroup`, `activeGroup`, `activeCategory`, `currentIndoorMode`("2D"/"3D"), `activeFloor`("B1"~"B4") |
 | 좌표 변환 | `MODEL_BBOX`, `coord2Dto3D`, `coord3Dto2D` |
 | 핀 DB | `STATION_PINS_DB` |
-| 실내 UI | `enterIndoorView`, `exitIndoorView`, `renderExploreFilters`, `pinMatchesFilter`, `renderExplorePinsList`, `toggleAiCapsule`, `handleAiSubmit`, `toggleSubpage` |
+| 실내 UI | `enterIndoorView`, `exitIndoorView`, `renderExploreFilters`, `pinMatchesFilter`, `renderExplorePinsList`, `toggleAiCapsule`, `handleAiSubmit`, `toggleSubpage`, `setExploreGroup`, `setExploreCategory`, `toggleExplorePanel`, `onExploreSearch` |
 | 카메라 | `setIndoorMode`, `setCameraToTopDownView`, `syncCameraToIsometricView`, `transitionCamera`(rAF 애니메이션, 연타 시 `cancelAnimationFrame`으로 인터럽트), `clampTopDownPan`, `update2DPinsScaling` |
 | Three.js | `initThreeScene`, `loadFloorGlbModel`, `selectFloor`, `getSurfaceHeightAt`(Raycaster로 바닥 높이) |
 | 핀 렌더링 | `syncPinsTo3D`, `PIN_3D_MODEL_MAP`, `getPinTexture`, `create2DTopViewPin`, `create3DIsometricPin`, `createFallbackGeometryPin`, `focusOnPin`, `setup3DInteraction` |
-| 핀 편집 | `openCreatePinModal`, `openViewPinModal`, `saveCurrentPin`, `deleteCurrentPin` |
+| 핀 편집 | `openCreatePinModal`, `openViewPinModal`, `openPinDialog`(네이티브 `<dialog>`, 창 밖 클릭 닫기), `closePinModal`, `saveCurrentPin`, `deleteCurrentPin` |
 | 공공데이터 | `convertGeoToThreeCoord`, `GANGNAM_EXIT_ZONES`, `mapFacilityToCategory`, `extractFloorFromItem`, `estimateGangnamCoords`, `fetchAndGenerateApiPins` |
 | 기타 | `enableFullScreenOnMobile`, 서비스 워커 등록 |
 
@@ -205,16 +207,6 @@ project_handover_document.md  # 인계서 (일부 내용이 실제 코드와 다
 - 모바일 레이아웃(412px 목업 프레임 / 실제 모바일 `100dvh` 풀스크린) 둘 다 깨지지 않게 확인한다.
 - 3D 코드 수정 후에는 2D↔3D 빠른 연타 전환, 층 전환 후 핀 높이 스냅, 줌아웃 시 2D 핀 크기(`1/zoom` 스케일)를 확인한다.
 - 커밋·푸시는 사용자가 요청할 때만 한다. 커밋 메시지는 무엇을 바꿨는지 구체적으로 쓴다 ("Update index.html" 지양).
-
-## 인계서와 실제 코드의 차이 (주의)
-
-`project_handover_document.md`의 다음 내용은 현재 코드와 다르다:
-
-- `GANGNAM_ANCHOR` 상수는 **존재하지 않는다** (계수 하드코딩 방식).
-- `PIN_3D_MODEL_MAP` 전체 등록과 `sRGBEncoding` 적용은 **이미 완료**됐다. 남은 건 조명 밝기 미세 조정
-  (현재 Ambient 0.85, Directional 0.8 / 0.3).
-- `logo/icon-512.png`, `logo/icon-192.png`, `metroimg.jpg`는 **없다**.
-- `sw.js`는 오프라인 캐시를 실제로 하지 않는다.
 
 ## 도구 추천 (설치 보류 중)
 
