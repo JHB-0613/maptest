@@ -18,7 +18,7 @@
  */
 
 export const ALLOWED_ORIGINS = ["https://jhb-0613.github.io", "http://localhost:8080"];
-const SCHEMA_VERSION = "0.4";
+const SCHEMA_VERSION = "0.5";
 const DEFAULT_OPENAI_MODEL = "gpt-4o-mini";
 const DEFAULT_GEMINI_MODEL = "gemini-3.8-flash";
 const GEMINI_BASE_URL = "https://generativelanguage.googleapis.com";
@@ -89,6 +89,13 @@ export async function handleChatRequest(request, env) {
       return json(fallback("AI 서버 응답이 지연되고 있습니다. 잠시 후 다시 시도해주세요."), 200, cors);
     }
     return json(fallback(e.userMessage || "AI 응답을 처리하지 못했습니다. 잠시 후 다시 시도해주세요."), 200, cors);
+  }
+
+  // 길안내와 무관한 질문은 답하지 않고 다시 질문해달라고 한다 (웹 검색도 하지 않음).
+  // 안내 글은 AI가 쓴 글이 아니라 서버가 정한 고정 문구를 쓴다.
+  if (out && out.intent === "off_topic") {
+    console.log("AI off_topic blocked");
+    return json(offTopicResponse(), 200, cors);
   }
 
   // 안전장치: 강남역이 아닌 특정 역의 시설·역 정보 질문은 AI가 검색을 빼먹어도 검색한다 (추측 답변 방지).
@@ -443,6 +450,14 @@ function buildSystemPrompt(ctx, pins, webSearch) {
   return [
     "너는 서울 지하철 실내 내비게이션 앱 'sub note'의 안내 도우미다. 한국어 존댓말로 짧고 명확하게 답한다.",
     "",
+    "[질문 범위: 가장 먼저 판단한다]",
+    "- 답하는 질문(길안내 관련): 지하철 경로·환승·소요 시간, 역 찾기·출구, 역 안과 역 주변 시설 위치(화장실·엘리베이터·가게 등),",
+    "  이동 중 들를 곳(예: 가는 길에 꽃집), 요금·운행·막차 등 지하철 이용, 역 안 비상 상황 대처.",
+    "- 이전 대화에 이어지는 짧은 질문(예: '거기서 몇 분 걸려?', '엘리베이터는?')은 이전 대화 주제를 따라 판단한다.",
+    "- 그 밖의 질문(날씨, 상식·학습, 코딩, 번역, 잡담·인사, 길안내와 무관한 추천 등)은 답하지 않는다:",
+    "  intent=off_topic, aboutStation=null, needsWebSearch=false, replyText='', blocks=[], route=null, actions=[] 로만 낸다.",
+    "- 길안내와 조금이라도 관련 있으면 off_topic으로 막지 않는다.",
+    "",
     "[질문 대상 역 판단]",
     "- 먼저 질문이 어느 역에 대한 것인지 판단해 aboutStation에 역 이름(예: '강남역', '잠실역')을 쓴다. 특정 역이 아니면 null.",
     "- 사용자가 지금 강남역 실내 지도를 보고 있어도, 질문이 다른 역(예: '잠실역 가는 중')에 관한 것이면 그 역이 대상이다.",
@@ -542,7 +557,7 @@ const OPENAI_REPLY_SCHEMA = {
     },
     aboutStation: nullableStr,
     needsWebSearch: { type: "boolean" },
-    intent: { type: "string", enum: ["route_plan", "station_info", "pin_locate", "general"] },
+    intent: { type: "string", enum: ["route_plan", "station_info", "pin_locate", "general", "off_topic"] },
     replyText: { type: "string" },
     route: {
       anyOf: [
@@ -612,7 +627,7 @@ const GEMINI_REPLY_SCHEMA = {
     },
     aboutStation: gStr,
     needsWebSearch: { type: "BOOLEAN" },
-    intent: { type: "STRING", enum: ["route_plan", "station_info", "pin_locate", "general"] },
+    intent: { type: "STRING", enum: ["route_plan", "station_info", "pin_locate", "general", "off_topic"] },
     replyText: { type: "STRING" },
     route: {
       type: "OBJECT",
@@ -706,6 +721,29 @@ function toChatResponse(out, allPins, groups = []) {
     reply,
     route,
     actions,
+  };
+}
+
+// 길안내와 무관한 질문에 대한 고정 응답 (규격 0.5: intent=off_topic)
+function offTopicResponse() {
+  const text = "sub note는 지하철 길안내와 역 시설 안내만 도와드릴 수 있어요. 길안내와 관련된 내용으로 다시 질문해주세요.";
+  return {
+    schemaVersion: SCHEMA_VERSION,
+    intent: "off_topic",
+    aboutStation: null,
+    reply: {
+      text,
+      blocks: [
+        { type: "callout", tone: "info", text },
+        { type: "bullets", title: "이렇게 물어보세요", items: [
+          "건대입구역에서 판교역까지 어떻게 가?",
+          "강남역 화장실 어디 있어?",
+          "엘리베이터 있는 출구 알려줘",
+        ] },
+      ],
+    },
+    route: null,
+    actions: [],
   };
 }
 

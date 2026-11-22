@@ -1315,7 +1315,7 @@
     // - Vercel 서울 리전 함수 (ai-backend/). AI 키는 Vercel 환경변수에만 있다.
     // - 비워두면 브라우저 안의 목업(mockAiChat)이 규격에 맞는 가짜 응답을 만든다 (AI 없이 UI 개발할 때).
     const AI_CHAT_URL = "https://subnote-ai.vercel.app/api/chat";
-    const AI_SCHEMA_VERSION = "0.4";
+    const AI_SCHEMA_VERSION = "0.5";
 
     /* ========================================================
        1. 토스트 알림 헬퍼
@@ -2067,7 +2067,8 @@
         const raw = await requestAiChat(request);
         if (seq !== aiRequestSeq) return;
         const res = normalizeAiResponse(raw);
-        aiHistory.push({ role: "user", text: query }, { role: "assistant", text: res.reply.text });
+        // 길안내와 무관해 막힌 질문(off_topic)은 대화 기록에 넣지 않는다 (다음 질문 판단을 흐리지 않게)
+        if (res.intent !== "off_topic") aiHistory.push({ role: "user", text: query }, { role: "assistant", text: res.reply.text });
         while (aiHistory.length > AI_HISTORY_LIMIT) aiHistory.shift();
         renderAiReply(res);
         applyAiActions(res.actions);
@@ -2117,7 +2118,7 @@
       const r = (raw && typeof raw === "object") ? raw : {};
       const text = (r.reply && typeof r.reply.text === "string" && r.reply.text.trim())
         ? r.reply.text : "답변 내용이 비어 있습니다.";
-      const knownIntents = ["route_plan", "station_info", "pin_locate", "general"];
+      const knownIntents = ["route_plan", "station_info", "pin_locate", "general", "off_topic"];
       const route = (r.route && Array.isArray(r.route.steps)) ? {
         from: String(r.route.from || ""),
         to: String(r.route.to || ""),
