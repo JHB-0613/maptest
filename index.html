@@ -3676,7 +3676,8 @@
        peek이 되려면 뒤 지도를 눌러야 해서 모달(showModal)이 아니라 비모달로 연다. 그래서 Esc·창 밖 클릭 닫기는 직접 처리한다.
        내려갈 때는 translate로 내리면서 같은 만큼 아래쪽을 clip-path로 잘라, 창이 원래 아래 경계(하단 버튼 위) 밑으로
        나가지 않는다 → 웹 목업 프레임 밖으로 삐져나오지 않는다 */
-    let pinSheetState = "closed";
+    let pinSheetState = "closed";   // "expanded" | "partial"(손으로 내려 둔 중간 위치) | "peek" | "closed"
+    let pinSheetOffset = 0;          // 지금 아래로 내려간 거리(px). 0 = 다 펼침
 
     function getPinSheetPeekShift() {
       // peek 때 남길 높이 = 손잡이 + 제목 줄
@@ -3686,16 +3687,18 @@
     }
 
     function setPinSheetOffset(t) {
+      pinSheetOffset = t;
       pinModal.style.translate = t ? `-50% ${t}px` : "";
       pinModal.style.clipPath = t ? `inset(0 0 ${t}px 0 round 24px)` : "";
     }
 
-    function setPinSheetState(state) {
+    // offset: "partial"일 때 머무를 위치
+    function setPinSheetState(state, offset = 0) {
       pinSheetState = state;
       pinModal.classList.toggle("peek", state === "peek");
       if (state === "peek") pinModal.scrollTop = 0;   // 창 안을 스크롤해 둔 상태여도 제목 줄이 보이게
       pinModal.classList.add("settling");
-      setPinSheetOffset(state === "peek" ? getPinSheetPeekShift() : 0);
+      setPinSheetOffset(state === "peek" ? getPinSheetPeekShift() : state === "partial" ? offset : 0);
     }
 
     function openPinDialog() {
@@ -3755,56 +3758,66 @@
       setPinSheetOffset(0);
     });
 
-    // 상단 손잡이를 누른 채 끌면 창이 따라 움직인다.
-    // - 다 보일 때: 1/4 넘게(또는 빠르게) 내리면 peek(제목 줄만 남김), 아니면 제자리
-    // - peek일 때: 위로 끌거나 손잡이·제목 줄을 누르면 다시 펼침, 더 내리면 닫힘
+    // 상단 손잡이를 누른 채 끌면 창이 손을 따라 움직이고, 놓은 자리에 그대로 머문다.
+    // - 내릴 때는 창 위치가 펼침(0)↔peek(제목 줄만) 거리의 60%(PIN_SHEET_COLLAPSE_RATIO) 지점을 넘으면 peek까지 내려간다
+    // - 올릴 때는 그 거리의 20%(PIN_SHEET_EXPAND_RATIO) 이상 올리면 끝까지 펼친다
+    // - 끝까지(창이 다 가려질 때까지) 내리면 닫는다. peek보다 아래에서 놓으면 peek으로 돌아온다
+    // - 손잡이·제목 줄을 탭하면 펼친다
     // translate·clip-path만 바꾼다 (가로 가운데 정렬 translate: -50% 0 유지, 열림 애니메이션의 transform과 겹치지 않게)
+    const PIN_SHEET_EXPAND_RATIO = 0.2;     // 이만큼(비율) 올리면 끝까지 펼침
+    const PIN_SHEET_COLLAPSE_RATIO = 0.6;   // 창 위치가 이 지점(비율)을 넘게 내려가면 peek까지
     (function setupPinModalDrag() {
       const handle = document.getElementById("pin-modal-handle");
       const header = document.getElementById("pin-modal-title").parentElement;
-      let startY = 0, lastY = 0, lastT = 0, velocity = 0, dragging = false, base = 0;
+      let startY = 0, dragging = false, base = 0;
 
       handle.addEventListener("pointerdown", (e) => {
         if (e.button !== 0) return;
         dragging = true;
-        base = pinSheetState === "peek" ? getPinSheetPeekShift() : 0;
-        startY = lastY = e.clientY; lastT = performance.now(); velocity = 0;
+        base = pinSheetOffset;
+        startY = e.clientY;
         try { handle.setPointerCapture(e.pointerId); } catch {}   // 손가락·마우스가 손잡이 밖으로 나가도 계속 받는다
         pinModal.classList.remove("settling");
         pinModal.classList.add("dragging");
       });
       handle.addEventListener("pointermove", (e) => {
         if (!dragging) return;
-        const now = performance.now();
-        velocity = (e.clientY - lastY) / Math.max(1, now - lastT);   // px/ms (아래가 +)
-        lastY = e.clientY; lastT = now;
         setPinSheetOffset(Math.min(pinModal.offsetHeight, Math.max(0, base + e.clientY - startY)));
       });
       const finish = (e) => {
         if (!dragging) return;
         dragging = false;
         pinModal.classList.remove("dragging");
-        const dy = e.type === "pointerup" ? e.clientY - startY : 0;   // 아래가 +
-        const flickDown = dy > 20 && velocity > 0.6, flickUp = dy < -20 && velocity < -0.6;
-        if (pinSheetState === "expanded") {
-          setPinSheetState(dy > pinModal.offsetHeight / 4 || flickDown ? "peek" : "expanded");
-        } else if (dy > 30 || flickDown) {
-          // peek에서 더 내리면 끝까지 내린 뒤 닫는다
-          pinModal.classList.add("settling");
-          setPinSheetOffset(pinModal.offsetHeight);
-          const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
-          setTimeout(closePinModal, reduce ? 0 : 200);
+        const h = pinModal.offsetHeight;
+        const peekShift = getPinSheetPeekShift();
+        const t = pinSheetOffset;
+        if (e.type === "pointerup" && Math.abs(e.clientY - startY) < 5) {
+          // 탭: 내려가 있으면 펼친다
+          setPinSheetState("expanded");
+          return;
+        }
+        if (t >= h - 12) {
+          // 끝까지 내렸으면 닫는다 (이미 거의 다 가려진 상태라 바로 닫아도 자연스럽다)
+          closePinModal();
+        } else if (t >= peekShift) {
+          setPinSheetState("peek");                   // peek보다 아래(닫힘 직전)에서 놓으면 peek으로
+        } else if (t > base) {
+          // 내리는 중: 창 위치가 펼침↔peek 거리의 60% 지점을 넘으면 peek까지 내려간다.
+          // (한 번에 끈 거리가 아니라 위치로 본다. 여러 번 나눠 끌어도 충분히 내려가 있으면 내려가게)
+          setPinSheetState(t >= peekShift * PIN_SHEET_COLLAPSE_RATIO ? "peek" : "partial", t);
+        } else if (t < base) {
+          // 올리는 중: 펼침↔peek 거리의 20% 이상 올리면 끝까지 펼친다 (내릴 때보다 쉽게 펼쳐지게)
+          setPinSheetState(base - t >= peekShift * PIN_SHEET_EXPAND_RATIO ? "expanded" : "partial", t);
         } else {
-          // 위로 끌었거나(-40px 이상·빠르게) 그냥 눌렀다 떼면(탭) 펼친다
-          setPinSheetState(dy < -40 || flickUp || Math.abs(dy) < 5 ? "expanded" : "peek");
+          setPinSheetState(pinSheetState === "peek" ? "peek" : t ? "partial" : "expanded", t);
         }
       };
       handle.addEventListener("pointerup", finish);
       handle.addEventListener("pointercancel", finish);
 
-      // peek일 때 제목 줄을 눌러도 펼친다 (✕ 버튼은 그대로 닫기)
+      // 내려가 있을 때 제목 줄을 눌러도 펼친다 (✕ 버튼은 그대로 닫기)
       header.addEventListener("click", (e) => {
-        if (pinSheetState === "peek" && !e.target.closest("button")) setPinSheetState("expanded");
+        if (pinSheetState !== "expanded" && !e.target.closest("button")) setPinSheetState("expanded");
       });
     })();
 
