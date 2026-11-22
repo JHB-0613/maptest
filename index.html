@@ -1812,6 +1812,11 @@
     // 핀 등록 모달의 카테고리 선택지 (상황 그룹별 optgroup). 필터 칩은 renderExploreFilters가 그린다.
     function initCategoryFilters() {
       pinCatSelect.replaceChildren();
+      // 새 핀의 처음 값: 카테고리 선택 없음 (그대로 저장하면 '기타'로 들어간다)
+      const none = document.createElement("option");
+      none.value = "";
+      none.innerText = "카테고리 선택 없음";
+      pinCatSelect.appendChild(none);
       PIN_CATEGORY_GROUPS.forEach(g => {
         const og = document.createElement("optgroup");
         og.label = `${g.emoji} ${g.label}`;
@@ -3633,6 +3638,7 @@
       pinTitleInput.value = "";
       pinDescInput.value = "";
       setPinPhotoDraft(null);
+      pinCatSelect.value = "";   // 카테고리 선택 없음으로 시작
 
       btnSavePin.innerText = "핑 저장하기";
       btnSavePin.style.display = "block";
@@ -3661,7 +3667,7 @@
     // 등록 창에서 시설 종류를 바꾸면 임시 핀 아이콘도 바꾼다
     pinCatSelect.addEventListener("change", () => {
       if (!draftPin || currentEditingPin) return;
-      draftPin.category = pinCatSelect.value;
+      draftPin.category = pinCatSelect.value || "기타";
       syncPinsTo3D();
     });
 
@@ -3813,7 +3819,7 @@
         const targetPin = STATION_PINS_DB[stName].find(p => p.id === currentEditingPin.id);
         if (targetPin) {
           targetPin.title = title;
-          targetPin.category = pinCatSelect.value;
+          targetPin.category = pinCatSelect.value || "기타";
           targetPin.desc = pinDescInput.value.trim();
           if (pinPhotoDraft) targetPin.photo = pinPhotoDraft; else delete targetPin.photo;
           showToast(`'${title}' 핀이 성공적으로 수정되었습니다.`);
@@ -3823,7 +3829,7 @@
           id: Date.now(),
           floor: activeFloor,
           title: title,
-          category: pinCatSelect.value,
+          category: pinCatSelect.value || "기타",
           desc: pinDescInput.value.trim(),
           x: tempClickCoord.x,
           y: tempClickCoord.y,
