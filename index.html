@@ -3525,11 +3525,12 @@
         startClientX = e.clientX; startClientY = e.clientY;
       });
 
-      // pointerup이 아니라 click에서 창을 연다. 핀 창(<dialog closedby="any">)은 '창 밖을 누르면 닫기'를
-      // pointerup 시점에 판단하므로, pointerup 안에서 열면 같은 탭에 열리자마자 바로 닫힌다
-      renderer.domElement.addEventListener("click", (e) => {
+      // click이 아니라 pointerup에서 처리한다. OrbitControls가 touchstart에서 preventDefault(스크롤 방지)를 해서
+      // 모바일 터치에서는 click 이벤트가 아예 오지 않는다
+      renderer.domElement.addEventListener("pointerup", (e) => {
         if (!isDown) return;
         isDown = false;
+        if (pinSheetClosedByThisTap) return;   // 이 탭은 펼쳐진 핀 창을 닫는 데 썼다 (아래 document 캡처 처리)
         if (Math.hypot(e.clientX - startClientX, e.clientY - startClientY) > 6) return;
 
         const rect = renderer.domElement.getBoundingClientRect();
@@ -3713,12 +3714,23 @@
       }
     }
 
-    // 창이 다 보일 때 창 밖을 누르면 닫는다 (그 클릭은 지도 등에 전달하지 않음 = 예전 모달과 같은 동작).
-    // peek 상태에서는 지도를 그대로 쓸 수 있게 막지 않는다. 캡처 단계라 지도 클릭 처리보다 먼저 실행된다
-    document.addEventListener("click", (e) => {
-      if (!pinModal.open || pinSheetState !== "expanded" || pinModal.contains(e.target)) return;
-      e.stopPropagation();
-      e.preventDefault();
+    // 창이 다 펼쳐져 있을 때 창 밖을 탭하면 닫는다. 그 탭으로 지도에서 새 창이 열리지는 않게 한다.
+    // 모바일 지도에서는 click이 오지 않으므로(OrbitControls의 touchstart preventDefault) 포인터 이벤트로 판단한다.
+    // 끌기(지도 이동)는 탭이 아니므로 닫지 않는다. peek·중간 상태에서는 지도를 그대로 쓸 수 있게 막지 않는다.
+    // stopPropagation은 하지 않는다 (OrbitControls가 pointerup을 못 받으면 끌기 상태로 남는다)
+    let pinSheetOutsidePress = null;
+    let pinSheetClosedByThisTap = false;
+    document.addEventListener("pointerdown", (e) => {
+      pinSheetClosedByThisTap = false;
+      pinSheetOutsidePress = (pinModal.open && pinSheetState === "expanded" && !pinModal.contains(e.target))
+        ? { id: e.pointerId, x: e.clientX, y: e.clientY } : null;
+    }, true);
+    document.addEventListener("pointerup", (e) => {
+      const press = pinSheetOutsidePress;
+      pinSheetOutsidePress = null;
+      if (!press || press.id !== e.pointerId || Math.hypot(e.clientX - press.x, e.clientY - press.y) > 6) return;
+      if (!pinModal.open || pinSheetState !== "expanded") return;
+      pinSheetClosedByThisTap = true;   // 같은 탭의 지도 pointerup 처리(새 창 열기)를 건너뛰게
       closePinModal();
     }, true);
 
