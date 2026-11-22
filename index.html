@@ -957,6 +957,30 @@
       overflow: hidden;
       overscroll-behavior: contain;
     }
+    /* 상단 손잡이: 눌러서 아래로 끌면 창이 따라 내려가고, 충분히 내리면 닫힌다 (setupPinModalDrag) */
+    .pin-modal-handle {
+      flex-shrink: 0;
+      height: 22px;
+      margin: -14px -20px -6px;      /* 창 위쪽 여백까지 잡을 수 있게 넓게 */
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: grab;
+      touch-action: none;             /* 끄는 동안 브라우저 스크롤·당겨서 새로고침이 끼어들지 않게 */
+    }
+    .pin-modal-handle::before {
+      content: "";
+      width: 40px;
+      height: 5px;
+      border-radius: 3px;
+      background: #d4d9de;
+    }
+    .pin-modal.dragging .pin-modal-handle { cursor: grabbing; }
+    .pin-modal.dragging .pin-modal-handle::before { background: #9aa3ab; }
+    @media (prefers-reduced-motion: no-preference) {
+      .pin-modal.settling { transition: translate 0.2s ease; }
+    }
+
     @media (max-width: 480px) {
       /* 실제 모바일: 프레임이 화면 전체이므로 좌우 16px 여백만 */
       .pin-modal { --frame-w: 100vw; --frame-h: 100dvh; }
@@ -1240,6 +1264,8 @@
 
       <!-- 핑 등록/조회/수정 모달 -->
       <dialog class="pin-modal" id="pin-modal" closedby="any" aria-labelledby="pin-modal-title">
+        <!-- 끌어내려 닫는 손잡이 (✕ 버튼과 같은 기능의 제스처라 보조기기에는 숨김) -->
+        <div class="pin-modal-handle" id="pin-modal-handle" aria-hidden="true"></div>
         <div style="display:flex; justify-content:space-between; align-items:center;">
           <h2 id="pin-modal-title" style="font-size:15px; font-weight:700;">새로운 장소 핑 등록</h2>
           <button type="button" aria-label="닫기" style="border:none; background:none; font-size:16px; cursor:pointer;" onclick="closePinModal()">✕</button>
@@ -2239,7 +2265,7 @@
             if (pin.desc) body.appendChild(makeEl("div", "pc-desc", pin.desc));
             card.appendChild(body);
             card.appendChild(makeEl("span", "pc-go", "›"));
-            card.onclick = (ev) => { ev.stopPropagation(); focusAiPin(pin.id); };
+            card.onclick = (ev) => { ev.stopPropagation(); goToAiPin(pin.id); };
             cards.appendChild(card);
           });
           if (!cards.children.length) return;
@@ -2300,6 +2326,13 @@
       onExploreFilterChanged();
       const g = PIN_CATEGORY_GROUPS.find(x => x.id === a.group);
       showToast(`지도에 ${g.emoji} ${a.category || g.label}만 표시 중 · 탐색(🔍)에서 '전체'로 되돌릴 수 있어요`);
+    }
+
+    // 사용자가 AI 답변의 핀 카드·핀 버튼을 눌렀을 때: 답변 창을 닫아(✕와 같음) 지도를 가리지 않게 하고 그 핀으로 이동.
+    // (AI 응답 직후 자동 이동(applyAiActions)은 답변을 읽어야 하므로 창을 닫지 않는다)
+    function goToAiPin(pinId) {
+      if (!indoorView.classList.contains("hidden")) closeAiReply();
+      focusAiPin(pinId);
     }
 
     function focusAiPin(pinId) {
@@ -2388,7 +2421,7 @@
         const chip = document.createElement("button");
         chip.className = "ai-pin-chip";
         chip.textContent = `📍 ${pin.floor} ${pin.title}`;
-        chip.onclick = (ev) => { ev.stopPropagation(); focusAiPin(pin.id); };
+        chip.onclick = (ev) => { ev.stopPropagation(); goToAiPin(pin.id); };
         chipsEl.appendChild(chip);
       });
 
@@ -2893,16 +2926,51 @@
     }
 
     // 2D 핀 최소 크기 보장 및 줌 연동 스케일링 함수
+    /* 선택한 핀 강조: 탐색 패널·AI 답변에서 핀으로 이동하면(focusOnPin) 그 핀이 튀어나오듯 커졌다가
+       조금 큰 크기로 남는다. 다른 핀으로 이동하거나 지도 빈 곳을 누르거나 층을 바꾸면 풀린다.
+       핀 메시는 필터·층 전환 때 다시 만들어지므로 객체가 아니라 핀 id로 기억하고, 매 프레임 id로 찾는다 */
+    const PIN_POP_MS = 650;          // 커졌다가 자리 잡기까지
+    const PIN_POP_PEAK = 1.9;        // 가장 클 때 배율
+    const PIN_POP_HOLD = 1.4;        // 선택된 동안 유지하는 배율
+    let highlightedPinId = null;
+    let pinPopStart = null;          // 핀 메시가 화면에 생긴 시점부터 애니메이션 시작 (GLB 핀은 늦게 뜰 수 있음)
+
+    function highlightPin(pin) {
+      highlightedPinId = pin ? String(pin.id) : null;
+      pinPopStart = null;
+      update2DPinsScaling();
+    }
+
+    function isPinPopAnimating() {
+      return highlightedPinId !== null && (pinPopStart === null || performance.now() - pinPopStart < PIN_POP_MS);
+    }
+
+    function getPinPopFactor() {
+      if (pinPopStart === null) return 1;
+      const t = Math.min(1, (performance.now() - pinPopStart) / PIN_POP_MS);
+      if (t < 0.35) {
+        const k = t / 0.35;
+        return 1 + (PIN_POP_PEAK - 1) * (1 - Math.pow(1 - k, 3));             // 빠르게 커짐
+      }
+      const k = (t - 0.35) / 0.65;
+      const ease = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+      return PIN_POP_PEAK + (PIN_POP_HOLD - PIN_POP_PEAK) * ease;            // 살짝 줄며 자리 잡음
+    }
+
+    // 핀 크기: 2D는 줌아웃돼도 작아지지 않게 1/zoom 배율, 3D는 1. 강조 핀은 여기에 튀어나옴 배율을 곱한다
     function update2DPinsScaling() {
-      if (!camera || !pins3DGroup || currentIndoorMode !== "2D") return;
-      // 줌아웃되었을 때도 핀이 작아지지 않도록 1/zoom 배율 적용
-      const safeScale = Math.max(1.0, 1.0 / Math.max(0.2, camera.zoom));
+      if (!camera || !pins3DGroup) return;
+      const safeScale = currentIndoorMode === "2D" ? Math.max(1.0, 1.0 / Math.max(0.2, camera.zoom)) : 1;
+      const target = highlightedPinId !== null
+        ? pins3DGroup.children.find(m => m.userData && m.userData.pinData && String(m.userData.pinData.id) === highlightedPinId)
+        : null;
+      if (target && pinPopStart === null) pinPopStart = performance.now();
+      const pop = getPinPopFactor();
       pins3DGroup.children.forEach(pinMesh => {
-        if (pinMesh.userData && pinMesh.userData.is2DPin) {
-          pinMesh.scale.set(safeScale, safeScale, safeScale);
-        } else {
-          pinMesh.scale.set(1, 1, 1);
-        }
+        const is2D = !!(pinMesh.userData && pinMesh.userData.is2DPin);
+        const s = (is2D && currentIndoorMode === "2D" ? safeScale : 1) * (pinMesh === target ? pop : 1);
+        pinMesh.scale.set(s, s, s);
+        if (is2D) pinMesh.renderOrder = pinMesh === target ? 30 : 25;   // 강조 핀을 다른 핀 위에 그린다
       });
     }
 
@@ -2976,6 +3044,7 @@
 
       function animate() {
         requestAnimationFrame(animate);
+        if (isPinPopAnimating()) update2DPinsScaling();
         controls.update();
         renderer.render(scene, camera);
       }
@@ -3049,6 +3118,9 @@
     }
 
     function selectFloor(floor, btnEl) {
+      // 층을 바꾸면 핀 강조 해제 (다른 층 핀으로 이동하는 경우는 층 로드 후 focusOnPin이 다시 강조한다)
+      highlightedPinId = null;
+      pinPopStart = null;
       activeFloor = floor;
       document.querySelectorAll(".floor-btn").forEach(b => b.classList.remove("active"));
       if (btnEl) btnEl.classList.add("active");
@@ -3351,7 +3423,49 @@
       camera.position.x = x3d;
       camera.position.z = z3d + (currentIndoorMode === "2D" ? 0.1 : 45);
       controls.update();
-      update2DPinsScaling();
+      // 핀 메시의 실제 위치(3D에선 바닥 높이만큼 떠 있음)를 화면 목표 지점에 맞춘다
+      const mesh = pins3DGroup.children.find(m => m.userData && m.userData.pinData && String(m.userData.pinData.id) === String(pin.id));
+      const pinWorld = mesh ? mesh.getWorldPosition(new THREE.Vector3()) : new THREE.Vector3(x3d, 0, z3d);
+      shiftPinAboveOverlays(pinWorld);
+      highlightPin(pin);   // 이동한 핀이 튀어나오듯 커져서 어느 핀인지 보이게
+    }
+
+    // 핀(pinWorld)이 화면 가운데에 오도록 카메라를 옮긴다. 지도 아래쪽을 가리는 창(핀 정보 창, AI 답변 창)이 떠 있으면
+    // 창에 가려지지 않게 '창 위로 보이는 지도 영역'의 가운데에 맞춘다. 창이 없으면 화면 정중앙.
+    function shiftPinAboveOverlays(pinWorld) {
+      if (!camera || !renderer) return;
+      const rect = renderer.domElement.getBoundingClientRect();
+      if (!rect.height) return;
+      let visibleBottom = rect.bottom;
+      if (pinModal.open) {
+        // 열림 애니메이션(아래에서 올라옴) 중에도 최종 위치로 계산한다
+        const top = window.innerHeight - parseFloat(getComputedStyle(pinModal).bottom) - pinModal.offsetHeight;
+        visibleBottom = Math.min(visibleBottom, top);
+      }
+      const aiPanel = document.getElementById("ai-reply-panel");
+      if (aiPanel.classList.contains("show")) visibleBottom = Math.min(visibleBottom, aiPanel.getBoundingClientRect().top);
+      const targetY = (rect.top + Math.max(rect.top, visibleBottom)) / 2;
+      const targetX = rect.left + rect.width / 2;
+
+      // 지금 핀이 보이는 화면 위치와 목표 위치가 가리키는 바닥 지점의 차이만큼 카메라·회전 중심을 같이 옮긴다.
+      // 직교 카메라라 평행 이동하면 화면 위 모든 점이 똑같이 움직이므로 2D·3D 모두 이 방식으로 맞는다
+      camera.updateMatrixWorld();   // 방금 옮긴 카메라 위치를 투영에 반영 (렌더 전이라 아직 갱신 안 됨)
+      const p = pinWorld.clone().project(camera);
+      const pinX = rect.left + (p.x + 1) / 2 * rect.width;
+      const pinY = rect.top + (1 - p.y) / 2 * rect.height;
+      if (Math.hypot(pinX - targetX, pinY - targetY) < 2) return;
+      const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+      const raycaster = new THREE.Raycaster();
+      const groundAt = (sx, sy) => {
+        raycaster.setFromCamera(new THREE.Vector2((sx - rect.left) / rect.width * 2 - 1, -((sy - rect.top) / rect.height) * 2 + 1), camera);
+        return raycaster.ray.intersectPlane(plane, new THREE.Vector3());
+      };
+      const a = groundAt(pinX, pinY), b = groundAt(targetX, targetY);
+      if (!a || !b) return;
+      const offset = a.sub(b);
+      camera.position.add(offset);
+      controls.target.add(offset);
+      controls.update();
     }
 
     let tempClickCoord = null;
@@ -3390,11 +3504,12 @@
           let root = pinHits[0].object;
           while (root.parent && root.parent !== pins3DGroup) root = root.parent;
           if (root.userData && root.userData.pinData) {
-            openViewPinModal(root.userData.pinData);
+            openViewPinModal(root.userData.pinData);   // 핀을 가운데로 옮기고 강조까지 한다
             return;
           }
         }
 
+        highlightPin(null);   // 빈 곳을 누르면 핀 강조 해제
         if (loadedStationModel) {
           const hits = raycaster.intersectObject(loadedStationModel, true);
           if (hits.length > 0) {
@@ -3518,11 +3633,63 @@
       btnSavePin.style.display = "block";
       btnDeletePin.style.display = "block";
       openPinDialog();
+      // 핀을 화면 가운데로 옮기되, 방금 연 창에 가려지지 않게 창 위 지도 영역의 가운데로 맞춘다
+      if (isThreeInitialized && pin.floor === activeFloor) {
+        focusOnPin(pin);
+      }
     }
 
     function closePinModal() {
       if (pinModal.open) pinModal.close();
     }
+
+    // 창이 어떤 방법으로 닫히든(✕, 창 밖 클릭, Esc, 끌어내리기, 저장) 핀 강조를 풀고 끌던 위치를 되돌린다
+    pinModal.addEventListener("close", () => {
+      highlightPin(null);
+      pinModal.classList.remove("dragging", "settling");
+      pinModal.style.translate = "";
+    });
+
+    // 상단 손잡이를 누른 채 아래로 끌면 창이 따라 내려간다. 창 높이의 1/3 넘게(또는 빠르게) 내리면 닫고, 아니면 제자리로.
+    // translate 속성만 바꾼다 (가로 가운데 정렬 translate: -50% 0 을 유지, 열림 애니메이션의 transform과 겹치지 않게)
+    (function setupPinModalDrag() {
+      const handle = document.getElementById("pin-modal-handle");
+      let startY = 0, lastY = 0, lastT = 0, velocity = 0, dragging = false;
+      const setOffset = (dy) => { pinModal.style.translate = `-50% ${dy}px`; };
+
+      handle.addEventListener("pointerdown", (e) => {
+        if (e.button !== 0) return;
+        dragging = true;
+        startY = lastY = e.clientY; lastT = performance.now(); velocity = 0;
+        try { handle.setPointerCapture(e.pointerId); } catch {}   // 손가락·마우스가 손잡이 밖으로 나가도 계속 받는다
+        pinModal.classList.remove("settling");
+        pinModal.classList.add("dragging");
+      });
+      handle.addEventListener("pointermove", (e) => {
+        if (!dragging) return;
+        const now = performance.now();
+        velocity = (e.clientY - lastY) / Math.max(1, now - lastT);   // px/ms (아래가 +)
+        lastY = e.clientY; lastT = now;
+        setOffset(Math.max(0, e.clientY - startY));   // 위로는 올라가지 않는다
+      });
+      const finish = (e) => {
+        if (!dragging) return;
+        dragging = false;
+        pinModal.classList.remove("dragging");
+        const dy = Math.max(0, e.clientY - startY);
+        const shouldClose = e.type === "pointerup" && (dy > pinModal.offsetHeight / 3 || (dy > 30 && velocity > 0.6));
+        pinModal.classList.add("settling");
+        if (shouldClose) {
+          setOffset(pinModal.offsetHeight + 120);   // 화면 아래로 마저 내려간 뒤 닫는다
+          const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+          setTimeout(closePinModal, reduce ? 0 : 200);
+        } else {
+          setOffset(0);
+        }
+      };
+      handle.addEventListener("pointerup", finish);
+      handle.addEventListener("pointercancel", finish);
+    })();
 
     function saveCurrentPin() {
       const title = pinTitleInput.value.trim();
