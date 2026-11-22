@@ -1331,10 +1331,7 @@
   <script>
     /* ========================================================
        0. 외부 서버 주소 (여기서만 관리)
-       - 공공데이터 API는 Cloudflare Worker 프록시를 거친다.
-         인증키는 Worker의 Secret(API_KEY)에만 있고 프론트에는 없다.
     ======================================================== */
-    const PROXY_URL = "https://subnote-proxy.skdlxm1412.workers.dev";
 
     // AI 대화 백엔드 (규격: schemas/ai-chat.v0.json)
     // - Vercel 서울 리전 함수 (ai-backend/). AI 키는 Vercel 환경변수에만 있다.
@@ -1757,50 +1754,10 @@
       return { x: x2d, y: y2d };
     }
 
+    // 역별 핀 목록. 강남역 핀은 답사 자료로 다시 넣을 예정이라 지금은 비어 있다.
+    // 사용자가 지도에서 등록한 핀도 여기에 들어간다 (메모리에만 있고 새로고침하면 사라짐).
     const STATION_PINS_DB = {
-      "강남역": [
-        // 지하 1층 (B1) - 2호선 대합실 (상단부)
-        { id: 'base_b1_1', title: "중앙 화장실", category: "화장실", desc: "1~2번 출구 중간 B1 개찰구 인근", floor: "B1", realX3d: 4.0, realZ3d: -56.0, x: 171, y: 139 },
-        { id: 'base_b1_2', title: "휴대폰 급속 충전소", category: "충전기", desc: "만남의 광장 안내센터 옆 기둥", floor: "B1", realX3d: -5.0, realZ3d: -60.0, x: 144, y: 130 },
-        { id: 'base_b1_3', title: "GS25 편의점", category: "상가", desc: "지하상가 통로 입구 24시", floor: "B1", realX3d: 25.0, realZ3d: -55.0, x: 234, y: 141 },
-
-        // 지하 1층 (B1) - 신분당선 통로 및 남측 대합실 (하단부)
-        { id: 'sbd_b1_toilet', title: "신분당선 대합실 화장실", category: "화장실", desc: "B1 환승게이트 남측 (3~6번 출구 방면)", floor: "B1", realX3d: -15.0, realZ3d: 50.0, x: 114, y: 368 },
-        { id: 'sbd_b1_ev_4', title: "4번 출구 엘리베이터", category: "엘리베이터", desc: "지상 ↔ B1 대합실 연결 (4번 출구 앞)", floor: "B1", realX3d: -8.4, realZ3d: 88.0, x: 134, y: 451 },
-        { id: 'sbd_b1_ev_5', title: "5번 출구 엘리베이터", category: "엘리베이터", desc: "지상 ↔ B1 대합실 연결 (5번 출구 앞)", floor: "B1", realX3d: -20.8, realZ3d: 89.6, x: 97, y: 454 },
-        { id: 'sbd_b1_lckr', title: "신분당선 물품보관함", category: "물품보관함", desc: "B1 남측 대합실 통로 (4·5번 출구 방면)", floor: "B1", realX3d: -11.0, realZ3d: 58.0, x: 126, y: 386 },
-        { id: 'sbd_b1_atm', title: "신분당선 ATM/충전기", category: "ATM기", desc: "B1 환승게이트 앞 무인 금융·충전 코너", floor: "B1", realX3d: -18.0, realZ3d: 42.0, x: 105, y: 351 },
-        { id: 'sbd_b1_store', title: "스토리웨이 편의점", category: "상가", desc: "B1 신분당선 환승통로 쇼핑존", floor: "B1", realX3d: -15.0, realZ3d: 15.0, x: 114, y: 292 },
-        { id: 'sbd_b1_rest_mid', title: "환승통로 쉼터 벤치", category: "벤치", desc: "2호선 ↔ 신분당선 환승통로 중간 쉼터", floor: "B1", realX3d: -14.0, realZ3d: -2.0, x: 117, y: 256 },
-        { id: 'sbd_b1_rest_3', title: "3번 출구 만남의 쉼터", category: "벤치", desc: "3번 출구 에스컬레이터 앞 대기 공간", floor: "B1", realX3d: -8.4, realZ3d: 74.0, x: 134, y: 420 },
-        { id: 'sbd_b1_rest_6', title: "6번 출구 휴식 벤치", category: "벤치", desc: "6번 출구 방향 통로 휴식 공간", floor: "B1", realX3d: -20.8, realZ3d: 60.0, x: 97, y: 390 },
-        
-        // 지하 2층 (B2) - 2호선 승강장 (상단부)
-        { id: 'base_b2_1', title: "승강장 엘리베이터", category: "엘리베이터", desc: "2호선 외선(역삼 방면) 승강기", floor: "B2", realX3d: 20.0, realZ3d: -60.0, y3d: null, x: 219, y: 130 },
-        { id: 'base_b2_2', title: "쉬어가는 벤치", category: "벤치", desc: "2호선 승강장 중앙 대기 벤치", floor: "B2", realX3d: -5.0, realZ3d: -65.0, y3d: null, x: 144, y: 119 },
-
-        // 지하 2층 (B2) - 신분당선 환승통로 (하단부)
-        { id: 'sbd_b2_ev', title: "환승통로 연결 승강기", category: "엘리베이터", desc: "B1 ↔ B2 환승통로 연결 엘리베이터", floor: "B2", realX3d: -14.0, realZ3d: 10.0, x: 117, y: 282 },
-        { id: 'sbd_b2_rest_1', title: "환승통로 휴식 벤치", category: "벤치", desc: "신분당선 환승 통로 1구역 대기 벤치", floor: "B2", realX3d: -15.0, realZ3d: 35.0, x: 114, y: 336 },
-        { id: 'sbd_b2_rest_2', title: "환승통로 쉼터 벤치", category: "벤치", desc: "신분당선 환승 통로 2구역 대기 벤치", floor: "B2", realX3d: -15.0, realZ3d: 65.0, x: 114, y: 401 },
-        { id: 'sbd_b2_vnd', title: "음료 자동판매기", category: "자판기", desc: "B2 환승통로 중간 자판기 코너", floor: "B2", realX3d: -18.0, realZ3d: 50.0, x: 105, y: 368 },
-        { id: 'sbd_b2_rest_3', title: "신분당선 연결 쉼터", category: "벤치", desc: "B2 남측 신분당선 대합실 직전 쉼터", floor: "B2", realX3d: -12.0, realZ3d: 80.0, x: 123, y: 433 },
-
-        // 지하 3층 (B3) - 신분당선 대합실 & 개찰구
-        { id: 'sbd_b3_1', title: "신분당선 화장실", category: "화장실", desc: "B3 대합실 남측 (개찰구 외부 4·5번 출구 방면)", floor: "B3", realX3d: -15.0, realZ3d: 55.0, x: 114, y: 379 },
-        { id: 'sbd_b3_2', title: "신분당선 승강기 (B3↔B4 하행)", category: "엘리베이터", desc: "B3 대합실 ↔ B4 양재/광교 방면 승강장 연결", floor: "B3", realX3d: -13.0, realZ3d: 20.0, x: 120, y: 303 },
-        { id: 'sbd_b3_3', title: "신분당선 승강기 (B3↔B4 상행)", category: "엘리베이터", desc: "B3 대합실 ↔ B4 신사 방면 승강장 연결", floor: "B3", realX3d: -13.0, realZ3d: 60.0, x: 120, y: 390 },
-        { id: 'sbd_b3_4', title: "신분당선 고객안내센터", category: "기타", desc: "B3 대합실 개찰구 옆 고객안내실", floor: "B3", realX3d: -12.0, realZ3d: 40.0, x: 123, y: 347 },
-        { id: 'sbd_b3_5', title: "교통카드 무인충전기", category: "표사는 곳", desc: "B3 개찰구 앞 무인 발권·충전기", floor: "B3", realX3d: -18.0, realZ3d: 35.0, x: 105, y: 336 },
-        { id: 'sbd_b3_6', title: "신분당선 물품보관함", category: "물품보관함", desc: "B3 대합실 통로 무인 락커", floor: "B3", realX3d: -20.0, realZ3d: 48.0, x: 99, y: 364 },
-
-        // 지하 4층 (B4) - 신분당선 승강장
-        { id: 'sbd_b4_1', title: "승강장 엘리베이터 (하행)", category: "엘리베이터", desc: "B4 승강장 ↔ B3 대합실 연결 (양재/광교 방면)", floor: "B4", realX3d: -13.0, realZ3d: 20.0, x: 120, y: 303 },
-        { id: 'sbd_b4_2', title: "승강장 엘리베이터 (상행)", category: "엘리베이터", desc: "B4 승강장 ↔ B3 대합실 연결 (신사 방면)", floor: "B4", realX3d: -13.0, realZ3d: 60.0, x: 120, y: 390 },
-        { id: 'sbd_b4_3', title: "휠체어 급속 충전소", category: "충전기", desc: "B4 승강장 중앙 고객 대기실 인근", floor: "B4", realX3d: -16.0, realZ3d: 45.0, x: 111, y: 358 },
-        { id: 'sbd_b4_4', title: "승강장 고객 쉼터 벤치", category: "벤치", desc: "B4 승강장 열차 대기 고객 쉼터", floor: "B4", realX3d: -10.0, realZ3d: 35.0, x: 129, y: 336 },
-        { id: 'sbd_b4_5', title: "음료 자동판매기", category: "자판기", desc: "B4 승강장 중앙 자판기 코너", floor: "B4", realX3d: -16.0, realZ3d: 55.0, x: 111, y: 379 }
-      ]
+      "강남역": []
     };
 
     const mainView = document.getElementById("main-view");
@@ -1954,9 +1911,6 @@
           loadFloorGlbModel(activeFloor);
         }
 
-        // ⬇️ API로부터 실시간 편의시설 핀 불러와 지도에 자동 꽂기
-        fetchAndGenerateApiPins("강남");
-
         if (renderer) {
           const rect = threeContainer.getBoundingClientRect();
           renderer.setSize(rect.width || 412, rect.height || 800);
@@ -2009,7 +1963,7 @@
       filtered.forEach(pin => {
         const item = document.createElement("div");
         item.style.cssText = "padding:10px 14px; background:#ffffff; border:1px solid #edf0f2; border-radius:14px; display:flex; justify-content:space-between; align-items:center; cursor:pointer; box-shadow:0 2px 6px rgba(0,0,0,0.02);";
-        // 핀 제목은 사용자·공공데이터 입력이므로 innerHTML이 아닌 textContent로 넣는다 (HTML로 해석되지 않게)
+        // 핀 제목은 사용자 입력이므로 innerHTML이 아닌 textContent로 넣는다 (HTML로 해석되지 않게)
         item.append(
           styledEl("div", "", [
             styledEl("div", "font-size:12px; font-weight:800; color:#1e293b;", pin.title),
@@ -3168,7 +3122,7 @@
 
       const stName = currentSelectedStation ? currentSelectedStation.name : "강남역";
       const pins = (STATION_PINS_DB[stName] || []).filter(p => p.floor === activeFloor);
-      // 등록 중인 임시 핀도 같이 그린다 (공공데이터 핀이 늦게 도착해 다시 그려도 사라지지 않게)
+      // 등록 중인 임시 핀도 같이 그린다 (다른 이유로 다시 그려도 사라지지 않게)
       if (draftPin && draftPin.floor === activeFloor) pins.push(draftPin);
 
       pins.forEach(pin => {
@@ -3881,196 +3835,6 @@
       renderExplorePinsList();
       syncPinsTo3D();
       showToast(`'${title}' 핀이 삭제되었습니다.`);
-    }
-
-    // 1. 위경도 -> Three.js 3D (X, Z) 정밀 아핀 변환 함수
-    // 실측 앵커: 강남역 사거리(0.0, -55.0), 1번 출구(28.0, -64.0), 10번 출구(-18.0, -105.0), 신분당선(-15.0, 80.0)
-    function convertGeoToThreeCoord(lat, lng) {
-      const x3d = 19993.0 * lat + 38722.3 * lng - 5668509.5;
-      const z3d = -61998.7 * lat - 7006.3 * lng + 3214763.3;
-      return { x3d, z3d };
-    }
-
-    // 2. 강남역 실측 출구 및 핵심 구역 3D 좌표 맵 (2호선 & 신분당선)
-    const GANGNAM_EXIT_ZONES = {
-      // 2호선 승강장 (B2) 및 연결 엘리베이터
-      '역삼': { x: 20.0, z: -60.0 }, // 2호선 외선 (역삼/잠실 방면 8-1)
-      '교대': { x: -26.0, z: -60.0 }, // 2호선 내선 (교대/사당 방면 3-4)
-
-      // 2호선 대합실 및 출입구 (B1)
-      '1번': { x: 32.0, z: -66.0 },
-      '2번': { x: 44.0, z: -56.0 },
-      '7번': { x: -38.0, z: -70.0 },
-      '8번': { x: -46.0, z: -76.0 },
-      '9번': { x: -36.0, z: -46.0 },
-      '10번': { x: -18.0, z: -100.0 },
-      '11번': { x: -2.0, z: -100.0 },
-      '12번': { x: 22.0, z: -58.0 },
-      '1,12': { x: 18.0, z: -58.0 },
-      '1, 12': { x: 18.0, z: -58.0 },
-      '7,10': { x: -20.0, z: -65.0 },
-      '7, 10': { x: -20.0, z: -65.0 },
-      '고객안전실': { x: 4.0, z: -54.0 },
-      '중앙': { x: 2.0, z: -58.0 },
-      '개찰구': { x: 4.0, z: -56.0 },
-
-      // 신분당선 구역 (B1 환승통로 및 B4 승강장)
-      '3번': { x: -6.0, z: 65.0 },
-      '4번': { x: -6.0, z: 85.0 },
-      '5번': { x: -22.0, z: 85.0 },
-      '6번': { x: -22.0, z: 65.0 },
-      '신분당': { x: -14.0, z: 30.0 }
-    };
-
-    // 2. 시설 명칭 및 오퍼레이션을 PIN_CATEGORY_GROUPS의 카테고리로 분류
-    function mapFacilityToCategory(fcltNm, defaultCategory) {
-      if (defaultCategory) return normalizeCategory(defaultCategory);
-      if (!fcltNm) return "기타";
-      if (fcltNm.includes("에스컬레이터")) return "에스컬레이터";
-      if (fcltNm.includes("엘리베이터") || fcltNm.includes("EV") || fcltNm.includes("승강기")) return "엘리베이터";
-      if (fcltNm.includes("화장실")) return "화장실";
-      if (fcltNm.includes("ATM")) return "ATM기";
-      if (fcltNm.includes("발매기") || fcltNm.includes("교통카드")) return "표사는 곳";
-      if (fcltNm.includes("충전")) return "충전기";
-      if (fcltNm.includes("보관함") || fcltNm.includes("락커")) return "물품보관함";
-      if (fcltNm.includes("자판기")) return "자판기";
-      if (fcltNm.includes("쓰레기")) return "쓰레기통";
-      return "기타";
-    }
-
-    // 3. 시설 객체 및 설명 문구에서 층수(B1~B4) 추출
-    function extractFloorFromItem(item) {
-      const flr = item.stnFlr || item.bgngFlr || item.endFlr;
-      if (flr) {
-        const f = String(flr).toUpperCase();
-        if (f.includes("B4") || f.includes("4")) return "B4";
-        if (f.includes("B3") || f.includes("3")) return "B3";
-        if (f.includes("B2") || f.includes("2")) return "B2";
-        if (f.includes("B1") || f.includes("1")) return "B1";
-      }
-      const text = `${item.dtlPstn || ''} ${item.fcltNm || ''} ${item.lckrDtlLocNm || ''}`;
-      if (text.includes("B4") || text.includes("지하 4") || text.includes("지하4")) return "B4";
-      if (text.includes("B3") || text.includes("지하 3") || text.includes("지하3")) return "B3";
-      if (text.includes("B2") || text.includes("지하 2") || text.includes("지하2")) return "B2";
-      return "B1";
-    }
-
-    // 4. 강남역 위치(위경도 및 출입구 정보)를 기반으로 3D 좌표 산출
-    function estimateGangnamCoords(item, index) {
-      const lat = parseFloat(item.LAT || item.lat || item.latitude);
-      const lng = parseFloat(item.LOT || item.lot || item.lng || item.longitude);
-      if (!isNaN(lat) && !isNaN(lng) && lat > 30 && lng > 120) {
-        return convertGeoToThreeCoord(lat, lng);
-      }
-
-      const text = `${item.dtlPstn || ''} ${item.vcntEntrcNo || ''} ${item.fcltNm || ''} ${item.lckrDtlLocNm || ''}`;
-      let base = null;
-
-      for (const [key, coord] of Object.entries(GANGNAM_EXIT_ZONES)) {
-        if (text.includes(key)) {
-          base = coord;
-          break;
-        }
-      }
-
-      if (!base) {
-        base = { x: 0.0, z: -56.0 };
-      }
-
-      // 핀들이 동일 위치에 완전히 겹치지 않도록 미세 분산
-      const jitterX = ((index % 3) - 1) * 1.5;
-      const jitterZ = ((Math.floor(index / 3) % 3) - 1) * 1.5;
-      return { x3d: base.x + jitterX, z3d: base.z + jitterZ };
-    }
-
-    // 5. 공공데이터포털(서울교통공사 편의시설위치정보) API 호출 및 지도 핀 자동 등록
-    async function fetchAndGenerateApiPins(stationName = "강남") {
-      if (!PROXY_URL) {
-        console.warn("[API 안내] PROXY_URL이 비어 있습니다. (fetchAndGenerateApiPins)");
-        return;
-      }
-
-      // 서울교통공사_편의시설위치정보 (서비스 ID: 15143841) 공식 오퍼레이션 전체 목록
-      const operations = [
-        { op: 'getFcElvtr', category: '엘리베이터' },
-        { op: 'getFcEsctr', category: '에스컬레이터' },
-        { op: 'getFcRstrm', category: '화장실' },       // 화장실
-        { op: 'getFcAtm', category: 'ATM기' },
-        { op: 'getFcLckr', category: '물품보관함' },
-        { op: 'getFcNrsrm', category: '기타' },          // 수유실 (목록에 없는 시설)
-        { op: 'getFcCstct', category: '기타' },          // 고객안전실
-        { op: 'getFcAtdspnr', category: '기타' },       // 무인민원발급기
-        { op: 'getFcTkatm', category: '표사는 곳' }     // 승차권자동발매기 & 교통카드 키오스크
-      ];
-
-      try {
-        const cleanStn = stationName.replace(/역$/, "");
-        const fetchPromises = operations.map(async ({ op, category }) => {
-          const url = `${PROXY_URL}/facility/${op}?dataType=JSON&pageNo=1&numOfRows=100&stnNm=${encodeURIComponent(cleanStn)}`;
-          try {
-            const res = await fetch(url);
-            if (!res.ok) return [];
-            const data = await res.json();
-            const items = data.response?.body?.items?.item;
-            if (!items) return [];
-            const list = Array.isArray(items) ? items : [items];
-            return list
-              .filter(item => (item.stnNm || "").includes(cleanStn) && item.stnNm !== "강남구청")
-              .map(item => ({ item, op, defaultCategory: category }));
-          } catch (e) {
-            console.warn(`[API] ${op} 조회 건너뜀:`, e);
-            return [];
-          }
-        });
-
-        const results = await Promise.all(fetchPromises);
-        const allFetched = results.flat();
-
-        if (allFetched.length === 0) {
-          console.log("[API] 조회된 편의시설 정보가 없습니다.");
-          return;
-        }
-
-        const stDbKey = "강남역";
-        if (!STATION_PINS_DB[stDbKey]) STATION_PINS_DB[stDbKey] = [];
-        // 기존 API 핀(2호선 실시간)만 필터링하여 최신으로 갱신 (신분당선 B3/B4 핀은 보존)
-        STATION_PINS_DB[stDbKey] = STATION_PINS_DB[stDbKey].filter(p => !String(p.id).startsWith("api_"));
-
-        allFetched.forEach(({ item, op, defaultCategory }, index) => {
-          let title = item.fcltNm || item.lckrNm || item.lckrRprsLocNm;
-          if (!title || title === "기타") {
-            if (op === "getFcAtdspnr") title = "무인민원발급기";
-            else if (op === "getFcCstct") title = "고객안전실";
-            else if (op === "getFcLckr") title = "물품보관함 (T-Locker)";
-            else if (op === "getFcTkatm") title = "승차권/교통카드 키오스크";
-            else title = defaultCategory;
-          }
-
-          const desc = item.dtlPstn || item.lckrDtlLocNm || item.rstrmInfo || "상세 위치 정보";
-          const floor = extractFloorFromItem(item);
-          const category = mapFacilityToCategory(title, defaultCategory);
-          const coords = estimateGangnamCoords(item, index);
-          const coord2d = typeof coord3Dto2D === "function" ? coord3Dto2D(coords.x3d, coords.z3d) : { x: 180, y: 200 };
-
-          STATION_PINS_DB[stDbKey].push({
-            id: `api_${op}_${index}`,
-            title: title,
-            category: category,
-            desc: desc,
-            floor: floor,
-            realX3d: coords.x3d,
-            realZ3d: coords.z3d,
-            x: coord2d.x,
-            y: coord2d.y
-          });
-        });
-
-        console.log(`[성공] 공공데이터포털 API로부터 ${allFetched.length}개의 시설 핀을 실시간 등록했습니다.`);
-        renderExplorePinsList();
-        syncPinsTo3D();
-      } catch (err) {
-        console.warn("API 핀 자동 생성 실패:", err);
-      }
     }
 
     // 모바일 접속 시 첫 화면 터치로 브라우저 상/하단 UI 전체화면 숨김 처리
