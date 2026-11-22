@@ -790,7 +790,6 @@
     .pin-modal.readonly .pin-photo-actions { display: none; }
     .pin-modal.readonly .pin-photo-preview { pointer-events: none; cursor: default; }
     .pin-photo-field[hidden] { display: none; }
-    .memo-new-btn[hidden] { display: none; }
     .nav-user-circle.signed-in { background: #e4f6ef; color: #367b67; }
 
     /* 로그인 필요 안내 시트 (핀 창과 같은 자리·모양) */
@@ -809,6 +808,10 @@
     .stat-row div { flex: 1; background: #f6faf8; border-radius: 14px; padding: 10px; text-align: center; }
     .stat-row b { display: block; font-size: 18px; color: #367b67; }
     .stat-row span { font-size: 11px; color: #64748b; }
+    .withdraw-link { color: #b91c1c; font-weight: 600; font-size: 11px; align-self: flex-end; }
+    .withdraw-box { display: flex; flex-direction: column; gap: 8px; border-top: 1px solid #fde2e2; padding-top: 10px; }
+    .withdraw-box[hidden] { display: none; }
+    .withdraw-box p { font-size: 12px; color: #7f1d1d; background: #fef2f2; border-radius: 10px; padding: 8px 10px; line-height: 1.5; }
     .demo-badge { font-size: 11px; color: #92400e; background: #fef3c7; border-radius: 10px; padding: 8px 10px; line-height: 1.5; }
 
     .comm-card {
@@ -830,7 +833,24 @@
     .mine-tag { font-size: 10px; font-weight: 800; color: #367b67; background: #e6f5ee; border-radius: 6px; padding: 1px 6px; margin-left: 4px; }
     .empty-note { font-size: 12px; color: #94a3b8; text-align: center; padding: 20px 0; }
 
-    .memo-new-btn { width: 100%; margin-bottom: 12px; }
+    /* 새 메모 + 버튼: 메모 페이지(세로 flex, 스크롤 영역) 안에서 오른쪽 아래에 붙어 있다.
+       margin-top:auto로 내용이 짧아도 맨 아래로, sticky로 내용이 길어 스크롤해도 화면 아래에 남는다 */
+    .memo-fab {
+      position: sticky;
+      bottom: calc(4px + env(safe-area-inset-bottom, 0px));
+      margin-top: auto;
+      align-self: flex-end;
+      flex-shrink: 0;
+      width: 56px; height: 56px; border-radius: 50%; border: none;
+      background: var(--primary-dark, #367b67); color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 8px 20px rgba(54, 123, 103, 0.35);
+      cursor: pointer; z-index: 5;
+    }
+    .memo-fab:active { transform: scale(0.95); }
+    .memo-fab:focus-visible { outline: 3px solid #a7d7c9; outline-offset: 2px; }
+    .memo-fab[hidden] { display: none; }
+    #memo-card-list { padding-bottom: 12px; }
     .memo-editor { background: #fff; border: 1px solid #edf0f2; border-radius: 18px; padding: 14px; display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
     .memo-editor[hidden] { display: none; }
     .memo-body { height: 110px; }
@@ -1416,7 +1436,6 @@
         <h2 style="font-size:24px; font-weight:800; color:#0f172a; margin-top:14px;">나의 메모</h2>
         <p style="font-size:12px; color:#64748b; margin-top:4px;">나만 볼 수 있는 메모입니다. 사진과 관련 핀을 함께 남길 수 있어요.</p>
       </div>
-      <button type="button" class="btn-pin-action btn-pin-save memo-new-btn" id="btn-new-memo" onclick="openMemoEditor(null)">＋ 새 메모</button>
       <div id="memo-editor" class="memo-editor" hidden>
         <input type="text" class="pin-input" id="memo-title-input" maxlength="60" placeholder="제목">
         <textarea class="pin-textarea memo-body" id="memo-body-input" maxlength="3000" placeholder="내용"></textarea>
@@ -1437,6 +1456,10 @@
         </div>
       </div>
       <div id="memo-card-list" style="display:flex; flex-direction:column; gap:12px;"></div>
+      <!-- 새 메모: 화면 오른쪽 아래에 떠 있는 + 버튼 (메모 페이지의 마지막 요소여야 아래에 붙어 있다) -->
+      <button type="button" class="memo-fab" id="btn-new-memo" aria-label="새 메모 쓰기" title="새 메모 쓰기" onclick="openMemoEditor(null)">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+      </button>
     </div>
 
     <div class="subpage-overlay" id="subpage-mypage">
@@ -3500,6 +3523,13 @@
         x3d = pos.x;
         z3d = pos.z;
       }
+      cancelFocusZoom();
+      const start = { target: controls.target.clone(), pos: camera.position.clone(), zoom: camera.zoom };
+      // 1) 도착 상태를 먼저 계산한다: 확대 배율을 적용한 뒤 핀을 가운데(창이 있으면 창 위 영역 가운데)에 맞춘 카메라
+      //    (핀 위치 맞추기는 배율에 따라 달라지므로 최종 배율에서 계산해야 도착했을 때 정확하다)
+      const endZoom = Math.min(Math.max(start.zoom, PIN_FOCUS_ZOOM[currentIndoorMode] || 1.8), controls.maxZoom || 2.5);
+      camera.zoom = endZoom;
+      camera.updateProjectionMatrix();
       controls.target.set(x3d, 0, z3d);
       camera.position.x = x3d;
       camera.position.z = z3d + (currentIndoorMode === "2D" ? 0.1 : 45);
@@ -3508,14 +3538,21 @@
       const mesh = pins3DGroup.children.find(m => m.userData && m.userData.pinData && String(m.userData.pinData.id) === String(pin.id));
       const pinWorld = mesh ? mesh.getWorldPosition(new THREE.Vector3()) : new THREE.Vector3(x3d, 0, z3d);
       shiftPinAboveOverlays(pinWorld);
+      const end = { target: controls.target.clone(), pos: camera.position.clone(), zoom: endZoom };
+      // 2) 시작 상태로 되돌린 뒤, 이동과 확대를 한 번에 부드럽게 이어서 보여준다 (순간이동처럼 보이지 않게)
+      camera.zoom = start.zoom;
+      camera.updateProjectionMatrix();
+      controls.target.copy(start.target);
+      camera.position.copy(start.pos);
+      controls.update();
       highlightPin(pin);   // 이동한 핀이 튀어나오듯 커져서 어느 핀인지 보이게
-      zoomInOnPin(pinWorld);
+      glideCameraTo(start, end);
     }
 
     // 핀으로 이동하면 화면도 확대해 핀과 주변이 더 크게 보이게 한다 (이미 더 확대돼 있으면 그대로).
     // 확대하는 동안 매 프레임 핀을 목표 위치(가운데 / 창 위 영역 가운데)에 다시 맞춰 핀이 화면에서 밀려나지 않게 한다
     const PIN_FOCUS_ZOOM = { "2D": 1.8, "3D": 1.8 };
-    const PIN_FOCUS_ZOOM_MS = 450;
+    const PIN_FOCUS_ZOOM_MS = 700;   // 핀으로 이동·확대하는 시간
     let focusZoomFrameId = null;
 
     function cancelFocusZoom() {
@@ -3523,19 +3560,24 @@
       focusZoomFrameId = null;
     }
 
-    function zoomInOnPin(pinWorld) {
-      cancelFocusZoom();
-      const from = camera.zoom;
-      const to = Math.min(Math.max(from, PIN_FOCUS_ZOOM[currentIndoorMode] || 1.8), controls.maxZoom || 2.5);
-      if (to - from < 0.01) return;
-      const start = performance.now();
-      const step = () => {
-        const t = Math.min(1, (performance.now() - start) / PIN_FOCUS_ZOOM_MS);
-        const ease = 1 - Math.pow(1 - t, 3);
-        camera.zoom = from + (to - from) * ease;
+    // 카메라 회전 중심·위치·배율을 함께 천천히 옮긴다 (처음과 끝은 느리게, 가운데는 빠르게)
+    function glideCameraTo(start, end) {
+      const apply = (k) => {
+        controls.target.lerpVectors(start.target, end.target, k);
+        camera.position.lerpVectors(start.pos, end.pos, k);
+        camera.zoom = start.zoom + (end.zoom - start.zoom) * k;
         camera.updateProjectionMatrix();
-        shiftPinAboveOverlays(pinWorld);
+        controls.update();
         update2DPinsScaling();
+      };
+      const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const far = start.target.distanceTo(end.target) > 0.01 || Math.abs(end.zoom - start.zoom) > 0.001;
+      if (reduceMotion || !far) { apply(1); return; }
+      const t0 = performance.now();
+      const step = () => {
+        const t = Math.min(1, (performance.now() - t0) / PIN_FOCUS_ZOOM_MS);
+        const ease = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;   // easeInOutCubic
+        apply(ease);
         focusZoomFrameId = t < 1 ? requestAnimationFrame(step) : null;
       };
       focusZoomFrameId = requestAnimationFrame(step);
@@ -4002,8 +4044,8 @@
     // 서버·체험 모드 오류를 사용자용 문장으로
     function friendlyError(e, fallback) {
       const m = String((e && e.message) || e || "");
-      if (/Invalid login credentials/i.test(m)) return "이메일 또는 비밀번호가 맞지 않아요.";
-      if (/already registered|already been registered/i.test(m)) return "이미 가입된 이메일이에요. 로그인해 주세요.";
+      if (/Invalid login credentials/i.test(m)) return "아이디 또는 비밀번호가 맞지 않아요.";
+      if (/already registered|already been registered|already exists/i.test(m)) return "이미 사용 중인 아이디예요. 다른 아이디를 써 주세요.";
       if (/Password should be at least/i.test(m)) return "비밀번호는 6자 이상이어야 해요.";
       if (/Email not confirmed/i.test(m)) return "메일함에서 가입 확인 링크를 먼저 눌러주세요.";
       if (/invalid.*email|email.*invalid/i.test(m)) return "이메일 주소 형식을 확인해 주세요.";
@@ -4080,6 +4122,18 @@
           const path = `${userId}/${crypto.randomUUID()}.jpg`;
           check(await sb.storage.from("photos").upload(path, blob, { contentType: "image/jpeg", upsert: false }));
           return sb.storage.from("photos").getPublicUrl(path).data.publicUrl;
+        },
+        // 회원 탈퇴: ① 내 사진 폴더를 비우고(SQL로는 Storage 파일을 못 지움) ② 서버 함수로 계정 삭제
+        //   → 계정이 지워지면 DB가 프로필·핀·즐겨찾기·메모를 함께 지운다 (supabase/004_delete_account.sql)
+        async deleteAccount(userId) {
+          for (;;) {
+            const files = check(await sb.storage.from("photos").list(userId, { limit: 100 }));
+            if (!files.length) break;
+            const removed = check(await sb.storage.from("photos").remove(files.map(f => `${userId}/${f.name}`)));
+            if (!removed.length) break;   // 지울 수 없는 파일만 남았으면 무한 반복하지 않는다
+          }
+          check(await sb.rpc("delete_my_account"));
+          await sb.auth.signOut({ scope: "local" }).catch(() => {});   // 이미 없는 계정의 세션만 이 기기에서 정리
         },
         async deletePhoto(url) {
           if (!url || !PHOTO_PUBLIC_PREFIX || !url.startsWith(PHOTO_PUBLIC_PREFIX)) return;
@@ -4171,6 +4225,18 @@
         async deleteMemo(id) { const u = need(); db.memos = db.memos.filter(x => !(x.id === id && x.owner_id === u.id)); save(); },
         async uploadPhoto(dataUrl) { return dataUrl; },   // 체험 모드는 사진을 data URL 그대로 저장
         async deletePhoto() {},
+        // 회원 탈퇴: 서버와 같은 결과가 되도록 내 핀(+그 핀의 즐겨찾기·메모 연결)·즐겨찾기·메모·계정을 지운다
+        async deleteAccount() {
+          const u = need();
+          const myPinIds = new Set(db.pins.filter(p => p.owner_id === u.id).map(p => p.id));
+          db.pins = db.pins.filter(p => !myPinIds.has(p.id));
+          db.favorites = db.favorites.filter(f => f.user_id !== u.id && !myPinIds.has(f.pin_id));
+          db.memos = db.memos.filter(m => m.owner_id !== u.id);
+          db.memos.forEach(m => { if (myPinIds.has(m.pin_id)) m.pin_id = null; });
+          db.users = db.users.filter(x => x.id !== u.id);
+          db.session = null;
+          save(); emit();
+        },
       };
     }
 
@@ -4185,7 +4251,7 @@
         signUp: fail, signIn: fail, signOut: fail, listPins: fail, insertPin: fail, updatePin: fail, deletePin: fail,
         async listFavorites() { return []; }, addFavorite: fail, removeFavorite: fail,
         async listMemos() { return []; }, insertMemo: fail, updateMemo: fail, deleteMemo: fail,
-        uploadPhoto: fail, async deletePhoto() {},
+        uploadPhoto: fail, async deletePhoto() {}, deleteAccount: fail,
       };
     }
 
@@ -4383,6 +4449,21 @@
       return el;
     }
 
+    /* 아이디 로그인: Supabase 계정은 이메일이 꼭 필요해서, 아이디를 받지 않는 주소(예약 도메인 example.com)로 바꿔 쓴다.
+       사용자는 아이디만 보고 입력한다. 이 주소로는 메일이 가지 않으므로
+       ⚠️ Supabase의 Confirm email은 계속 꺼 두어야 하고, 비밀번호 찾기(메일)는 쓸 수 없다.
+       예전에 이메일로 가입한 계정은 로그인 칸에 이메일을 그대로 넣으면 된다. */
+    const ACCOUNT_ID_DOMAIN = "id.subnote.example.com";
+    const ACCOUNT_ID_PATTERN = /^[a-z0-9_]{4,20}$/;
+    function accountIdToEmail(id) {
+      const v = id.trim().toLowerCase();
+      return v.includes("@") ? v : `${v}@${ACCOUNT_ID_DOMAIN}`;
+    }
+    function displayAccountId(email) {
+      const e = String(email || "");
+      return e.endsWith("@" + ACCOUNT_ID_DOMAIN) ? e.slice(0, -(ACCOUNT_ID_DOMAIN.length + 1)) : e;
+    }
+
     function buildAuthForm() {
       const signup = authFormMode === "signup";
       const form = document.createElement("form");
@@ -4390,7 +4471,10 @@
       form.noValidate = false;
       const title = styledEl("h3", "", signup ? "회원가입" : "로그인");
       const nick = makeInput("text", "nickname", "nickname", { maxLength: 20, placeholder: "커뮤니티에 보일 이름" });
-      const email = makeInput("email", "email", "email", { placeholder: "you@example.com" });
+      const email = makeInput("text", "username", "username", {
+        maxLength: signup ? 20 : 254, placeholder: signup ? "영문 소문자·숫자·_ 4~20자" : "아이디",
+        autocapitalize: "none", spellcheck: false,
+      });
       const pw = makeInput("password", "password", signup ? "new-password" : "current-password", { minLength: 6, placeholder: "6자 이상" });
       const err = styledEl("div", "", "");
       err.className = "account-error";
@@ -4410,23 +4494,27 @@
         form.append(styledEl("p", "", "⚠️ 체험 모드: 서버 연결 전이라 계정·핀·메모가 이 브라우저에만 저장돼요. 다른 기기·사람에게는 보이지 않아요."));
         form.lastChild.className = "demo-badge";
       }
-      if (signup) form.append(makeField("닉네임", nick));
-      form.append(makeField("이메일", email), makeField("비밀번호", pw), err, submit, switchBtn);
+      form.append(makeField("아이디", email), makeField("비밀번호", pw));
+      if (signup) form.append(makeField("닉네임 (커뮤니티에 보이는 이름)", nick));
+      form.append(err, submit, switchBtn);
 
       form.onsubmit = async (e) => {
         e.preventDefault();
         err.textContent = "";
-        const emailVal = email.value.trim().toLowerCase();
+        const idVal = email.value.trim().toLowerCase();
+        if (!idVal || !pw.value) { err.textContent = "아이디와 비밀번호를 입력해 주세요."; return; }
+        if (signup && !ACCOUNT_ID_PATTERN.test(idVal)) { err.textContent = "아이디는 영문 소문자·숫자·밑줄(_)로 4~20자예요."; return; }
+        if (signup && pw.value.length < 6) { err.textContent = "비밀번호는 6자 이상이어야 해요."; return; }
         if (signup && !nick.value.trim()) { err.textContent = "닉네임을 입력해 주세요."; return; }
-        if (!emailVal || !pw.value) { err.textContent = "이메일과 비밀번호를 입력해 주세요."; return; }
+        const emailVal = accountIdToEmail(idVal);
         submit.disabled = true;
         try {
           if (signup) {
             const r = await Backend.signUp(emailVal, pw.value, nick.value.trim());
             if (r.needsEmailConfirm) {
-              authFormMode = "login";
-              renderMypage();
-              showToast("가입 확인 메일을 보냈어요. 메일의 링크를 누른 뒤 로그인해 주세요.");
+              // 아이디 가입은 메일을 받을 수 없으므로, 서버에서 Confirm email이 켜져 있으면 가입을 마칠 수 없다
+              console.warn("[계정] Supabase Authentication 설정에서 Confirm email을 꺼야 아이디 가입이 됩니다.");
+              err.textContent = "지금은 가입을 마칠 수 없어요. 관리자에게 알려 주세요. (서버 설정: 가입 확인 메일 끄기 필요)";
               return;
             }
             showToast(`${nick.value.trim()}님, 가입을 환영해요!`);
@@ -4456,7 +4544,7 @@
         (currentUser.nickname || "?").slice(0, 1));
       const who = styledEl("div", "min-width:0;", [
         styledEl("b", "font-size:15px; color:#0f172a;", currentUser.nickname),
-        styledEl("p", "font-size:11px; color:#94a3b8; margin-top:2px; overflow-wrap:anywhere;", currentUser.email),
+        styledEl("p", "font-size:11px; color:#94a3b8; margin-top:2px; overflow-wrap:anywhere;", `아이디 ${displayAccountId(currentUser.email)}`),
       ]);
       const myPinCount = getGangnamPins().filter(isMyPin).length;
       const memoCount = styledEl("b", "", "…");
@@ -4487,8 +4575,67 @@
         card.append(note);
       }
       card.append(logout);
+
+      // 회원 탈퇴: 누르면 아래에 확인 상자가 펼쳐진다 (실수로 누르지 않게 비밀번호 확인)
+      const withdrawBtn = document.createElement("button");
+      withdrawBtn.type = "button";
+      withdrawBtn.className = "link-btn withdraw-link";
+      withdrawBtn.textContent = "회원 탈퇴";
+      withdrawBtn.setAttribute("aria-expanded", "false");
+      const withdrawBox = buildWithdrawBox(myPinCount);
+      withdrawBox.hidden = true;
+      withdrawBtn.onclick = () => {
+        withdrawBox.hidden = !withdrawBox.hidden;
+        withdrawBtn.setAttribute("aria-expanded", String(!withdrawBox.hidden));
+        if (!withdrawBox.hidden) withdrawBox.querySelector("input").focus();
+      };
+      card.append(withdrawBtn, withdrawBox);
+
       box.replaceChildren(card);
       Backend.listMemos().then(m => { myMemos = m; memoCount.textContent = String(m.length); }).catch(() => { memoCount.textContent = "-"; });
+    }
+
+    function buildWithdrawBox(myPinCount) {
+      const form = document.createElement("form");
+      form.className = "withdraw-box";
+      const warn = styledEl("p", "",
+        `탈퇴하면 계정과 함께 내가 등록한 핀 ${myPinCount}개, 메모, 즐겨찾기, 올린 사진이 모두 삭제되고 되돌릴 수 없어요. ` +
+        "다른 사람이 즐겨찾기한 내 핀도 사라져요.");
+      const pw = makeInput("password", "password", "current-password", { placeholder: "비밀번호 확인" });
+      const err = styledEl("div", "", "");
+      err.className = "account-error";
+      err.setAttribute("role", "alert");
+      const submit = document.createElement("button");
+      submit.type = "submit";
+      submit.className = "btn-pin-action btn-pin-delete";
+      submit.textContent = "탈퇴하기";
+      form.append(warn, makeField("비밀번호", pw), err, submit);
+      form.onsubmit = async (e) => {
+        e.preventDefault();
+        err.textContent = "";
+        if (!pw.value) { err.textContent = "비밀번호를 입력해 주세요."; return; }
+        const me = currentUser;
+        if (!me) return;
+        submit.disabled = true;
+        try {
+          // 본인 확인: 비밀번호로 다시 로그인되는지 확인한 뒤 삭제한다
+          try { await Backend.signIn(me.email, pw.value); }
+          catch (ex) { err.textContent = "비밀번호가 맞지 않아요."; return; }
+          await Backend.deleteAccount(me.id);
+          if (myPinsOnly) setMyPinsOnly(false);
+          await applyAuthUser(null);
+          await reloadPins();
+          authFormMode = "login";
+          renderMypage();
+          showToast("탈퇴했어요. 그동안 이용해 주셔서 감사합니다.");
+        } catch (ex) {
+          console.warn("[계정] 탈퇴 실패:", ex);
+          err.textContent = friendlyError(ex, "탈퇴하지 못했어요. 잠시 후 다시 시도해 주세요.");
+        } finally {
+          submit.disabled = false;
+        }
+      };
+      return form;
     }
 
     // 로그인이 필요한 화면에 넣는 안내 카드
@@ -4605,7 +4752,7 @@
       try { myMemos = await Backend.listMemos(); }
       catch (e) { console.warn("[메모] 불러오기 실패:", e); showToast("메모를 불러오지 못했어요."); }
       if (!myMemos.length) {
-        const empty = styledEl("p", "", "아직 메모가 없어요. ＋ 새 메모로 첫 기록을 남겨보세요.");
+        const empty = styledEl("p", "", "아직 메모가 없어요. 오른쪽 아래 ＋ 버튼으로 첫 기록을 남겨보세요.");
         empty.className = "empty-note";
         list.replaceChildren(empty);
         return;

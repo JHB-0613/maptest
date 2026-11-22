@@ -52,12 +52,14 @@
 * 답사 핀을 모두가 보게 하려면 Supabase `pins` 테이블에 `owner_id` 없이 넣는다 (공식 핀: 앱에서는 아무도 수정 못 함).
 
 ### 계정·핀 저장 (Supabase)
-* **로그인**: 이메일 + 비밀번호. 마이페이지 버튼 → 로그인 안 했으면 로그인·회원가입, 했으면 마이페이지(내 핀·즐겨찾기·메모 수, 로그아웃).
+* **로그인**: 아이디(영문 소문자·숫자·_ 4~20자) + 비밀번호 + 닉네임으로 가입. 내부적으로는 아이디를 메일이 가지 않는 주소(`아이디@id.subnote.example.com`)로 바꿔 Supabase 계정을 만든다. 마이페이지 버튼 → 로그인 안 했으면 로그인·회원가입, 했으면 마이페이지(내 핀·즐겨찾기·메모 수, 로그아웃).
 * **핀**: 로그인한 사람만 등록할 수 있고, **수정·삭제는 등록한 계정만** 가능하다. 다른 사람 핀은 읽기 전용 + ☆ 즐겨찾기.
   로그인하지 않고 지도를 누르면 "로그인 후 이용" 안내가 올라온다.
 * **내 핀만 보기**: 도구 버튼(`btn-tool-menu`)의 토글. 켜면 내가 등록한 핀 + 즐겨찾기한 핀만 보인다 (기본은 꺼짐 = 모든 사람의 핀).
 * **커뮤니티**: 모든 사람의 핀을 짧게 보여주고, 누르면 전체 정보(사진·분류·등록일)와 "지도에서 위치 보기" 버튼이 펼쳐진다.
 * **메모**: 제목·내용·사진·관련 핀. **작성한 사람만** 볼 수 있다.
+* **회원 탈퇴**: 마이페이지 → 회원 탈퇴 → 비밀번호 확인. 사진 파일을 지운 뒤 서버 함수 `delete_my_account()`가 계정을 지우고,
+  DB가 그 사람의 핀·즐겨찾기·메모·프로필을 함께 지운다 (다른 사람 메모의 관련 핀은 비워짐).
 * 권한은 DB의 RLS 규칙(`supabase/schema.sql`)이 서버에서 강제한다. 화면은 그에 맞춰 버튼을 숨길 뿐이다.
 * **체험 모드**: `index.html`의 `SUPABASE_URL`·`SUPABASE_ANON_KEY`가 비어 있으면 이 브라우저(localStorage)에만 저장하는 가짜 서버로 동작한다.
 
@@ -66,9 +68,10 @@
 2. SQL Editor → `supabase/schema.sql` 전체를 붙여넣고 Run (테이블·권한 규칙·사진 버킷 생성)
    - 2026-11-22 이전 `schema.sql`로 만든 프로젝트는 `supabase/002_photo_delete_policy.sql`, `003_security_hardening.sql`도
      순서대로 한 번씩 실행 (사진 삭제 규칙, 수정 가능한 칸 제한·좌표 범위·계정당 개수 제한·업로드 경로 제한)
+   - 회원 탈퇴 기능을 쓰려면 `supabase/004_delete_account.sql`도 실행 (새 프로젝트는 schema.sql에 포함)
    - 공개 서비스로 열 때는 Authentication → Attack Protection에서 가입 CAPTCHA와 요청 제한(rate limit)도 켜는 것을 권장
 3. Authentication → URL Configuration: Site URL에 `https://jhb-0613.github.io/maptest/`, Redirect URLs에 `http://localhost:8080` 추가
-4. (선택) 시연용으로 가입 메일 확인을 끄려면 Authentication → Sign In / Providers → Email → Confirm email 끄기
+4. **필수**: Authentication → Sign In / Providers → Email → **Confirm email 끄기** (아이디 가입은 메일을 받을 수 없어서, 켜져 있으면 가입이 끝나지 않는다. 비밀번호 찾기 메일도 쓸 수 없다)
 5. Project Settings → API의 **Project URL**과 **anon public 키**를 `index.html` 맨 위 `SUPABASE_URL`, `SUPABASE_ANON_KEY`에 넣는다
    (anon 키는 공개돼도 되는 키다. **service_role 키는 절대 넣지 않는다**)
 
@@ -212,7 +215,8 @@ maptest/
 ├── supabase/
 │   ├── schema.sql      # 로그인·핀·즐겨찾기·메모 테이블과 권한(RLS) 규칙. 새 프로젝트는 이것만 실행
 │   ├── 002_photo_delete_policy.sql   # 기존 프로젝트용 추가 규칙 (사진 삭제)
-│   └── 003_security_hardening.sql    # 기존 프로젝트용 추가 규칙 (보안 검토 반영)
+│   ├── 003_security_hardening.sql    # 기존 프로젝트용 추가 규칙 (보안 검토 반영)
+│   └── 004_delete_account.sql        # 기존 프로젝트용 회원 탈퇴 함수
 ├── worker/
 │   └── subnote-proxy.js # (사용 안 함) 예전 공공데이터 API 중계 Worker 코드 사본
 ├── ai-backend/         # AI 대화 백엔드 (Vercel)

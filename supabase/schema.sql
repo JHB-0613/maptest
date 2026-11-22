@@ -179,3 +179,23 @@ create trigger pins_owner_limit before insert on public.pins
 drop trigger if exists memos_owner_limit on public.memos;
 create trigger memos_owner_limit before insert on public.memos
   for each row execute function public.enforce_owner_row_limit('500');
+
+-- 7) 회원 탈퇴: 로그인한 본인 계정만 지우는 함수 (계정을 지우면 핀·즐겨찾기·메모·프로필이 함께 지워짐) ----------
+create or replace function public.delete_my_account()
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  uid uuid := auth.uid();
+begin
+  if uid is null then
+    raise exception '로그인이 필요해요.' using errcode = '42501';
+  end if;
+  delete from auth.users where id = uid;   -- 본인 계정만 (다른 id는 지정할 수 없음)
+end;
+$$;
+
+revoke all on function public.delete_my_account() from public, anon;
+grant execute on function public.delete_my_account() to authenticated;
