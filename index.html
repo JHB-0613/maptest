@@ -22,6 +22,10 @@
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"
     integrity="sha384-fljlqkjWlmSFjkESkQvm77heIZpoWmXEOzlCA7kOpGUH+95Zk0yGfQieWM2q136E"
     crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <!-- Supabase (로그인·핀/메모 저장). 2.45.4 고정, 버전을 바꾸면 integrity 해시도 다시 계산 -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"
+    integrity="sha384-0w2KAL2YHP6wKOkUDzkCDGgVvfmHnj02DHeQ6XcHOgTfFsGyonKOpShMH1x6nk9o"
+    crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
   <style>
     :root {
@@ -754,6 +758,93 @@
       z-index: 55;
     }
 
+    /* 내 핀만 보기 토글 (도구 팝오버) */
+    .tools-popover { width: 210px; }
+    .toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 4px 2px; }
+    .toggle-label { display: flex; flex-direction: column; gap: 2px; }
+    .toggle-label b { font-size: 12px; color: #1e293b; }
+    .toggle-label small { font-size: 10px; color: #94a3b8; }
+    .switch {
+      flex-shrink: 0; width: 40px; height: 24px; border-radius: 12px; border: none; padding: 3px;
+      background: #d4d9de; cursor: pointer; display: flex; align-items: center;
+    }
+    .switch span { width: 18px; height: 18px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+    .switch[aria-checked="true"] { background: var(--primary-dark, #367b67); justify-content: flex-end; }
+    .switch:focus-visible { outline: 2px solid #367b67; outline-offset: 2px; }
+
+    /* 핀 창: 등록자·즐겨찾기 줄, 읽기 전용 */
+    .pin-meta-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 11px; color: #64748b; }
+    .pin-meta-row[hidden] { display: none; }
+    .fav-btn {
+      border: 1px solid #f2d58a; background: #fffaf0; color: #a16207; font-size: 11px; font-weight: 700;
+      border-radius: 10px; padding: 4px 9px; cursor: pointer; white-space: nowrap;
+    }
+    .fav-btn[aria-pressed="true"] { background: #fde68a; border-color: #eab308; }
+    .fav-btn[hidden] { display: none; }
+    .pin-modal .pin-input:disabled, .pin-modal .pin-textarea:disabled, .pin-modal .pin-select:disabled {
+      background: #f8fafc; color: #334155; opacity: 1;
+    }
+    .btn-pin-cancel { background: #f1f5f9; color: #475569; }
+
+    /* 다른 사람 핀(읽기 전용): 사진 바꾸기 버튼을 숨기고 미리보기는 누를 수 없게 */
+    .pin-modal.readonly .pin-photo-actions { display: none; }
+    .pin-modal.readonly .pin-photo-preview { pointer-events: none; cursor: default; }
+    .pin-photo-field[hidden] { display: none; }
+    .memo-new-btn[hidden] { display: none; }
+    .nav-user-circle.signed-in { background: #e4f6ef; color: #367b67; }
+
+    /* 로그인 필요 안내 시트 (핀 창과 같은 자리·모양) */
+    .login-required-sheet { gap: 12px; }
+
+    /* 계정 폼 · 마이페이지 · 커뮤니티 · 메모 */
+    .account-card {
+      background: #ffffff; border: 1px solid #edf0f2; border-radius: 20px; padding: 18px;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .account-card h3 { font-size: 16px; font-weight: 800; color: #0f172a; }
+    .account-card p.hint { font-size: 11px; color: #94a3b8; line-height: 1.5; }
+    .account-error { font-size: 12px; color: #b91c1c; min-height: 16px; }
+    .link-btn { border: none; background: none; color: #367b67; font-size: 12px; font-weight: 700; cursor: pointer; padding: 2px 0; text-align: left; }
+    .stat-row { display: flex; gap: 8px; }
+    .stat-row div { flex: 1; background: #f6faf8; border-radius: 14px; padding: 10px; text-align: center; }
+    .stat-row b { display: block; font-size: 18px; color: #367b67; }
+    .stat-row span { font-size: 11px; color: #64748b; }
+    .demo-badge { font-size: 11px; color: #92400e; background: #fef3c7; border-radius: 10px; padding: 8px 10px; line-height: 1.5; }
+
+    .comm-card {
+      background: #ffffff; border: 1px solid #edf0f2; border-radius: 18px; padding: 14px 16px;
+      display: flex; flex-direction: column; gap: 6px; cursor: pointer;
+    }
+    .comm-card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+    .comm-card-head b { font-size: 14px; color: #0f172a; }
+    .comm-card .excerpt {
+      font-size: 12px; color: #64748b; line-height: 1.45;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+    }
+    .comm-card.open .excerpt { -webkit-line-clamp: unset; display: block; white-space: pre-wrap; }
+    .comm-card .meta { font-size: 11px; color: #367b67; font-weight: 700; }
+    .comm-card .detail { display: none; flex-direction: column; gap: 8px; }
+    .comm-card.open .detail { display: flex; }
+    .comm-card .detail img { width: 100%; max-height: 220px; object-fit: cover; border-radius: 12px; }
+    .comm-card .detail small { font-size: 11px; color: #94a3b8; }
+    .mine-tag { font-size: 10px; font-weight: 800; color: #367b67; background: #e6f5ee; border-radius: 6px; padding: 1px 6px; margin-left: 4px; }
+    .empty-note { font-size: 12px; color: #94a3b8; text-align: center; padding: 20px 0; }
+
+    .memo-new-btn { width: 100%; margin-bottom: 12px; }
+    .memo-editor { background: #fff; border: 1px solid #edf0f2; border-radius: 18px; padding: 14px; display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
+    .memo-editor[hidden] { display: none; }
+    .memo-body { height: 110px; }
+    .memo-pin-label { font-size: 11px; font-weight: 700; color: #64748b; }
+    .memo-card { background: #fff; border: 1px solid #edf0f2; border-radius: 18px; padding: 14px 16px; display: flex; gap: 12px; cursor: pointer; }
+    .memo-card img { width: 56px; height: 56px; object-fit: cover; border-radius: 10px; flex-shrink: 0; }
+    .memo-card .memo-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+    .memo-card b { font-size: 14px; color: #0f172a; }
+    .memo-card p { font-size: 12px; color: #64748b; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .pin-chip-btn {
+      align-self: flex-start; border: 1px solid #a7d7c9; background: #e6f5ee; color: #367b67; font-size: 11px; font-weight: 700;
+      border-radius: 10px; padding: 3px 9px; cursor: pointer;
+    }
+
     .floating-ai-capsule {
       position: absolute;
       bottom: calc(20px + env(safe-area-inset-bottom, 0px));
@@ -1225,16 +1316,19 @@
         <button class="btn-circle-tool" id="btn-tool-explore" onclick="toggleExplorePanel()">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
         </button>
-        <button class="btn-circle-tool" id="btn-tool-menu" onclick="toggleToolsPopover()">
+        <button class="btn-circle-tool" id="btn-tool-menu" onclick="toggleToolsPopover()" aria-label="지도 표시 설정" aria-controls="tools-popover">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
         </button>
 
+        <!-- 지도 표시 설정: 내 핀만 보기 (내가 등록한 핀 + 즐겨찾기한 핀만) -->
         <div class="tools-popover" id="tools-popover">
-          <button style="border:none; background:none; text-align:left; font-size:12px; font-weight:700; padding:6px; cursor:pointer;" onclick="resetMapView()">🎯 시점 초기화</button>
-          <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid #f3f4f6; padding-top:6px;">
-            <button class="btn-zoom" style="width:32px; height:32px; font-size:16px;" onclick="zoom3D(-0.2)">−</button>
-            <span style="font-size:11px; font-weight:700; color:#6b7280;">확대/축소</span>
-            <button class="btn-zoom" style="width:32px; height:32px; font-size:16px;" onclick="zoom3D(0.2)">+</button>
+          <div class="toggle-row">
+            <span class="toggle-label">
+              <b id="my-pins-label">내 핀만 보기</b>
+              <small>내 핀 + 즐겨찾기한 핀만 표시</small>
+            </span>
+            <button type="button" class="switch" id="switch-my-pins" role="switch" aria-checked="false"
+                    aria-labelledby="my-pins-label" onclick="toggleMyPinsOnly()"><span></span></button>
           </div>
         </div>
       </div>
@@ -1269,9 +1363,14 @@
           <h2 id="pin-modal-title" style="font-size:15px; font-weight:700;">새로운 장소 핑 등록</h2>
           <button type="button" aria-label="닫기" style="border:none; background:none; font-size:16px; cursor:pointer;" onclick="closePinModal()">✕</button>
         </div>
-        <input type="text" class="pin-input" id="pin-title-input" placeholder="장소 이름 (예: 물품보관함, 만남의 장소)">
+        <!-- 등록한 사람 + 즐겨찾기 (기존 핀을 볼 때만) -->
+        <div class="pin-meta-row" id="pin-meta-row" hidden>
+          <span id="pin-owner-label"></span>
+          <button type="button" class="fav-btn" id="btn-pin-favorite" aria-pressed="false" onclick="toggleFavoriteFromModal()">☆ 즐겨찾기</button>
+        </div>
+        <input type="text" class="pin-input" id="pin-title-input" maxlength="60" placeholder="장소 이름 (예: 물품보관함, 만남의 장소)">
         <select class="pin-select" id="pin-category-select"></select>
-        <textarea class="pin-textarea" id="pin-desc-input" placeholder="장소 설명이나 메모를 남겨주세요."></textarea>
+        <textarea class="pin-textarea" id="pin-desc-input" maxlength="1000" placeholder="장소 설명이나 메모를 남겨주세요."></textarea>
 
         <!-- 사진 (선택). 고르면 자동으로 줄여서 핀에 담는다 -->
         <div class="pin-photo-field">
@@ -1289,6 +1388,16 @@
           <button class="btn-pin-action btn-pin-delete" id="btn-delete-pin" style="display:none;" onclick="deleteCurrentPin()">삭제</button>
         </div>
       </dialog>
+
+      <!-- 로그인하지 않고 핀을 찍으려 할 때 올라오는 안내 -->
+      <dialog class="pin-modal login-required-sheet" id="login-required-sheet" aria-labelledby="login-required-title">
+        <h2 id="login-required-title" style="font-size:15px; font-weight:800;">🔒 로그인 후 이용할 수 있어요</h2>
+        <p id="login-required-desc" style="font-size:12px; color:#64748b; line-height:1.5;">핀을 등록하려면 로그인이 필요합니다. 로그인하면 내가 만든 핀을 저장하고 언제든 수정할 수 있어요.</p>
+        <div class="pin-btn-group">
+          <button type="button" class="btn-pin-action btn-pin-save" onclick="goToLoginFromSheet()">로그인하기</button>
+          <button type="button" class="btn-pin-action btn-pin-cancel" onclick="closeLoginRequiredSheet()">닫기</button>
+        </div>
+      </dialog>
     </div>
 
     <!-- 3. 공통 커뮤니티 / MEMO / 마이페이지 오버레이 -->
@@ -1296,7 +1405,7 @@
       <div style="margin-bottom:18px;">
         <span style="font-size:12px; color:#367b67; font-weight:700; cursor:pointer;" onclick="toggleSubpage(null)">← 이전으로 돌아가기</span>
         <h2 style="font-size:24px; font-weight:800; color:#0f172a; margin-top:14px;">커뮤니티</h2>
-        <p style="font-size:12px; color:#64748b; margin-top:4px;">지도에서 장소를 발견하고, 나만의 팁을 공유해 보세요.</p>
+        <p style="font-size:12px; color:#64748b; margin-top:4px;">다른 사람들이 등록한 핀을 둘러보고, 마음에 드는 핀은 ☆ 즐겨찾기 하세요.</p>
       </div>
       <div id="community-card-list" style="display:flex; flex-direction:column; gap:12px;"></div>
     </div>
@@ -1305,7 +1414,27 @@
       <div style="margin-bottom:18px;">
         <span style="font-size:12px; color:#367b67; font-weight:700; cursor:pointer;" onclick="toggleSubpage(null)">← 이전으로 돌아가기</span>
         <h2 style="font-size:24px; font-weight:800; color:#0f172a; margin-top:14px;">나의 메모</h2>
-        <p style="font-size:12px; color:#64748b; margin-top:4px;">나만의 지하 탐험을 기록하는 공간입니다.</p>
+        <p style="font-size:12px; color:#64748b; margin-top:4px;">나만 볼 수 있는 메모입니다. 사진과 관련 핀을 함께 남길 수 있어요.</p>
+      </div>
+      <button type="button" class="btn-pin-action btn-pin-save memo-new-btn" id="btn-new-memo" onclick="openMemoEditor(null)">＋ 새 메모</button>
+      <div id="memo-editor" class="memo-editor" hidden>
+        <input type="text" class="pin-input" id="memo-title-input" maxlength="60" placeholder="제목">
+        <textarea class="pin-textarea memo-body" id="memo-body-input" maxlength="3000" placeholder="내용"></textarea>
+        <div class="pin-photo-field">
+          <div class="pin-photo-preview" id="memo-photo-preview" onclick="document.getElementById('memo-photo-input').click()" title="사진 선택">📷</div>
+          <div class="pin-photo-actions">
+            <button type="button" class="pin-photo-btn" id="btn-memo-photo-pick" onclick="document.getElementById('memo-photo-input').click()">📷 사진 추가</button>
+            <button type="button" class="pin-photo-btn remove" id="btn-memo-photo-remove" style="display:none;" onclick="setMemoPhotoDraft(null)">사진 삭제</button>
+          </div>
+          <input type="file" id="memo-photo-input" accept="image/*" style="display:none;" onchange="onMemoPhotoSelected(this)">
+        </div>
+        <label class="memo-pin-label" for="memo-pin-select">관련 핀</label>
+        <select class="pin-select" id="memo-pin-select"></select>
+        <div class="pin-btn-group">
+          <button type="button" class="btn-pin-action btn-pin-save" id="btn-save-memo" onclick="saveMemo()">저장</button>
+          <button type="button" class="btn-pin-action btn-pin-delete" id="btn-delete-memo" hidden onclick="deleteMemo()">삭제</button>
+          <button type="button" class="btn-pin-action btn-pin-cancel" onclick="closeMemoEditor()">취소</button>
+        </div>
       </div>
       <div id="memo-card-list" style="display:flex; flex-direction:column; gap:12px;"></div>
     </div>
@@ -1313,18 +1442,10 @@
     <div class="subpage-overlay" id="subpage-mypage">
       <div style="margin-bottom:18px;">
         <span style="font-size:12px; color:#367b67; font-weight:700; cursor:pointer;" onclick="toggleSubpage(null)">← 이전으로 돌아가기</span>
-        <h2 style="font-size:24px; font-weight:800; color:#0f172a; margin-top:14px;">마이페이지</h2>
-        <p style="font-size:12px; color:#64748b; margin-top:4px;">나만의 지하 탐험을 기록하는 공간입니다.</p>
+        <h2 style="font-size:24px; font-weight:800; color:#0f172a; margin-top:14px;" id="mypage-heading">마이페이지</h2>
       </div>
-      <div style="background:#ffffff; border:1px solid #edf0f2; border-radius:20px; padding:18px; margin-top:10px;">
-        <div style="display:flex; align-items:center; gap:12px;">
-          <div style="width:44px; height:44px; border-radius:50%; background:#e4f6ef; color:#367b67; display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:800;">탐</div>
-          <div>
-            <b style="font-size:15px; color:#0f172a;">지하철 탐험가</b>
-            <p style="font-size:11px; color:#94a3b8; margin-top:2px;">등록한 핑 3개 · 저장한 메모 2개</p>
-          </div>
-        </div>
-      </div>
+      <!-- 로그인 상태면 프로필, 아니면 로그인·회원가입 폼 (renderMypage가 채운다) -->
+      <div id="mypage-content"></div>
     </div>
   </div>
 
@@ -1337,6 +1458,12 @@
     // - Vercel 서울 리전 함수 (ai-backend/). AI 키는 Vercel 환경변수에만 있다.
     // - 비워두면 브라우저 안의 목업(mockAiChat)이 규격에 맞는 가짜 응답을 만든다 (AI 없이 UI 개발할 때).
     const AI_CHAT_URL = "https://subnote-ai.vercel.app/api/chat";
+
+    // 로그인·핀/메모 저장 (Supabase). supabase/schema.sql을 먼저 실행해야 한다.
+    // - anon 키는 공개해도 되는 키다 (권한은 DB의 RLS 규칙이 서버에서 막는다). service_role 키는 절대 넣지 않는다.
+    // - 둘 중 하나라도 비워두면 '체험 모드': 이 브라우저(localStorage)에만 저장하는 가짜 서버로 동작한다 (UI 개발·시연용).
+    const SUPABASE_URL = "https://ieoewgtbspxwtvzrvbad.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_UfH3YIaSa7FbjzUWBoxlow_uc0xLesw";   // Publishable key (공개용)
     const AI_SCHEMA_VERSION = "0.5";
 
     /* ========================================================
@@ -1760,6 +1887,11 @@
       "강남역": []
     };
 
+    // 계정 상태 (자세한 처리는 아래 '계정·클라우드 저장소' 영역). 필터 함수가 먼저 쓰므로 여기서 선언한다
+    let currentUser = null;        // { id, email, nickname } | null
+    let favoriteIds = new Set();   // 즐겨찾기한 핀 id (문자열)
+    let myPinsOnly = false;        // 내 핀만 보기 (내가 등록한 핀 + 즐겨찾기한 핀)
+
     const mainView = document.getElementById("main-view");
     const indoorView = document.getElementById("indoor-view");
     const floorList = document.getElementById("floor-list");
@@ -1799,6 +1931,8 @@
       const cat = normalizeCategory(pin.category);
       if (activeGroup !== 'all' && getCategoryGroup(cat).id !== activeGroup) return false;
       if (activeCategory !== '전체' && cat !== activeCategory) return false;
+      // 내 핀만 보기: 내가 등록한 핀 + 즐겨찾기한 핀만
+      if (myPinsOnly && !(isMyPin(pin) || isFavorite(pin))) return false;
       return true;
     }
 
@@ -1872,7 +2006,8 @@
       });
     }
 
-    function enterIndoorView() {
+    // startFloor: 처음 보여줄 층 (커뮤니티·메모에서 핀 위치로 바로 갈 때 그 핀의 층)
+    function enterIndoorView(startFloor) {
       if (!currentSelectedStation || !currentSelectedStation.name.includes("강남")) {
         showToast("이 역의 실내 지도는 아직 준비 중입니다.");
         return;
@@ -1881,7 +2016,7 @@
       floorList.replaceChildren();
       // 강남역 지하 4층까지 지원
       const floors = ["B1", "B2", "B3", "B4"];
-      const defaultFloor = "B1";
+      const defaultFloor = floors.includes(startFloor) ? startFloor : "B1";
 
       floors.forEach(floor => {
         const btn = document.createElement("button");
@@ -1966,7 +2101,8 @@
         // 핀 제목은 사용자 입력이므로 innerHTML이 아닌 textContent로 넣는다 (HTML로 해석되지 않게)
         item.append(
           styledEl("div", "", [
-            styledEl("div", "font-size:12px; font-weight:800; color:#1e293b;", pin.title),
+            styledEl("div", "font-size:12px; font-weight:800; color:#1e293b;",
+              `${isFavorite(pin) ? "★ " : ""}${pin.title}${isMyPin(pin) ? " · 내 핀" : ""}`),
             styledEl("div", "font-size:10px; color:#808691; margin-top:3px;",
               `${getCategoryEmoji(pin.category)} ${getCategoryGroup(pin.category).label} · #${normalizeCategory(pin.category)} · ${pin.floor}`)
           ]),
@@ -2535,27 +2671,10 @@
       memoEl.style.display = tab === 'memo' ? "flex" : "none";
       mypageEl.style.display = tab === 'mypage' ? "flex" : "none";
 
-      if (tab === 'community') {
-        const list = document.getElementById("community-card-list");
-        const stName = currentSelectedStation ? currentSelectedStation.name : "강남역";
-        const pins = STATION_PINS_DB[stName] || [];
-        list.replaceChildren(...pins.map(p => styledEl("div", SUBPAGE_CARD_CSS, [
-          styledEl("b", "font-size:14px; color:#0f172a;", p.title),
-          styledEl("p", "font-size:12px; color:#64748b; margin-top:4px; line-height:1.4;", p.desc || '등록된 메모나 팁이 없습니다.'),
-          styledEl("div", "font-size:11px; color:#367b67; font-weight:700; margin-top:8px;", `#${p.category} · ${p.floor}`)
-        ])));
-      } else if (tab === 'memo') {
-        const list = document.getElementById("memo-card-list");
-        const stName = currentSelectedStation ? currentSelectedStation.name : "강남역";
-        const pins = STATION_PINS_DB[stName] || [];
-        list.replaceChildren(...pins.map(p => styledEl("div", SUBPAGE_CARD_CSS, [
-          styledEl("div", "display:flex; justify-content:space-between; align-items:center;", [
-            styledEl("b", "font-size:14px; color:#0f172a;", p.title),
-            styledEl("span", "font-size:10px; color:#367b67; font-weight:800; background:#e6f5ee; padding:2px 7px; border-radius:6px;", p.floor)
-          ]),
-          styledEl("p", "font-size:12px; color:#64748b; margin-top:6px; line-height:1.4;", p.desc || '작성된 메모가 없습니다.')
-        ])));
-      }
+      // 각 화면 내용은 계정·클라우드 저장소 영역에서 그린다
+      if (tab === 'community') renderCommunity();
+      else if (tab === 'memo') renderMemoPage();
+      else if (tab === 'mypage') renderMypage();
     }
 
     /* ========================================================
@@ -3510,6 +3629,8 @@
         if (loadedStationModel) {
           const hits = raycaster.intersectObject(loadedStationModel, true);
           if (hits.length > 0) {
+            // 새 핀 등록은 로그인한 사람만: 안 했으면 '로그인 후 이용' 안내를 올린다
+            if (!currentUser) { openLoginRequiredSheet(); return; }
             const hitPt = hits[0].point;
             const coord2D = coord3Dto2D(hitPt.x, hitPt.z);
             openCreatePinModal(coord2D.x, coord2D.y, hitPt.y, hitPt.x, hitPt.z);
@@ -3596,8 +3717,7 @@
       pinCatSelect.value = "";   // 카테고리 선택 없음으로 시작
 
       btnSavePin.innerText = "핑 저장하기";
-      btnSavePin.style.display = "block";
-      btnDeletePin.style.display = "none";
+      applyPinModalPermissions(null);   // 새 핀: 입력 가능, 등록자 줄·삭제 버튼 숨김
       openPinDialog();
 
       // 누른 자리에 임시 핀을 세우고 화면 가운데(창 위 영역)로 옮겨, 어디에 등록되는지 보이게 한다
@@ -3702,8 +3822,7 @@
       setPinPhotoDraft(pin.photo || null);
 
       btnSavePin.innerText = "수정 완료";
-      btnSavePin.style.display = "block";
-      btnDeletePin.style.display = "block";
+      applyPinModalPermissions(pin);   // 내가 등록한 핀만 수정·삭제, 다른 사람 핀은 읽기 + 즐겨찾기
       openPinDialog();
       // 핀을 화면 가운데로 옮기되, 방금 연 창에 가려지지 않게 창 위 지도 영역의 가운데로 맞춘다
       if (isThreeInitialized && pin.floor === activeFloor) {
@@ -3787,55 +3906,862 @@
       });
     })();
 
-    function saveCurrentPin() {
+    // 핀 저장: 로그인한 계정 이름으로 서버(또는 체험 모드 저장소)에 등록·수정한다. 수정은 내가 등록한 핀만
+    async function saveCurrentPin() {
       const title = pinTitleInput.value.trim();
       if (!title) { showToast("장소 이름을 입력해주세요."); return; }
+      if (!currentUser) { openLoginRequiredSheet(); return; }
+      if (currentEditingPin && !isMyPin(currentEditingPin)) { showToast("내가 등록한 핀만 수정할 수 있어요."); return; }
 
-      const stName = currentSelectedStation ? currentSelectedStation.name : "강남역";
-      if (!STATION_PINS_DB[stName]) STATION_PINS_DB[stName] = [];
-
-      if (currentEditingPin) {
-        const targetPin = STATION_PINS_DB[stName].find(p => p.id === currentEditingPin.id);
-        if (targetPin) {
-          targetPin.title = title;
-          targetPin.category = pinCatSelect.value || "기타";
-          targetPin.desc = pinDescInput.value.trim();
-          if (pinPhotoDraft) targetPin.photo = pinPhotoDraft; else delete targetPin.photo;
-          showToast(`'${title}' 핀이 성공적으로 수정되었습니다.`);
-        }
-      } else {
-        STATION_PINS_DB[stName].push({
-          id: Date.now(),
-          floor: activeFloor,
-          title: title,
+      btnSavePin.disabled = true;
+      try {
+        let photoUrl = pinPhotoDraft || null;
+        if (photoUrl && photoUrl.startsWith("data:")) photoUrl = await Backend.uploadPhoto(photoUrl, currentUser.id);
+        const fields = {
+          title,
           category: pinCatSelect.value || "기타",
-          desc: pinDescInput.value.trim(),
-          x: tempClickCoord.x,
-          y: tempClickCoord.y,
-          y3d: tempClickCoord.y3d || 0,
-          realX3d: tempClickCoord.realX3d,
-          realZ3d: tempClickCoord.realZ3d,
-          ...(pinPhotoDraft ? { photo: pinPhotoDraft } : {})
-        });
-        showToast(`'${title}' 핀이 새로 등록되었습니다.`);
-        draftPin = null;   // 아래 syncPinsTo3D에서 임시 핀 대신 저장된 핀이 그려지게
+          description: pinDescInput.value.trim(),
+          photo_url: photoUrl,
+        };
+        const pins = getGangnamPins();
+        if (currentEditingPin) {
+          const oldPhoto = currentEditingPin.photo;
+          const row = await Backend.updatePin(currentEditingPin.id, fields);
+          if (oldPhoto && oldPhoto !== photoUrl) Backend.deletePhoto(oldPhoto).catch(() => {});
+          const i = pins.findIndex(p => String(p.id) === String(currentEditingPin.id));
+          if (i >= 0) pins[i] = rowToPin({ ...row, owner_name: currentUser.nickname });
+          showToast(`'${title}' 핀을 수정했어요.`);
+        } else {
+          const row = await Backend.insertPin({
+            ...fields,
+            station: "강남역",
+            floor: activeFloor,
+            real_x: tempClickCoord.realX3d,
+            real_z: tempClickCoord.realZ3d,
+            x2d: Math.round(tempClickCoord.x),
+            y2d: Math.round(tempClickCoord.y),
+          });
+          pins.push(rowToPin({ ...row, owner_name: currentUser.nickname }));
+          draftPin = null;   // 아래 다시 그리기에서 임시 핀 대신 저장된 핀이 그려지게
+          showToast(`'${title}' 핀을 등록했어요.`);
+        }
+        closePinModal();
+        refreshPinViews();
+      } catch (e) {
+        console.warn("[핀] 저장 실패:", e);
+        showToast(friendlyError(e, "핀을 저장하지 못했어요. 잠시 후 다시 시도해 주세요."));
+      } finally {
+        btnSavePin.disabled = false;
+      }
+    }
+
+    async function deleteCurrentPin() {
+      const pin = currentEditingPin;
+      if (!pin) return;
+      if (!isMyPin(pin)) { showToast("내가 등록한 핀만 삭제할 수 있어요."); return; }
+      if (!confirm(`'${pin.title}' 핀을 삭제할까요? 되돌릴 수 없어요.`)) return;
+      btnDeletePin.disabled = true;
+      try {
+        await Backend.deletePin(pin.id);
+        if (pin.photo) Backend.deletePhoto(pin.photo).catch(() => {});
+        STATION_PINS_DB["강남역"] = getGangnamPins().filter(p => String(p.id) !== String(pin.id));
+        favoriteIds.delete(String(pin.id));
+        closePinModal();
+        refreshPinViews();
+        showToast(`'${pin.title}' 핀을 삭제했어요.`);
+      } catch (e) {
+        console.warn("[핀] 삭제 실패:", e);
+        showToast(friendlyError(e, "핀을 삭제하지 못했어요."));
+      } finally {
+        btnDeletePin.disabled = false;
+      }
+    }
+
+    /* ========================================================
+       계정·클라우드 저장소 (로그인, 핀 저장, 즐겨찾기, 메모, 커뮤니티)
+       - Backend 하나의 인터페이스로 다룬다. SUPABASE_URL·KEY가 있으면 Supabase, 없으면 체험 모드(이 브라우저 localStorage).
+       - 권한(내 핀만 수정, 메모는 나만)은 Supabase에서는 DB의 RLS 규칙(supabase/schema.sql)이 서버에서 강제한다.
+         화면은 그 규칙에 맞춰 버튼을 숨기고 막을 뿐이다 (화면 코드를 조작해도 서버가 거절한다).
+    ======================================================== */
+    const STATIC_GANGNAM_PINS = (STATION_PINS_DB["강남역"] || []).slice();   // 코드에 넣은 공식 핀 (지금은 없음)
+    const PHOTO_PUBLIC_PREFIX = SUPABASE_URL ? `${SUPABASE_URL}/storage/v1/object/public/photos/` : null;
+    let myMemos = [];
+
+    // DB에서 온 사진 주소는 우리 저장소·앱 폴더·이 기기에서 만든 이미지만 쓴다 (임의 외부 주소로 추적 이미지를 심는 것 방지)
+    function safePhotoUrl(u) {
+      if (typeof u !== "string" || !u) return null;
+      // 우리 버킷 주소는 '<user id>/<uuid>.jpg' 모양만 (.. 같은 경로 조작으로 같은 서버의 다른 주소를 부르지 못하게)
+      if (PHOTO_PUBLIC_PREFIX && u.startsWith(PHOTO_PUBLIC_PREFIX)) {
+        return /^[0-9a-f-]{36}\/[0-9a-f-]{36}\.jpg$/.test(u.slice(PHOTO_PUBLIC_PREFIX.length)) ? u : null;
+      }
+      if (/^data:image\/(jpeg|png);base64,/.test(u)) return u;
+      if (/^photos\/[\w\-./]+$/.test(u) && !u.includes("..")) return u;
+      return null;
+    }
+
+    // 서버·체험 모드 오류를 사용자용 문장으로
+    function friendlyError(e, fallback) {
+      const m = String((e && e.message) || e || "");
+      if (/Invalid login credentials/i.test(m)) return "이메일 또는 비밀번호가 맞지 않아요.";
+      if (/already registered|already been registered/i.test(m)) return "이미 가입된 이메일이에요. 로그인해 주세요.";
+      if (/Password should be at least/i.test(m)) return "비밀번호는 6자 이상이어야 해요.";
+      if (/Email not confirmed/i.test(m)) return "메일함에서 가입 확인 링크를 먼저 눌러주세요.";
+      if (/invalid.*email|email.*invalid/i.test(m)) return "이메일 주소 형식을 확인해 주세요.";
+      if (/rate limit|too many/i.test(m)) return "요청이 너무 많아요. 잠시 후 다시 시도해 주세요.";
+      // 수정 요청이 RLS에 막혀 0개 행이 돌아온 경우 (PGRST116) 또는 권한 거절(42501)
+      if ((e && (e.code === "PGRST116" || e.code === "42501")) || /permission denied/i.test(m)) return "권한이 없거나 이미 지워진 항목이에요.";
+      if (/만들 수 있는 개수/.test(m)) return m;   // 계정당 개수 제한 (DB 트리거)
+      if (e && e.code === "23514") return "입력값이 허용 범위를 벗어났어요.";
+      if (/서버에 연결하지 못했어요/.test(m)) return m;
+      if (/권한|저장 공간|로그인이 필요/.test(m)) return m;
+      return fallback || "요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요.";
+    }
+
+    // ---- Supabase ----
+    function createSupabaseBackend() {
+      const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      const check = ({ data, error }) => { if (error) throw error; return data; };
+      const userFromSession = async (session) => {
+        if (!session) return null;
+        const u = session.user;
+        let nickname = (u.user_metadata && u.user_metadata.nickname) || (u.email || "").split("@")[0];
+        try {
+          const { data } = await sb.from("profiles").select("nickname").eq("id", u.id).maybeSingle();
+          if (data && data.nickname) nickname = data.nickname;
+        } catch (e) { /* 닉네임을 못 읽어도 로그인은 유지 */ }
+        return { id: u.id, email: u.email, nickname };
+      };
+      return {
+        demo: false,
+        async currentUser() { const { data } = await sb.auth.getSession(); return userFromSession(data.session); },
+        // 콜백 안에서 바로 다른 Supabase 호출을 하면 막힐 수 있어(공식 안내) 다음 틱으로 넘긴다
+        onAuthChange(cb) { sb.auth.onAuthStateChange((_event, session) => { setTimeout(async () => cb(await userFromSession(session)), 0); }); },
+        async signUp(email, password, nickname) {
+          const data = check(await sb.auth.signUp({ email, password, options: { data: { nickname } } }));
+          return { needsEmailConfirm: !data.session };
+        },
+        async signIn(email, password) { check(await sb.auth.signInWithPassword({ email, password })); },
+        // 다른 기기에서 '모든 기기 로그아웃'을 했거나 세션이 만료돼 이미 세션이 없으면 오류 대신 로그아웃으로 처리한다
+        async signOut() {
+          const { error } = await sb.auth.signOut({ scope: "local" });
+          if (error && error.name !== "AuthSessionMissingError") throw error;
+        },
+        async listPins(station) {
+          const rows = check(await sb.from("pins").select("*").eq("station", station).order("created_at", { ascending: true }));
+          const ownerIds = [...new Set(rows.map(r => r.owner_id).filter(Boolean))];
+          const names = new Map();
+          // 작성자가 많아도 요청 주소가 너무 길어지지 않게 100명씩 나눠 닉네임을 가져온다
+          for (let i = 0; i < ownerIds.length; i += 100) {
+            check(await sb.from("profiles").select("id,nickname").in("id", ownerIds.slice(i, i + 100)))
+              .forEach(p => names.set(p.id, p.nickname));
+          }
+          return rows.map(r => ({ ...r, owner_name: names.get(r.owner_id) || null }));
+        },
+        async insertPin(row) { return check(await sb.from("pins").insert(row).select().single()); },
+        async updatePin(id, row) { return check(await sb.from("pins").update(row).eq("id", id).select().single()); },
+        // RLS로 막히면 오류 없이 '0개 삭제'가 되므로, 지워진 행이 없으면 권한 오류로 알린다
+        async deletePin(id) {
+          const rows = check(await sb.from("pins").delete().eq("id", id).select("id"));
+          if (!rows.length) throw new Error("내가 등록한 핀만 삭제할 수 있어요(권한 없음).");
+        },
+        async listFavorites() { return check(await sb.from("favorites").select("pin_id")).map(r => r.pin_id); },
+        async addFavorite(pinId) { check(await sb.from("favorites").insert({ pin_id: pinId })); },
+        async removeFavorite(pinId) { check(await sb.from("favorites").delete().eq("pin_id", pinId)); },
+        async listMemos() { return check(await sb.from("memos").select("*").order("updated_at", { ascending: false })); },
+        async insertMemo(row) { return check(await sb.from("memos").insert(row).select().single()); },
+        async updateMemo(id, row) { return check(await sb.from("memos").update(row).eq("id", id).select().single()); },
+        async deleteMemo(id) {
+          const rows = check(await sb.from("memos").delete().eq("id", id).select("id"));
+          if (!rows.length) throw new Error("내 메모만 삭제할 수 있어요(권한 없음).");
+        },
+        // 사진은 <내 user id>/<랜덤>.jpg 로 올린다 (저장소 규칙상 자기 폴더에만 올릴 수 있음)
+        async uploadPhoto(dataUrl, userId) {
+          const blob = await (await fetch(dataUrl)).blob();
+          const path = `${userId}/${crypto.randomUUID()}.jpg`;
+          check(await sb.storage.from("photos").upload(path, blob, { contentType: "image/jpeg", upsert: false }));
+          return sb.storage.from("photos").getPublicUrl(path).data.publicUrl;
+        },
+        async deletePhoto(url) {
+          if (!url || !PHOTO_PUBLIC_PREFIX || !url.startsWith(PHOTO_PUBLIC_PREFIX)) return;
+          const removed = check(await sb.storage.from("photos").remove([url.slice(PHOTO_PUBLIC_PREFIX.length)]));
+          if (!removed.length) console.warn("[사진] 삭제되지 않음 (Storage 조회 규칙 확인: supabase/002_photo_delete_policy.sql)", url);
+        },
+      };
+    }
+
+    // ---- 체험 모드: 이 브라우저(localStorage)에만 저장하는 가짜 서버. 여러 계정을 만들어 권한 흐름을 시험할 수 있다 ----
+    function createLocalDemoBackend() {
+      const KEY = "subnote-demo-v1";
+      let db;
+      try { db = JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { db = {}; }
+      db = Object.assign({ users: [], session: null, pins: [], favorites: [], memos: [] }, db);
+      const save = () => {
+        try { localStorage.setItem(KEY, JSON.stringify(db)); }
+        catch (e) { throw new Error("이 기기 저장 공간이 부족해요. 사진을 줄이거나 지워주세요."); }
+      };
+      const listeners = [];
+      const me = () => db.users.find(u => u.id === db.session) || null;
+      const pub = (u) => (u ? { id: u.id, email: u.email, nickname: u.nickname } : null);
+      const emit = () => listeners.forEach(cb => cb(pub(me())));
+      const need = () => { const u = me(); if (!u) throw new Error("로그인이 필요해요."); return u; };
+      const now = () => new Date().toISOString();
+      // 체험 모드라도 비밀번호를 원문으로 두지 않는다 (SHA-256). 실제 서비스 보안 수준은 아니다
+      const hash = async (s) => {
+        const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("subnote:" + s));
+        return Array.from(new Uint8Array(buf), b => b.toString(16).padStart(2, "0")).join("");
+      };
+      return {
+        demo: true,
+        async currentUser() { return pub(me()); },
+        onAuthChange(cb) { listeners.push(cb); },
+        async signUp(email, password, nickname) {
+          if (password.length < 6) throw new Error("Password should be at least 6 characters");
+          if (db.users.some(u => u.email === email)) throw new Error("User already registered");
+          const u = { id: crypto.randomUUID(), email, nickname, pw: await hash(password) };
+          db.users.push(u); db.session = u.id; save(); emit();
+          return { needsEmailConfirm: false };
+        },
+        async signIn(email, password) {
+          const u = db.users.find(x => x.email === email);
+          if (!u || u.pw !== await hash(password)) throw new Error("Invalid login credentials");
+          db.session = u.id; save(); emit();
+        },
+        async signOut() { db.session = null; save(); emit(); },
+        async listPins(station) {
+          return db.pins.filter(p => p.station === station)
+            .map(p => ({ ...p, owner_name: (db.users.find(u => u.id === p.owner_id) || {}).nickname || null }));
+        },
+        async insertPin(row) {
+          const u = need();
+          const p = { ...row, id: crypto.randomUUID(), owner_id: u.id, created_at: now(), updated_at: now() };
+          db.pins.push(p); save(); return p;
+        },
+        async updatePin(id, row) {
+          const u = need(); const p = db.pins.find(x => x.id === id);
+          if (!p || p.owner_id !== u.id) throw new Error("내가 등록한 핀만 수정할 수 있어요(권한 없음).");
+          Object.assign(p, row, { updated_at: now() }); save(); return p;
+        },
+        async deletePin(id) {
+          const u = need(); const p = db.pins.find(x => x.id === id);
+          if (!p || p.owner_id !== u.id) throw new Error("내가 등록한 핀만 삭제할 수 있어요(권한 없음).");
+          db.pins = db.pins.filter(x => x.id !== id);
+          db.favorites = db.favorites.filter(f => f.pin_id !== id);
+          db.memos.forEach(m => { if (m.pin_id === id) m.pin_id = null; });
+          save();
+        },
+        async listFavorites() { const u = me(); return u ? db.favorites.filter(f => f.user_id === u.id).map(f => f.pin_id) : []; },
+        async addFavorite(pinId) {
+          const u = need();
+          if (!db.favorites.some(f => f.user_id === u.id && f.pin_id === pinId)) { db.favorites.push({ user_id: u.id, pin_id: pinId }); save(); }
+        },
+        async removeFavorite(pinId) { const u = need(); db.favorites = db.favorites.filter(f => !(f.user_id === u.id && f.pin_id === pinId)); save(); },
+        async listMemos() {
+          const u = me();
+          return u ? db.memos.filter(m => m.owner_id === u.id).sort((a, b) => b.updated_at.localeCompare(a.updated_at)) : [];
+        },
+        async insertMemo(row) {
+          const u = need(); const m = { ...row, id: crypto.randomUUID(), owner_id: u.id, created_at: now(), updated_at: now() };
+          db.memos.push(m); save(); return m;
+        },
+        async updateMemo(id, row) {
+          const u = need(); const m = db.memos.find(x => x.id === id && x.owner_id === u.id);
+          if (!m) throw new Error("내 메모만 수정할 수 있어요(권한 없음).");
+          Object.assign(m, row, { updated_at: now() }); save(); return m;
+        },
+        async deleteMemo(id) { const u = need(); db.memos = db.memos.filter(x => !(x.id === id && x.owner_id === u.id)); save(); },
+        async uploadPhoto(dataUrl) { return dataUrl; },   // 체험 모드는 사진을 data URL 그대로 저장
+        async deletePhoto() {},
+      };
+    }
+
+    // 서버 주소가 설정돼 있는데 Supabase 라이브러리를 못 불러왔으면(네트워크·차단·무결성 검사 실패) 체험 모드로 몰래 바꾸지 않는다.
+    // 체험 모드로 바뀌면 사용자는 서버에 저장된다고 믿지만 실제로는 이 기기에만 저장되기 때문이다.
+    function createUnavailableBackend() {
+      const fail = async () => { throw new Error("서버에 연결하지 못했어요. 인터넷 연결을 확인하고 새로고침해 주세요."); };
+      return {
+        demo: false, unavailable: true,
+        async currentUser() { return null; },
+        onAuthChange() {},
+        signUp: fail, signIn: fail, signOut: fail, listPins: fail, insertPin: fail, updatePin: fail, deletePin: fail,
+        async listFavorites() { return []; }, addFavorite: fail, removeFavorite: fail,
+        async listMemos() { return []; }, insertMemo: fail, updateMemo: fail, deleteMemo: fail,
+        uploadPhoto: fail, async deletePhoto() {},
+      };
+    }
+
+    const SUPABASE_CONFIGURED = !!(SUPABASE_URL && SUPABASE_ANON_KEY);
+    const Backend = !SUPABASE_CONFIGURED ? createLocalDemoBackend()
+      : window.supabase ? createSupabaseBackend()
+      : createUnavailableBackend();
+
+    // ---- 핀 데이터 ----
+    function rowToPin(r) {
+      return {
+        id: r.id, title: r.title, category: r.category, desc: r.description || "", floor: r.floor,
+        realX3d: r.real_x, realZ3d: r.real_z, x: r.x2d, y: r.y2d,
+        photo: safePhotoUrl(r.photo_url) || undefined,
+        ownerId: r.owner_id || null, ownerName: r.owner_name || null, createdAt: r.created_at, cloud: true,
+      };
+    }
+    function isMyPin(pin) { return !!(currentUser && pin && pin.ownerId && pin.ownerId === currentUser.id); }
+    function isFavorite(pin) { return !!(pin && favoriteIds.has(String(pin.id))); }
+    function getGangnamPins() { return STATION_PINS_DB["강남역"] || []; }
+
+    async function reloadPins() {
+      try {
+        const rows = await Backend.listPins("강남역");
+        STATION_PINS_DB["강남역"] = [...STATIC_GANGNAM_PINS, ...rows.map(rowToPin)];
+      } catch (e) {
+        console.warn("[핀] 불러오기 실패:", e);
+        showToast("핀을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.");
+      }
+      refreshPinViews();
+    }
+
+    // 핀 목록·지도를 지금 데이터와 필터(내 핀만 보기 포함)로 다시 그린다
+    function refreshPinViews() {
+      const q = document.getElementById("explore-search-input");
+      renderExplorePinsList(q ? q.value.trim() : "");
+      if (isThreeInitialized) syncPinsTo3D();
+    }
+
+    // ---- 로그인 상태 ----
+    async function applyAuthUser(user) {
+      const changed = (currentUser && currentUser.id) !== (user && user.id);
+      currentUser = user;
+      if (changed) {
+        favoriteIds = new Set();
+        myMemos = [];
+        if (user) {
+          try { favoriteIds = new Set((await Backend.listFavorites()).map(String)); }
+          catch (e) { console.warn("[즐겨찾기] 불러오기 실패:", e); }
+        } else if (myPinsOnly) {
+          setMyPinsOnly(false);
+        }
+      }
+      document.querySelectorAll(".nav-user-circle").forEach(el => {
+        el.title = user ? `마이페이지 (${user.nickname})` : "로그인";
+        el.classList.toggle("signed-in", !!user);
+      });
+      refreshPinViews();
+      if (isSubpageOpen("mypage")) renderMypage();
+      if (isSubpageOpen("memo")) renderMemoPage();
+      if (isSubpageOpen("community")) renderCommunity();
+      if (pinModal.open && currentEditingPin) applyPinModalPermissions(currentEditingPin);
+    }
+
+    function isSubpageOpen(tab) {
+      const el = document.getElementById("subpage-" + tab);
+      return !!el && el.style.display === "flex";
+    }
+    function openSubpage(tab) {
+      if (isSubpageOpen(tab)) toggleSubpage(null);
+      toggleSubpage(tab);
+    }
+
+    // ---- 핀 창 권한: 내가 등록한 핀만 수정·삭제, 다른 사람 핀은 읽기 + 즐겨찾기 ----
+    function applyPinModalPermissions(pin) {
+      const editable = !pin || isMyPin(pin);
+      pinModal.classList.toggle("readonly", !editable);
+      [pinTitleInput, pinDescInput, pinCatSelect].forEach(el => { el.disabled = !editable; });
+      btnSavePin.style.display = editable ? "block" : "none";
+      btnDeletePin.style.display = pin && editable ? "block" : "none";
+      // 읽기 전용인데 사진이 없으면 사진 칸 자체를 숨긴다
+      document.querySelector("#pin-modal .pin-photo-field").hidden = !editable && !(pin && pin.photo);
+
+      const metaRow = document.getElementById("pin-meta-row");
+      metaRow.hidden = !pin;
+      if (!pin) return;
+      document.getElementById("pin-modal-title").innerText =
+        `📍 [${pin.floor}] ${editable ? "핀 정보 및 수정" : "핀 정보"}`;
+      document.getElementById("pin-owner-label").textContent =
+        isMyPin(pin) ? "👤 내가 등록한 핀" : pin.ownerId ? `👤 등록: ${pin.ownerName || "알 수 없음"}` : "📌 sub note 공식 핀";
+      const favBtn = document.getElementById("btn-pin-favorite");
+      favBtn.hidden = !pin.cloud || isMyPin(pin);
+      favBtn.setAttribute("aria-pressed", String(isFavorite(pin)));
+      favBtn.textContent = isFavorite(pin) ? "★ 즐겨찾기됨" : "☆ 즐겨찾기";
+    }
+
+    // ---- 즐겨찾기 ----
+    async function toggleFavorite(pin) {
+      if (!currentUser) { openLoginRequiredSheet("즐겨찾기는 로그인 후 이용할 수 있어요."); return false; }
+      const id = String(pin.id);
+      const was = favoriteIds.has(id);
+      try {
+        if (was) await Backend.removeFavorite(pin.id); else await Backend.addFavorite(pin.id);
+        if (was) favoriteIds.delete(id); else favoriteIds.add(id);
+        showToast(was ? "즐겨찾기에서 뺐어요." : "즐겨찾기에 추가했어요. 내 핀만 보기에서도 보여요.");
+        refreshPinViews();
+        return true;
+      } catch (e) {
+        console.warn("[즐겨찾기] 변경 실패:", e);
+        showToast(friendlyError(e, "즐겨찾기를 바꾸지 못했어요."));
+        return false;
+      }
+    }
+    async function toggleFavoriteFromModal() {
+      if (!currentEditingPin) return;
+      await toggleFavorite(currentEditingPin);
+      if (pinModal.open) applyPinModalPermissions(currentEditingPin);
+    }
+
+    // ---- 내 핀만 보기 (도구 버튼 팝오버의 토글) ----
+    function setMyPinsOnly(on) {
+      myPinsOnly = on;
+      document.getElementById("switch-my-pins").setAttribute("aria-checked", String(on));
+      refreshPinViews();
+    }
+    function toggleMyPinsOnly() {
+      if (!myPinsOnly && !currentUser) {
+        toolsPopover.style.display = "none";
+        openLoginRequiredSheet("내 핀만 보기는 로그인 후 이용할 수 있어요.");
+        return;
+      }
+      setMyPinsOnly(!myPinsOnly);
+      showToast(myPinsOnly ? "내가 등록한 핀과 즐겨찾기한 핀만 표시해요." : "모든 사람의 핀을 표시해요.");
+    }
+
+    // ---- 로그인 필요 안내 시트 ----
+    const loginSheet = document.getElementById("login-required-sheet");
+    const LOGIN_SHEET_DEFAULT = "핀을 등록하려면 로그인이 필요합니다. 로그인하면 내가 만든 핀을 저장하고 언제든 수정할 수 있어요.";
+    function openLoginRequiredSheet(message) {
+      document.getElementById("login-required-desc").textContent = message || LOGIN_SHEET_DEFAULT;
+      if (pinModal.open) closePinModal();
+      if (!loginSheet.open) loginSheet.show();
+    }
+    function closeLoginRequiredSheet() { if (loginSheet.open) loginSheet.close(); }
+    function goToLoginFromSheet() {
+      closeLoginRequiredSheet();
+      openSubpage("mypage");
+    }
+    // 시트 밖을 탭하면 닫는다 (그 탭으로 지도에서 다른 동작은 하지 않음 - 핀 창과 같은 방식)
+    let loginSheetOutsidePress = null;
+    document.addEventListener("pointerdown", (e) => {
+      loginSheetOutsidePress = (loginSheet.open && !loginSheet.contains(e.target))
+        ? { id: e.pointerId, x: e.clientX, y: e.clientY } : null;
+    }, true);
+    document.addEventListener("pointerup", (e) => {
+      const press = loginSheetOutsidePress;
+      loginSheetOutsidePress = null;
+      if (!press || press.id !== e.pointerId || Math.hypot(e.clientX - press.x, e.clientY - press.y) > 6) return;
+      if (!loginSheet.open) return;
+      pinSheetClosedByThisTap = true;
+      closeLoginRequiredSheet();
+    }, true);
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeLoginRequiredSheet(); });
+
+    // ---- 목록에서 핀 위치로 이동 (커뮤니티·메모) ----
+    function goToPinFromList(pin) {
+      toggleSubpage(null);
+      if (!pinMatchesFilter(pin)) {
+        showToast("지금 필터(탐색·내 핀만 보기) 때문에 지도에 안 보이는 핀이에요.");
+      }
+      if (indoorView.classList.contains("hidden")) {
+        const st = STATIONS_LIST.find(s => s.name === "강남" || s.name === "강남역");
+        if (!st) return;
+        selectStation(st);
+        pendingFocusPin = pin;          // 층 모델을 다 불러온 뒤 이 핀으로 이동한다 (loadFloorGlbModel)
+        enterIndoorView(pin.floor);
+      } else {
+        focusAiPin(pin.id);
+      }
+    }
+
+    // ---- 마이페이지 / 로그인·회원가입 ----
+    let authFormMode = "login";   // "login" | "signup"
+
+    function makeField(labelText, input) {
+      const label = document.createElement("label");
+      label.style.cssText = "display:flex; flex-direction:column; gap:4px; font-size:11px; font-weight:700; color:#64748b;";
+      label.append(labelText, input);
+      return label;
+    }
+    function makeInput(type, name, autocomplete, extra = {}) {
+      const el = document.createElement("input");
+      el.type = type; el.name = name; el.className = "pin-input"; el.autocomplete = autocomplete; el.required = true;
+      Object.assign(el, extra);
+      return el;
+    }
+
+    function buildAuthForm() {
+      const signup = authFormMode === "signup";
+      const form = document.createElement("form");
+      form.className = "account-card";
+      form.noValidate = false;
+      const title = styledEl("h3", "", signup ? "회원가입" : "로그인");
+      const nick = makeInput("text", "nickname", "nickname", { maxLength: 20, placeholder: "커뮤니티에 보일 이름" });
+      const email = makeInput("email", "email", "email", { placeholder: "you@example.com" });
+      const pw = makeInput("password", "password", signup ? "new-password" : "current-password", { minLength: 6, placeholder: "6자 이상" });
+      const err = styledEl("div", "", "");
+      err.className = "account-error";
+      err.setAttribute("role", "alert");
+      const submit = document.createElement("button");
+      submit.type = "submit";
+      submit.className = "btn-pin-action btn-pin-save";
+      submit.textContent = signup ? "가입하기" : "로그인";
+      const switchBtn = document.createElement("button");
+      switchBtn.type = "button";
+      switchBtn.className = "link-btn";
+      switchBtn.textContent = signup ? "이미 계정이 있어요 → 로그인" : "처음이에요 → 회원가입";
+      switchBtn.onclick = () => { authFormMode = signup ? "login" : "signup"; renderMypage(); };
+
+      form.append(title);
+      if (Backend.demo) {
+        form.append(styledEl("p", "", "⚠️ 체험 모드: 서버 연결 전이라 계정·핀·메모가 이 브라우저에만 저장돼요. 다른 기기·사람에게는 보이지 않아요."));
+        form.lastChild.className = "demo-badge";
+      }
+      if (signup) form.append(makeField("닉네임", nick));
+      form.append(makeField("이메일", email), makeField("비밀번호", pw), err, submit, switchBtn);
+
+      form.onsubmit = async (e) => {
+        e.preventDefault();
+        err.textContent = "";
+        const emailVal = email.value.trim().toLowerCase();
+        if (signup && !nick.value.trim()) { err.textContent = "닉네임을 입력해 주세요."; return; }
+        if (!emailVal || !pw.value) { err.textContent = "이메일과 비밀번호를 입력해 주세요."; return; }
+        submit.disabled = true;
+        try {
+          if (signup) {
+            const r = await Backend.signUp(emailVal, pw.value, nick.value.trim());
+            if (r.needsEmailConfirm) {
+              authFormMode = "login";
+              renderMypage();
+              showToast("가입 확인 메일을 보냈어요. 메일의 링크를 누른 뒤 로그인해 주세요.");
+              return;
+            }
+            showToast(`${nick.value.trim()}님, 가입을 환영해요!`);
+          } else {
+            await Backend.signIn(emailVal, pw.value);
+            showToast("로그인했어요.");
+          }
+          authFormMode = "login";
+        } catch (ex) {
+          console.warn("[계정]", ex);
+          err.textContent = friendlyError(ex);
+        } finally {
+          submit.disabled = false;
+        }
+      };
+      return form;
+    }
+
+    function renderMypage() {
+      const box = document.getElementById("mypage-content");
+      document.getElementById("mypage-heading").textContent = currentUser ? "마이페이지" : (authFormMode === "signup" ? "회원가입" : "로그인");
+      if (!currentUser) { box.replaceChildren(buildAuthForm()); return; }
+
+      const card = document.createElement("div");
+      card.className = "account-card";
+      const avatar = styledEl("div", "width:44px; height:44px; border-radius:50%; background:#e4f6ef; color:#367b67; display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:800; flex-shrink:0;",
+        (currentUser.nickname || "?").slice(0, 1));
+      const who = styledEl("div", "min-width:0;", [
+        styledEl("b", "font-size:15px; color:#0f172a;", currentUser.nickname),
+        styledEl("p", "font-size:11px; color:#94a3b8; margin-top:2px; overflow-wrap:anywhere;", currentUser.email),
+      ]);
+      const myPinCount = getGangnamPins().filter(isMyPin).length;
+      const memoCount = styledEl("b", "", "…");
+      const stats = document.createElement("div");
+      stats.className = "stat-row";
+      stats.append(
+        styledEl("div", "", [styledEl("b", "", String(myPinCount)), styledEl("span", "", "내 핀")]),
+        styledEl("div", "", [styledEl("b", "", String(favoriteIds.size)), styledEl("span", "", "즐겨찾기")]),
+        styledEl("div", "", [memoCount, styledEl("span", "", "메모")]),
+      );
+      const logout = document.createElement("button");
+      logout.type = "button";
+      logout.className = "btn-pin-action btn-pin-cancel";
+      logout.textContent = "로그아웃";
+      logout.onclick = async () => {
+        logout.disabled = true;
+        try {
+          await Backend.signOut();
+          if (currentUser) await applyAuthUser(null);   // 세션이 이미 없어 로그아웃 이벤트가 안 오는 경우에도 화면을 로그아웃 상태로
+          showToast("로그아웃했어요.");
+        }
+        catch (e) { showToast(friendlyError(e)); logout.disabled = false; }
+      };
+      card.append(styledEl("div", "display:flex; align-items:center; gap:12px;", [avatar, who]), stats);
+      if (Backend.demo) {
+        const note = styledEl("p", "", "⚠️ 체험 모드: 이 브라우저에만 저장돼요 (서버 연결 전).");
+        note.className = "demo-badge";
+        card.append(note);
+      }
+      card.append(logout);
+      box.replaceChildren(card);
+      Backend.listMemos().then(m => { myMemos = m; memoCount.textContent = String(m.length); }).catch(() => { memoCount.textContent = "-"; });
+    }
+
+    // 로그인이 필요한 화면에 넣는 안내 카드
+    function loginPromptCard(message) {
+      const card = document.createElement("div");
+      card.className = "account-card";
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "btn-pin-action btn-pin-save";
+      btn.textContent = "로그인하기";
+      btn.onclick = () => openSubpage("mypage");
+      card.append(styledEl("p", "font-size:13px; color:#334155; line-height:1.5;", message), btn);
+      return card;
+    }
+
+    // ---- 커뮤니티: 모든 사람이 등록한 핀 ----
+    function formatDate(iso) {
+      const d = new Date(iso);
+      return isNaN(d) ? "" : `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getDate()).padStart(2, "0")}`;
+    }
+
+    async function renderCommunity() {
+      const list = document.getElementById("community-card-list");
+      if (!list.childElementCount) list.replaceChildren(styledEl("p", "", "불러오는 중…"));
+      await reloadPins();
+      const pins = getGangnamPins().filter(p => p.cloud)
+        .sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")));
+      if (!pins.length) {
+        const empty = styledEl("p", "", "아직 등록된 핀이 없어요. 실내 지도에서 빈 곳을 눌러 첫 핀을 남겨보세요.");
+        empty.className = "empty-note";
+        list.replaceChildren(empty);
+        return;
+      }
+      list.replaceChildren(...pins.map(buildCommunityCard));
+    }
+
+    function buildCommunityCard(pin) {
+      const mine = isMyPin(pin);
+      const card = document.createElement("div");
+      card.className = "comm-card";
+      card.tabIndex = 0;
+      card.setAttribute("role", "button");
+      card.setAttribute("aria-expanded", "false");
+
+      const titleEl = styledEl("b", "", pin.title);
+      if (mine) { const tag = styledEl("span", "", "내 핀"); tag.className = "mine-tag"; titleEl.append(tag); }
+      const head = styledEl("div", "", [titleEl]);
+      head.className = "comm-card-head";
+      if (!mine) {
+        const fav = document.createElement("button");
+        fav.type = "button";
+        fav.className = "fav-btn";
+        const paint = () => {
+          fav.setAttribute("aria-pressed", String(isFavorite(pin)));
+          fav.textContent = isFavorite(pin) ? "★" : "☆";
+          fav.setAttribute("aria-label", isFavorite(pin) ? "즐겨찾기 해제" : "즐겨찾기");
+        };
+        paint();
+        fav.onclick = async (e) => { e.stopPropagation(); await toggleFavorite(pin); paint(); };
+        head.append(fav);
       }
 
-      closePinModal();
-      renderExplorePinsList();
-      syncPinsTo3D();
+      const excerpt = styledEl("p", "", pin.desc || "설명이 없어요.");
+      excerpt.className = "excerpt";
+      const cat = normalizeCategory(pin.category);
+      const meta = styledEl("div", "", `${getCategoryEmoji(cat)} ${cat} · ${pin.floor} · ${mine ? "나" : (pin.ownerName || "알 수 없음")}`);
+      meta.className = "meta";
+
+      const detail = document.createElement("div");
+      detail.className = "detail";
+      if (pin.photo) {
+        const img = document.createElement("img");
+        img.src = pin.photo;
+        img.alt = `${pin.title} 사진`;
+        img.loading = "lazy";
+        detail.append(img);
+      }
+      detail.append(styledEl("small", "", `${getCategoryGroup(cat).label} > ${cat} · 등록일 ${formatDate(pin.createdAt)}`));
+      const go = document.createElement("button");
+      go.type = "button";
+      go.className = "pin-chip-btn";
+      go.textContent = "📍 지도에서 위치 보기";
+      go.onclick = (e) => { e.stopPropagation(); goToPinFromList(pin); };
+      detail.append(go);
+
+      const toggle = () => {
+        const open = card.classList.toggle("open");
+        card.setAttribute("aria-expanded", String(open));
+      };
+      card.onclick = toggle;
+      card.onkeydown = (e) => {
+        if (e.target !== card) return;
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(); }
+      };
+      card.append(head, excerpt, meta, detail);
+      return card;
     }
 
-    function deleteCurrentPin() {
-      if (!currentEditingPin) return;
-      const title = currentEditingPin.title;
-      const stName = currentSelectedStation ? currentSelectedStation.name : "강남역";
-      STATION_PINS_DB[stName] = STATION_PINS_DB[stName].filter(p => p.id !== currentEditingPin.id);
-      closePinModal();
-      renderExplorePinsList();
-      syncPinsTo3D();
-      showToast(`'${title}' 핀이 삭제되었습니다.`);
+    // ---- 메모: 제목·내용·사진·관련 핀 (나만 보기) ----
+    let editingMemo = null;
+    let memoPhotoDraft = null;
+    const memoEditor = document.getElementById("memo-editor");
+    const btnNewMemo = document.getElementById("btn-new-memo");
+
+    async function renderMemoPage() {
+      const list = document.getElementById("memo-card-list");
+      if (!currentUser) {
+        btnNewMemo.hidden = true;
+        memoEditor.hidden = true;
+        list.replaceChildren(loginPromptCard("메모는 로그인 후 작성할 수 있어요. 메모는 나만 볼 수 있어요."));
+        return;
+      }
+      btnNewMemo.hidden = !memoEditor.hidden;
+      try { myMemos = await Backend.listMemos(); }
+      catch (e) { console.warn("[메모] 불러오기 실패:", e); showToast("메모를 불러오지 못했어요."); }
+      if (!myMemos.length) {
+        const empty = styledEl("p", "", "아직 메모가 없어요. ＋ 새 메모로 첫 기록을 남겨보세요.");
+        empty.className = "empty-note";
+        list.replaceChildren(empty);
+        return;
+      }
+      list.replaceChildren(...myMemos.map(buildMemoCard));
     }
+
+    function buildMemoCard(memo) {
+      const card = document.createElement("div");
+      card.className = "memo-card";
+      card.tabIndex = 0;
+      card.setAttribute("role", "button");
+      card.setAttribute("aria-label", `메모 '${memo.title}' 열기`);
+      const photo = safePhotoUrl(memo.photo_url);
+      if (photo) {
+        const img = document.createElement("img");
+        img.src = photo; img.alt = ""; img.loading = "lazy";
+        card.append(img);
+      }
+      const text = document.createElement("div");
+      text.className = "memo-text";
+      text.append(styledEl("b", "", memo.title), styledEl("p", "", memo.body || ""));
+      const pin = memo.pin_id ? findPinById(memo.pin_id) : null;
+      if (pin) {
+        const chip = document.createElement("button");
+        chip.type = "button";
+        chip.className = "pin-chip-btn";
+        chip.textContent = `📍 ${pin.floor} ${pin.title}`;
+        chip.onclick = (e) => { e.stopPropagation(); goToPinFromList(pin); };
+        text.append(chip);
+      }
+      text.append(styledEl("small", "font-size:10px; color:#94a3b8;", formatDate(memo.updated_at)));
+      card.append(text);
+      card.onclick = () => openMemoEditor(memo);
+      card.onkeydown = (e) => { if (e.target === card && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); openMemoEditor(memo); } };
+      return card;
+    }
+
+    function fillMemoPinSelect(selectedId) {
+      const sel = document.getElementById("memo-pin-select");
+      const none = document.createElement("option");
+      none.value = ""; none.textContent = "관련 핀 없음";
+      // 관련 핀은 서버에 저장된 핀만 고를 수 있다 (메모가 핀 id를 참조하므로)
+      const pins = getGangnamPins().filter(p => p.cloud)
+        .sort((a, b) => a.floor.localeCompare(b.floor) || a.title.localeCompare(b.title));
+      sel.replaceChildren(none, ...pins.map(p => {
+        const o = document.createElement("option");
+        o.value = String(p.id);
+        o.textContent = `[${p.floor}] ${p.title}${isMyPin(p) ? " (내 핀)" : isFavorite(p) ? " ★" : ""}`;
+        return o;
+      }));
+      sel.value = selectedId && pins.some(p => String(p.id) === String(selectedId)) ? String(selectedId) : "";
+    }
+
+    function openMemoEditor(memo) {
+      if (!currentUser) { openSubpage("mypage"); return; }
+      editingMemo = memo;
+      document.getElementById("memo-title-input").value = memo ? memo.title : "";
+      document.getElementById("memo-body-input").value = memo ? (memo.body || "") : "";
+      setMemoPhotoDraft(memo ? safePhotoUrl(memo.photo_url) : null);
+      fillMemoPinSelect(memo ? memo.pin_id : null);
+      document.getElementById("btn-delete-memo").hidden = !memo;
+      memoEditor.hidden = false;
+      btnNewMemo.hidden = true;
+      document.getElementById("memo-title-input").focus();
+      memoEditor.scrollIntoView({ block: "nearest" });
+    }
+
+    function closeMemoEditor() {
+      memoEditor.hidden = true;
+      editingMemo = null;
+      btnNewMemo.hidden = !currentUser;
+    }
+
+    function setMemoPhotoDraft(src) {
+      memoPhotoDraft = src || null;
+      const preview = document.getElementById("memo-photo-preview");
+      preview.replaceChildren();
+      if (memoPhotoDraft) {
+        const img = document.createElement("img");
+        img.src = memoPhotoDraft; img.alt = "메모 사진";
+        preview.append(img);
+      } else {
+        preview.textContent = "📷";
+      }
+      document.getElementById("btn-memo-photo-pick").textContent = memoPhotoDraft ? "📷 사진 바꾸기" : "📷 사진 추가";
+      document.getElementById("btn-memo-photo-remove").style.display = memoPhotoDraft ? "block" : "none";
+    }
+
+    function onMemoPhotoSelected(input) {
+      const file = input.files && input.files[0];
+      input.value = "";
+      if (!file) return;
+      if (!file.type.startsWith("image/")) { showToast("사진 파일만 넣을 수 있어요."); return; }
+      resizeImageFile(file, PIN_PHOTO_MAX_PX, PIN_PHOTO_QUALITY)
+        .then(setMemoPhotoDraft)
+        .catch(() => showToast("사진을 불러오지 못했어요. 다른 사진으로 시도해 주세요."));
+    }
+
+    async function saveMemo() {
+      if (!currentUser) { openSubpage("mypage"); return; }
+      const title = document.getElementById("memo-title-input").value.trim();
+      if (!title) { showToast("메모 제목을 입력해 주세요."); return; }
+      const btn = document.getElementById("btn-save-memo");
+      btn.disabled = true;
+      try {
+        let photoUrl = memoPhotoDraft;
+        if (photoUrl && photoUrl.startsWith("data:")) photoUrl = await Backend.uploadPhoto(photoUrl, currentUser.id);
+        const row = {
+          title,
+          body: document.getElementById("memo-body-input").value.trim(),
+          photo_url: photoUrl || null,
+          pin_id: document.getElementById("memo-pin-select").value || null,
+        };
+        if (editingMemo) {
+          const oldPhoto = editingMemo.photo_url;
+          await Backend.updateMemo(editingMemo.id, row);
+          if (oldPhoto && oldPhoto !== row.photo_url) Backend.deletePhoto(oldPhoto).catch(() => {});
+          showToast("메모를 수정했어요.");
+        } else {
+          await Backend.insertMemo(row);
+          showToast("메모를 저장했어요.");
+        }
+        closeMemoEditor();
+        renderMemoPage();
+      } catch (e) {
+        console.warn("[메모] 저장 실패:", e);
+        showToast(friendlyError(e, "메모를 저장하지 못했어요."));
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    async function deleteMemo() {
+      if (!editingMemo) return;
+      if (!confirm(`'${editingMemo.title}' 메모를 삭제할까요? 되돌릴 수 없어요.`)) return;
+      try {
+        await Backend.deleteMemo(editingMemo.id);
+        if (editingMemo.photo_url) Backend.deletePhoto(editingMemo.photo_url).catch(() => {});
+        showToast("메모를 삭제했어요.");
+        closeMemoEditor();
+        renderMemoPage();
+      } catch (e) {
+        showToast(friendlyError(e, "메모를 삭제하지 못했어요."));
+      }
+    }
+
+    // ---- 시작: 로그인 상태 확인 → 핀 불러오기 ----
+    (async function initAccount() {
+      Backend.onAuthChange(user => { applyAuthUser(user); });
+      try { await applyAuthUser(await Backend.currentUser()); }
+      catch (e) { console.warn("[계정] 로그인 상태 확인 실패:", e); }
+      await reloadPins();
+      if (Backend.demo) console.info("[계정] 체험 모드: SUPABASE_URL·SUPABASE_ANON_KEY가 비어 있어 이 브라우저에만 저장합니다.");
+      if (Backend.unavailable) showToast("서버에 연결하지 못해 로그인·핀 저장을 쓸 수 없어요. 새로고침해 주세요.");
+    })();
 
     // 모바일 접속 시 첫 화면 터치로 브라우저 상/하단 UI 전체화면 숨김 처리
     function enableFullScreenOnMobile() {

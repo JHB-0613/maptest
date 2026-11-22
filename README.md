@@ -49,7 +49,28 @@
 
 * 위치는 `realX3d`/`realZ3d`로 넣으면 된다. 높이(Y)는 `getSurfaceHeightAt`이 층 모델 바닥에 자동으로 맞춘다.
 * 좌표를 모를 때는 앱에서 지도를 눌러 핀을 등록한 뒤, 개발자 도구 콘솔에서 `STATION_PINS_DB["강남역"]`을 보면 좌표를 얻을 수 있다.
-* 사용자가 등록한 핀은 메모리에만 있어 새로고침하면 사라진다.
+* 답사 핀을 모두가 보게 하려면 Supabase `pins` 테이블에 `owner_id` 없이 넣는다 (공식 핀: 앱에서는 아무도 수정 못 함).
+
+### 계정·핀 저장 (Supabase)
+* **로그인**: 이메일 + 비밀번호. 마이페이지 버튼 → 로그인 안 했으면 로그인·회원가입, 했으면 마이페이지(내 핀·즐겨찾기·메모 수, 로그아웃).
+* **핀**: 로그인한 사람만 등록할 수 있고, **수정·삭제는 등록한 계정만** 가능하다. 다른 사람 핀은 읽기 전용 + ☆ 즐겨찾기.
+  로그인하지 않고 지도를 누르면 "로그인 후 이용" 안내가 올라온다.
+* **내 핀만 보기**: 도구 버튼(`btn-tool-menu`)의 토글. 켜면 내가 등록한 핀 + 즐겨찾기한 핀만 보인다 (기본은 꺼짐 = 모든 사람의 핀).
+* **커뮤니티**: 모든 사람의 핀을 짧게 보여주고, 누르면 전체 정보(사진·분류·등록일)와 "지도에서 위치 보기" 버튼이 펼쳐진다.
+* **메모**: 제목·내용·사진·관련 핀. **작성한 사람만** 볼 수 있다.
+* 권한은 DB의 RLS 규칙(`supabase/schema.sql`)이 서버에서 강제한다. 화면은 그에 맞춰 버튼을 숨길 뿐이다.
+* **체험 모드**: `index.html`의 `SUPABASE_URL`·`SUPABASE_ANON_KEY`가 비어 있으면 이 브라우저(localStorage)에만 저장하는 가짜 서버로 동작한다.
+
+#### Supabase 설정 순서
+1. [supabase.com](https://supabase.com)에서 새 프로젝트 생성 (리전: Northeast Asia (Seoul))
+2. SQL Editor → `supabase/schema.sql` 전체를 붙여넣고 Run (테이블·권한 규칙·사진 버킷 생성)
+   - 2026-11-22 이전 `schema.sql`로 만든 프로젝트는 `supabase/002_photo_delete_policy.sql`, `003_security_hardening.sql`도
+     순서대로 한 번씩 실행 (사진 삭제 규칙, 수정 가능한 칸 제한·좌표 범위·계정당 개수 제한·업로드 경로 제한)
+   - 공개 서비스로 열 때는 Authentication → Attack Protection에서 가입 CAPTCHA와 요청 제한(rate limit)도 켜는 것을 권장
+3. Authentication → URL Configuration: Site URL에 `https://jhb-0613.github.io/maptest/`, Redirect URLs에 `http://localhost:8080` 추가
+4. (선택) 시연용으로 가입 메일 확인을 끄려면 Authentication → Sign In / Providers → Email → Confirm email 끄기
+5. Project Settings → API의 **Project URL**과 **anon public 키**를 `index.html` 맨 위 `SUPABASE_URL`, `SUPABASE_ANON_KEY`에 넣는다
+   (anon 키는 공개돼도 되는 키다. **service_role 키는 절대 넣지 않는다**)
 
 ---
 
@@ -188,6 +209,10 @@ maptest/
 │   └── subnote.png     # 앱 대표 아이콘
 ├── schemas/
 │   └── ai-chat.v0.json # AI 대화 통신 규격 (JSON Schema)
+├── supabase/
+│   ├── schema.sql      # 로그인·핀·즐겨찾기·메모 테이블과 권한(RLS) 규칙. 새 프로젝트는 이것만 실행
+│   ├── 002_photo_delete_policy.sql   # 기존 프로젝트용 추가 규칙 (사진 삭제)
+│   └── 003_security_hardening.sql    # 기존 프로젝트용 추가 규칙 (보안 검토 반영)
 ├── worker/
 │   └── subnote-proxy.js # (사용 안 함) 예전 공공데이터 API 중계 Worker 코드 사본
 ├── ai-backend/         # AI 대화 백엔드 (Vercel)
