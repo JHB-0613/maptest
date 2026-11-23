@@ -1471,6 +1471,8 @@
       </div>
       <!-- 로그인 상태면 프로필, 아니면 로그인·회원가입 폼 (renderMypage가 채운다) -->
       <div id="mypage-content"></div>
+      <!-- 휴대폰 앱이 최신 코드로 열렸는지 확인용. 배포할 때 올린다 -->
+      <p style="margin-top:auto; padding-top:24px; font-size:11px; color:#94a3b8; text-align:center;">앱 버전 2026-11-23c</p>
     </div>
   </div>
 
@@ -5011,7 +5013,8 @@
     
     if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./sw.js')
+      // updateViaCache: 'none' → sw.js도 HTTP 캐시 없이 새로 확인 (수정한 서비스 워커가 바로 적용되게)
+      navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' })
         .then((reg) => console.log('PWA Service Worker 등록 성공:', reg.scope))
         .catch((err) => console.log('PWA Service Worker 등록 실패:', err));
     });
