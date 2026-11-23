@@ -3854,7 +3854,6 @@
     }, true);
 
     document.addEventListener("keydown", (e) => {
-      // preventDefault: 같은 Esc가 뒤로가기 처리(CloseWatcher)로 또 가서 다음 창까지 닫지 않게
       if (e.key === "Escape" && pinModal.open) { e.preventDefault(); closePinModal(); }
     });
 
@@ -4933,17 +4932,16 @@
     }
 
     /* ========================================================
-       휴대폰 뒤로가기 키
-       - 열린 창·패널(BACK_LAYERS)은 위에서부터 하나씩 닫는다.
+       휴대폰 뒤로가기 키 (history 항목 방식)
+       - 열린 창·패널(BACK_LAYERS) 하나마다 history 항목을 하나씩 쌓고(+ 첫 화면용 바닥 항목 1개, 터치 기기만)
+         뒤로가기로 항목이 빠질 때 오는 popstate에서 맨 위의 것 하나만 닫는다.
          예) 노선도 → 실내 지도 → 마이페이지: 뒤로가기마다 마이페이지 → 실내 지도 → 역 카드 → 종료 안내
-       - 첫 화면(아무것도 안 열림)에서 뒤로가기 → "한 번 더 누르면 종료" 안내. EXIT_BACK_WINDOW_MS 안에
-         한 번 더 누르면 앱이 나가진다 (그동안은 종료 안내용 장치를 치워 둔다).
-       - 방식 1 (안드로이드 Chrome 등, CloseWatcher 지원): 열린 것마다 CloseWatcher를 하나씩 쌓고(맨 아래는 종료 안내용),
-         뒤로가기는 맨 위 watcher의 close 이벤트로 받는다. history 항목을 전혀 넣지 않으므로
-         앱을 열고 아무 조작 없이 뒤로가기를 눌러도 잡힐 수 있다(첫 watcher는 조작 없이도 만들 수 있다. 기기에 따라 안 될 수 있음).
-         ⚠️ PC에서는 Esc도 close 요청이라 창을 닫는다(종료 안내는 터치 기기만).
-       - 방식 2 (미지원 브라우저): 열린 것마다 history 항목을 하나씩 쌓고 popstate로 받는다.
-         Chrome류는 사용자 조작 없이 넣은 항목을 건너뛰므로 항목은 탭·키 직후에만 넣는다.
+       - 첫 화면(아무것도 안 열림)에서 뒤로가기 → "한 번 더 누르면 종료" 안내. 바닥 항목을 다시 넣지 않으므로
+         다음 뒤로가기에 앱이 나가진다. 화면을 다시 탭하면 바닥 항목을 다시 넣는다.
+       - ⚠️ 안드로이드 Chrome은 사용자 조작 없이 넣은 항목을 뒤로가기에서 건너뛴다 → 항목은 탭·키 직후에만 넣는다
+         (popstate·타이머 안에서 pushState 금지). 그래서 앱을 열고 한 번도 탭하지 않았으면 첫 뒤로가기에 바로 나가진다.
+       - ⚠️ CloseWatcher는 쓰지 않는다: 설치한 앱(WebAPK)에서 뒤로가기를 받지 못해 휴대폰에서 동작하지 않았다.
+       - ✕ 버튼 등으로 닫아 열린 것보다 항목이 많아지면 history.go(-n)으로 치운다 (이때 오는 popstate는 무시).
        - 새 창·패널을 추가하면 BACK_LAYERS에 넣는다.
     ======================================================== */
     // 위에서부터 먼저 닫는다. [열려 있나, 닫기]
@@ -4958,115 +4956,55 @@
       [() => !indoorView.classList.contains("hidden"), () => exitIndoorView()],
       [() => stationCard.style.display === "block", () => deselectStation()],
     ];
-    const USE_CLOSE_WATCHER = typeof window.CloseWatcher === "function";
-    // 종료 안내는 휴대폰(터치)에서만. PC에서 Esc를 눌렀는데 종료 안내가 뜨지 않게
-    const WANT_EXIT_CONFIRM = matchMedia("(pointer: coarse)").matches || matchMedia("(display-mode: standalone)").matches;
-    const EXIT_BACK_WINDOW_MS = 2000;   // 종료 안내 뒤 이 시간 안에 한 번 더 누르면 종료 (토스트 표시 시간과 비슷하게)
-    let exitArmed = false;              // 종료 안내가 떠 있는 동안 true → 종료 안내용 장치를 두지 않아 다음 뒤로가기에 나가진다
-    let exitArmTimer = null;
+    // 종료 안내는 휴대폰(터치)에서만. PC 브라우저의 뒤로 버튼은 그대로 이전 페이지로
+    const WANT_EXIT_GUARD = matchMedia("(pointer: coarse)").matches || matchMedia("(display-mode: standalone)").matches;
+    let exitArmed = false;      // 종료 안내를 띄웠으면 true → 바닥 항목을 두지 않아 다음 뒤로가기에 나가진다. 다음 탭에서 풀린다
+    let backDepth = (history.state && history.state.subnoteDepth) || 0;   // 0 = 페이지 처음 항목, 1 = 바닥, 2~ = 열린 창마다
+    let ignoreBackPops = 0;     // history.go(-n)으로 직접 치울 때 오는 popstate 무시용
 
     function countBackLayers() {
       return BACK_LAYERS.filter(([isOpen]) => isOpen()).length;
     }
-    function closeTopBackLayer() {
-      const top = BACK_LAYERS.find(([isOpen]) => isOpen());
-      if (top) top[1]();
-      return !!top;
+    function backTarget() {
+      return (WANT_EXIT_GUARD && !exitArmed ? 1 : 0) + countBackLayers();
     }
-    function wantsExitGuard() {
-      return WANT_EXIT_CONFIRM && !exitArmed;
-    }
-
-    // ---- 방식 1: CloseWatcher ----
-    const backWatchers = [];   // [0] = 종료 안내용(있을 때), 그 위로 열린 창마다 하나
-    let exitWatcher = null;
-    function makeWatcher(onBack) {
-      try {
-        const w = new CloseWatcher();
-        w.onclose = () => {   // 뒤로가기(또는 PC의 Esc)를 받으면 watcher는 스스로 사라진다
-          const i = backWatchers.indexOf(w);
-          if (i >= 0) backWatchers.splice(i, 1);
-          if (w === exitWatcher) exitWatcher = null;
-          onBack();
-          syncBackGuard();
-        };
-        return w;
-      } catch (err) {
-        return null;
-      }
-    }
-    function syncCloseWatchers() {
-      // 맨 아래 종료 안내용
-      if (wantsExitGuard() && !exitWatcher) {
-        exitWatcher = makeWatcher(() => armExitOnNextBack());
-        if (exitWatcher) backWatchers.unshift(exitWatcher);
-      } else if (!wantsExitGuard() && exitWatcher) {
-        backWatchers.splice(backWatchers.indexOf(exitWatcher), 1);
-        exitWatcher.destroy();
-        exitWatcher = null;
-      }
-      // 열린 창 수에 맞춘다 (✕ 버튼으로 닫았거나 하나를 닫으며 딸린 것까지 닫혔으면 위에서부터 치운다)
-      const target = countBackLayers() + (exitWatcher ? 1 : 0);
-      while (backWatchers.length > target) backWatchers.pop().destroy();
-      while (backWatchers.length < target) {
-        const w = makeWatcher(() => closeTopBackLayer());
-        if (!w) break;
-        backWatchers.push(w);
-      }
-    }
-
-    // ---- 방식 2: history 항목 ----
-    let backDepth = (history.state && history.state.subnoteDepth) || 0;   // 0 = 페이지 처음 항목, 1 = 바닥, 2~ = 열린 창마다
-    let ignoreBackPops = 0;     // history.go(-n)으로 직접 치울 때 오는 popstate 무시용
     function goBackSilently(n) {
       backDepth -= n;
       ignoreBackPops++;
       history.go(-n);
     }
-    function syncHistoryGuard() {
-      const target = (wantsExitGuard() ? 1 : 0) + countBackLayers();
+
+    // 탭·키 직후에 부른다 (사용자 조작 중이어야 항목이 건너뛰어지지 않는다)
+    function syncBackGuard() {
+      const target = backTarget();
       while (backDepth < target) {
         backDepth++;
         history.pushState({ subnoteDepth: backDepth }, "");
       }
       if (backDepth > target) goBackSilently(backDepth - target);
     }
-    if (!USE_CLOSE_WATCHER) {
-      window.addEventListener("popstate", (e) => {
-        if (ignoreBackPops > 0) { ignoreBackPops--; return; }
-        backDepth = (e.state && e.state.subnoteDepth) || 0;
-        if (closeTopBackLayer()) {
-          const target = (wantsExitGuard() ? 1 : 0) + countBackLayers();
-          if (backDepth > target) goBackSilently(backDepth - target);
-        } else if (backDepth === 0 && WANT_EXIT_CONFIRM) {
-          armExitOnNextBack();
-        }
-      });
-    }
 
-    function syncBackGuard() {
-      if (USE_CLOSE_WATCHER) syncCloseWatchers();
-      else syncHistoryGuard();
-    }
+    window.addEventListener("popstate", (e) => {
+      if (ignoreBackPops > 0) { ignoreBackPops--; return; }
+      backDepth = (e.state && e.state.subnoteDepth) || 0;
+      const top = BACK_LAYERS.find(([isOpen]) => isOpen());
+      if (top) {
+        top[1]();
+        // 하나를 닫으며 딸린 것까지 닫혔으면(예: 실내 화면을 나가며 탐색 패널도) 남는 항목을 치운다. 새로 넣지는 않는다
+        const target = backTarget();
+        if (backDepth > target) goBackSilently(backDepth - target);
+      } else if (backDepth === 0 && WANT_EXIT_GUARD) {
+        exitArmed = true;
+        showToast("뒤로가기를 한 번 더 누르면 앱이 종료돼요");
+      }
+    });
 
-    function armExitOnNextBack() {
-      exitArmed = true;
-      syncBackGuard();   // 종료 안내용 장치를 치운다 → 다음 뒤로가기는 앱을 나간다
-      showToast("뒤로가기를 한 번 더 누르면 앱이 종료돼요");
-      clearTimeout(exitArmTimer);
-      exitArmTimer = setTimeout(() => {
-        exitArmed = false;
-        syncBackGuard();   // 시간이 지나면 다시 둔다 (history 방식은 조작이 없으면 무시될 수 있어 다음 탭 때 다시 맞춘다)
-      }, EXIT_BACK_WINDOW_MS);
-    }
-
-    // 클릭 처리·창 열기가 끝난 뒤에 맞춘다 (사용자 조작 중이어야 watcher·history 항목이 제대로 쌓인다)
+    // 클릭 처리·창 열기가 끝난 뒤에 맞춘다
+    document.addEventListener("pointerdown", () => { exitArmed = false; }, true);
     const scheduleBackGuardSync = () => setTimeout(syncBackGuard, 0);
     ["click", "pointerup", "keyup", "submit"].forEach(type => document.addEventListener(type, scheduleBackGuardSync));
 
     window.addEventListener("DOMContentLoaded", () => {
-      // 첫 CloseWatcher는 조작 없이도 만들 수 있다 → 열자마자 뒤로가기를 눌러도 종료 안내가 뜬다
-      if (USE_CLOSE_WATCHER) syncBackGuard();
       initStations();
       enableFullScreenOnMobile();
     });
