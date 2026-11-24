@@ -1909,7 +1909,8 @@
     }
 
     // 역별 핀 목록. 강남역 핀은 답사 자료로 다시 넣을 예정이라 지금은 비어 있다.
-    // 사용자가 지도에서 등록한 핀도 여기에 들어간다 (메모리에만 있고 새로고침하면 사라짐).
+    // 앱 시작 시(initAccount)와 커뮤니티를 열 때 reloadPins가 서버(Supabase pins 테이블, 체험 모드는 localStorage) 핀을 받아
+    // STATIC_GANGNAM_PINS 뒤에 붙여 다시 채운다 (로그인 여부와 무관하게 누구나 읽기).
     const STATION_PINS_DB = {
       "강남역": []
     };
@@ -3688,7 +3689,8 @@
 
     /* --------------------------------------------------------
        핀 사진: 고른 사진을 긴 변 PIN_PHOTO_MAX_PX로 줄여 JPEG data URL로 pin.photo에 담는다.
-       - 아직 서버 저장이 없으므로 다른 핀 정보처럼 메모리에만 있다 (새로고침하면 사라짐).
+       - 저장할 때 saveCurrentPin이 data URL을 Backend.uploadPhoto로 Supabase Storage에 올리고 공개 주소를 저장한다
+         (체험 모드는 data URL 그대로 localStorage에 저장).
        - 미리 넣는 사진은 pin.photo에 파일 경로(예: 'photos/gangnam/xxx.jpg')를 적어도 된다.
        - AI 요청에는 사진을 보내지 않는다 (buildAiRequest가 필요한 필드만 고른다).
     -------------------------------------------------------- */
