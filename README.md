@@ -22,6 +22,12 @@
 * **3D 렌더링**: [Three.js](https://threejs.org/) (r128), OrbitControls, GLTFLoader
 * **2D 탑뷰 & 3D 뷰 전환**: `currentIndoorMode` ("2D" / "3D")
 * **PWA 지원**: `manifest.json`, `sw.js` (홈 화면 추가용. 서비스 워커는 네트워크 우선이며 **오프라인 캐시는 하지 않음**)
+  * 페이지 요청은 HTTP 캐시를 거치지 않고 서버에 새로 확인한다 (설치한 앱이 푸시 후에도 예전 코드로 열리던 문제 방지).
+    마이페이지 맨 아래 **앱 버전** 글자로 휴대폰 앱이 최신 코드인지 확인할 수 있다 (배포할 때 올린다).
+  * 앱 아이콘: `logo/icons/` (192·512 일반용, 안드로이드가 잘라 쓰는 maskable용, 아이폰 180, 탭 48). 로고에 흰 여백을 붙여 정사각형으로 만든 것
+* **휴대폰 뒤로가기**: 열린 창·패널이 위에서부터 하나씩 닫힌다 (예: 마이페이지 → 실내 지도 → 역 카드).
+  첫 화면에서는 "한 번 더 누르면 앱이 종료돼요" 안내 후 다음 뒤로가기에 종료. 앱을 열고 한 번도 탭하지 않았으면 첫 뒤로가기에 바로 종료된다
+  (안드로이드 Chrome이 사용자 조작 전에 넣은 방문 기록을 건너뛰기 때문)
 * **모바일 반응형 최적화**: 412px 모바일 목업 컨테이너 및 실제 모바일 브라우저 풀스크린 지원
 * **AI 대화 백엔드**: Vercel 서버리스 함수 (`ai-backend/`, 서울 리전 `icn1`) + Google Gemini (Google 검색 그라운딩)
 * **빌드 도구 없음**: 번들러·패키지 매니저 없이 정적 파일 그대로 배포
@@ -177,6 +183,8 @@ Three.js 모델 파일(`.glb`)과 PWA 서비스 워커는 브라우저 보안 �
 
 ### 3) 수정 시 주의 사항
 * **3D 모델 추가/교체**: `models/gangnam/` 폴더에 위치하며, 층별 높이는 레이캐스터(`getSurfaceHeightAt`)가 자동으로 계산하므로 모델의 Y축 오프셋을 임의로 변경하지 않아도 됩니다.
+* **새 창·패널 추가**: 뒤로가기로 닫히게 하려면 `index.html`의 `BACK_LAYERS`에 [열려 있나, 닫기] 한 줄을 넣는다 (위에 있을수록 먼저 닫힘).
+* **배포 후 휴대폰 확인**: 마이페이지 하단 앱 버전을 올려 두고, 앱을 완전히 껐다 켠 뒤 그 글자가 바뀌었는지 먼저 본다.
 
 ---
 
@@ -185,8 +193,8 @@ Three.js 모델 파일(`.glb`)과 PWA 서비스 워커는 브라우저 보안 �
 ```text
 maptest/
 ├── index.html          # 메인 앱 단일 페이지 (HTML + UI + Three.js 스크립트 전체)
-├── manifest.json       # PWA 매니페스트 설정
-├── sw.js               # 서비스 워커 (네트워크 우선, 오프라인 캐시 없음)
+├── manifest.json       # PWA 매니페스트 설정 (아이콘은 logo/icons/)
+├── sw.js               # 서비스 워커 (네트워크 우선, 페이지는 HTTP 캐시 우회, 오프라인 캐시 없음)
 ├── stations.json       # 수도권 노선도 지하철역 메타데이터
 ├── metroimg.svg        # 2D 전체 지하철 노선도 SVG 벡터
 ├── models/
@@ -209,7 +217,8 @@ maptest/
 │   ├── store_3d.glb
 │   └── trashcan_3d.glb
 ├── logo/
-│   └── subnote.png     # 앱 대표 아이콘
+│   ├── subnote.png     # 헤더 로고 (가로형 원본)
+│   └── icons/          # 앱 아이콘 (icon-192/512, icon-maskable-192/512, apple-touch-icon-180, favicon-48)
 ├── schemas/
 │   └── ai-chat.v0.json # AI 대화 통신 규격 (JSON Schema)
 ├── supabase/
